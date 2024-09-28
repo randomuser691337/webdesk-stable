@@ -1,1 +1,168 @@
-<style>body { color: #fff; background: #000; }</style><p>Tomorrow</p>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="./assets/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="shortcut icon" href="./assets/img/favicon.png">
+    <link rel="apple-touch-icon" href="./assets/img/noround.png">
+    <title>WebDesk</title>
+</head>
+<script>
+    var abt = {
+        lastmod: "Sep 28, 2024",
+        ver: "0.1.0",
+    }
+
+    var sys = {
+        deskid: undefined,
+        setupd: undefined,
+        migrid: 1,
+        autodarkacc: undefined,
+        webdrop: true,
+        name: "Default User",
+        model: undefined,
+        nvol: 1.0,
+        installer: undefined,
+        peer: undefined,
+        currentf: undefined,
+    }
+
+    var el = {
+        taskbar: undefined,
+        sm: undefined,
+        tr: undefined,
+        cc: undefined,
+    }
+</script>
+
+<body>
+    <div id="background"></div>
+    <div class="circle"></div>
+    <div class="circle2"></div>
+    <div id="setuparea">
+    </div>
+    <div id="notif"></div>
+    <div id="death"
+        style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000;">
+    </div>
+</body>
+
+</html>
+<script src="./assets/code/vals.js"></script>
+<script src="./assets/lib/jq.js"></script>
+<script src="./assets/lib/jszip.js"></script>
+<script src="./assets/lib/peer.js"></script>
+<script src="./assets/lib/picker.js"></script>
+<script src="./assets/code/core.js"></script>
+<script src="./assets/code/wm.js"></script>
+<script src="./assets/code/services.js"></script>
+<script src="./assets/code/ui.js"></script>
+<script src="./assets/code/fs.js"></script>
+<script src="./assets/code/apps.js"></script>
+<script>
+    async function boot() {
+        const migcheck = await fs.read('/system/migval');
+        const sd = await fs.read('/user/info/name');
+        if (sd && !migcheck) {
+            const deskid = await fs.read('/system/deskid');
+            const darkpref = await fs.read('/user/info/lightdarkpref');
+            const lightdark = await fs.read('/user/info/lightdark');
+            const color = await fs.read('/user/info/color');
+            await wd.desktop(sd, deskid, 'wait');
+            await ptp.go(deskid);
+            sys.setupd = true;
+            sys.name = sd;
+            if (darkpref === "auto") {
+                sys.autodarkacc = true;
+            } else {
+                sys.autodarkacc = false;
+            }
+            if (lightdark === "dark") {
+                wd.dark();
+            } else if (lightdark === "clear") {
+                wd.clearm();
+            } else if (lightdark === "clear2") {
+                wd.clearm2();
+            } else {
+                wd.light();
+            }
+            ui.crtheme(color);
+            const data = await fs.read('/system/apps.json');
+            if (data) {
+                const apps = JSON.parse(data);
+
+                const response = await fetch('https://appmarket.meower.xyz/refresh');
+                const onlineApps = await response.json();
+                apps.forEach(inapp => {
+                    const onlineApp = onlineApps.find(app => app.name === inapp.name);
+
+                    if (onlineApp.ver === inapp.ver) {
+                        eval(inapp.exec);
+                        console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
+                    } else {
+                        const remove = apps.filter(item => item.id !== inapp.id);
+                        const removed = JSON.stringify(remove);
+                        fs.write('/system/apps.json', removed);
+                        app.appmark.create(onlineApp.path, onlineApp, true);
+                        console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
+                    }
+                });
+            }
+        } else if (migcheck === "down") {
+            const id = gen(8);
+            await ptp.go(id);
+            ui.crtheme('#010101', true);
+            wd.dark();
+            await fs.del('/system/migval');
+            app.migrate.init('down');
+        } else {
+            const id = gen(8);
+            await ptp.go(id);
+            await fs.write('/system/deskid', id);
+            app.setup.init();
+            sys.setupd = false;
+        }
+
+        ui.hide(document.getElementById('death'), 300);
+
+        const dropZone = document.body;
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+
+            handleFiles(files);
+        }
+
+        async function handleFiles(files) {
+            let filesArray = [...files];
+            filesArray.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = async function (e) {
+                    const contents = e.target.result;
+                    await fs.write(`/user/files/${file.name}`, contents);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    function reboot() {
+        window.location.reload();
+    }
+</script>
