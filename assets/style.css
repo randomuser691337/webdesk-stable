@@ -13,10 +13,11 @@
     --bl1: 14px;
     --bl2: 9px;
     --rad1: 15px;
-    --rad2: 11px;
-    --rad3: 7px;
+    --rad2: 12px;
+    --rad3: 9px;
     --fz1: 15px;
     --fz2: 12px;
+    --fz3: 10px;
     --inv: 0;
     --wina: 0px;
 }
@@ -79,17 +80,6 @@ button {
     cursor: pointer;
     font-family: 'PoppinsM', Arial;
     color: var(--font);
-}
-
-#fucked {
-    position: fixed;
-    left: 0px;
-    top: 0px;
-    bottom: 0px;
-    right: 0px;
-    background-color: #000;
-    z-index: 9999;
-    display: none;
 }
 
 .center {
@@ -186,7 +176,7 @@ p {
     border-radius: var(--rad1);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 150px 30px;
     border: 1px solid var(--bc);
-    max-width: 85vw;
+    max-width: 90vw;
     max-height: 90vh;
     width: auto;
     height: auto;
@@ -270,7 +260,7 @@ p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 2px;
+    padding: 3px;
     border-radius: var(--rad2);
     text-align: left;
     margin-bottom: 6px;
@@ -316,7 +306,7 @@ p {
 }
 
 .b1 {
-    background-color: rgba(var(--acc), 0.37);
+    background-color: rgba(var(--acc), 0.40);
     border-radius: var(--rad2);
     font-size: var(--fz1);
     padding: 4px 7px;
@@ -329,18 +319,18 @@ p {
 
 .b1:hover {
     box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 20px 4px;
-    border: 2px solid rgba(var(--acc), 0.4);
+    border: 2px solid rgba(var(--acc), 0.5);
 }
 
 .b1:active {
     transform: scale(0.88);
-    background-color: rgba(var(--acc), 0.30);
+    background-color: rgba(var(--acc), 0.35);
 }
 
 .b3 {
     padding: 2px 6px;
     border-radius: 8px;
-    background-color: rgba(var(--accent), 0.25);
+    background-color: rgba(var(--accent), 0.3);
     font-size: var(--fz1);
     border: 1px solid transparent;
     cursor: pointer;
@@ -349,7 +339,7 @@ p {
 }
 
 .b3:hover {
-    border: 1px solid rgba(var(--accent), 0.35);
+    border: 1px solid rgba(var(--accent), 0.45);
 }
 
 .b3:active {
@@ -357,6 +347,17 @@ p {
     border-color: rgba(var(--accent), 0.8);
     transform: scale(0.90);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.b5 {
+    padding: 2px;
+    border-radius: 8px;
+    background-color: rgba(var(--accent), 0.5);
+    font-size: var(--fz2);
+    border: none;
+    cursor: pointer;
+    transition: all 0.05s ease-in-out;
+    margin-left: 4px;
 }
 
 .b4 {
@@ -572,8 +573,8 @@ p {
 .i1 {
     padding: 5px 7px;
     border-radius: var(--rad2);
-    border: 2px solid rgba(var(--accent), 0.42);
-    background-color: rgba(var(--accent), 0.25);
+    border: 2px solid rgba(var(--accent), 0.5);
+    background-color: rgba(var(--acc), 0.4);
     font-size: var(--fz1);
     color: var(--fontc);
     width: 100%;
@@ -675,34 +676,41 @@ p {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    left: 4px;
-    bottom: 4px;
-    right: 4px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
     padding: 4px;
-    border-radius: var(--rad1);
+    border-top-left-radius: var(--rad1);
+    border-top-right-radius: var(--rad1);
     background-color: var(--ui1);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
-    animation: tb 1.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: tb 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     z-index: 3;
     overflow-x: auto;
     white-space: nowrap;
-    border: 1px solid var(--bc);
+    border-top: 1px solid var(--bc);
 }
 
 
 @keyframes tb {
     0% {
-        bottom: -120px;
+        bottom: -130px;
+        left: 20px;
+        right: 20px;
+        border-radius: var(--rad1);
     }
 
-    70% {
-        bottom: 12px;
+    60% {
+        bottom: 16px;
+        left: 20px;
+        right: 20px;
+        border-radius: var(--rad1);
     }
 
     100% {
-        bottom: 3px;
+        bottom: 0px;
     }
 }
 
@@ -827,4 +835,8 @@ p {
     background-color: var(--ui2);
     z-index: 9999;
     animation: snack 0.5s ease-in-out;
+}
+
+.greyp {
+    color: #aaa;
 }

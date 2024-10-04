@@ -5,16 +5,20 @@ var ptp = {
         let retryc = 0;
 
         async function attemptConnection() {
-            sys.peer = new Peer(id);
+            sys.peer = new Peer(id, [{debug: 3}]);
 
             sys.peer.on('open', (peerId) => {
                 ui.masschange('deskid', peerId);
                 sys.deskid = peerId;
                 console.log('<i> DeskID is online. ID: ' + sys.deskid);
+                if (sys.echoid !== undefined) {
+                    boot();
+                }
             });
 
             sys.peer.on('error', async (err) => {
                 console.log(`<!> whoops: ${err}`);
+                wm.notif('Reboot WebDesk', `Your connection was interrupted, so your DeskID is broken. Reboot WebDesk to fix this.`);
                 if (!sys.deskid && retryc < 3) {
                     console.log('<!> DeskID failed to register, trying again...');
                     retryc++;
@@ -28,6 +32,7 @@ var ptp = {
             });
 
             sys.peer.on('connection', (dataConnection) => {
+                console.log('<i> hi vro');
                 dataConnection.on('data', (data) => {
                     try {
                         const parsedData = JSON.parse(data);
@@ -40,6 +45,7 @@ var ptp = {
                             dataConnection.send(JSON.stringify(response));
                         }
                     } catch (err) {
+                        console.log('<!> offload time: ' + err);
                         handleData(dataConnection, data);
                     }
                 });
@@ -95,17 +101,56 @@ var ptp = {
     },
 }
 
-function handleData(conn, data) {
+async function handleData(conn, data) {
     if (sys.webdrop === true) {
         console.log('<i> Thing recieved!')
         if (data.name === "MigrationPackDeskFuck") {
             if (sys.setupd === false) {
                 ui.sw('setupqs', 'setuprs'); restorefsold(data.file);
             }
-        } else if (data.name === "MigrationPackDeskFuck++") {
+        } else if (data.name === "MigrationFile") {
             if (sys.setupd === false) {
-                ui.sw('setupqs', 'setuprs'); restorefs(data.file);
+                if (data.filename === "/system/deskid") {
+                    el.migstat.innerText = "Creating new DeskID";
+                    wd.newid();
+                    return;
+                }
+                ui.sw('quickstartwdsetup', 'quickstartwdgoing');
+                fs.write(data.filename, data.file);
+                el.migstat.innerText = "Restored: " + data.filename;
             }
+        } else if (data.name === "MigrationEnd") {
+            if (sys.setupd === false) {
+                setTimeout(function () {
+                    ui.sw('quickstartwdgoing', 'setupdone');
+                }, 600);
+            }
+        } else if (data.name === "EchoGive") {
+            if (sys.setupd === "echo") {
+                sys.model.innerText = data.act + ": " + data.path;
+                if (data.act === "read") {
+                    const fileData = await fs.read(data.path);
+                    if (fileData === null) {
+                        conn.send('TheresNoFile');
+                    } else {
+                        conn.send(fileData);
+                    }
+                } else if (data.act === "del") {
+                    await fs.del(data.path);
+                    conn.send(true);
+                } else if (data.act === "write") {
+                    await fs.write(data.path, data.file);
+                    conn.send(true);
+                } else if (data.act === "all") {
+                    const ok = await fs.getall();
+                    conn.send(ok);
+                } else if (data.act === "ls") {
+                    const ok = await fs.ls(data.path);
+                    conn.send(ok);
+                }
+            }
+        } else if (data.name === "YesImAlive-WebKey") {
+            wm.notif(`${data.uname} accepted your WebDrop.`, 'WebDesk Services');
         } else if (data.name === "YesImAlive-WebKey") {
             wm.notif(`${data.uname} accepted your WebDrop.`, 'WebDesk Services');
         } else if (data.name === "DesktoDeskMsg-WebKey") {
@@ -145,32 +190,43 @@ async function compressfs() {
     });
 }
 
-async function restorefs(zipBlob) {
-    console.log('<i> NEW Super Restore U Stage 1: Prepare zip');
-    try {
-        ui.sw('quickstartwdsetup', 'quickstartwdgoing');
-        const zip = await JSZip.loadAsync(zipBlob);
-        const fileCount = Object.keys(zip.files).length;
-        let filesDone = 0;
-        console.log(`<i> Restore Stage 2: Open zip and extract ${fileCount} files to FS`);
-        await Promise.all(Object.keys(zip.files).map(async filename => {
-            if (filename.includes('/system/deskid')) {
-                ui.masschange('restpg', `Skipped ${filesDone}/${fileCount}: ${filename}: WebDesk-specific`);
-                console.log('<!> Skipped a file: ' + filename);
-                filesDone++;
-            } else {
-                console.log(`<i> Restoring file: ${filename}`);
-                const file = zip.files[filename];
-                const value = await file.async("string");
-                await fs.write(filename, value);
-                filesDone++;
-                ui.masschange('restpg', `Restoring ${filesDone}/${fileCount}: ${filename}`);
-            }
-        }));
-        ui.sw('quickstartwdgoing', 'setupdone');
-    } catch (error) {
-        console.error('Error during restoration:', error);
-    }
+async function migrationgo(deskid, el) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const files = await fs.getall();
+            const conn = sys.peer.connect(deskid);
+            console.log('Part 1 complete');
+
+            conn.on('open', async function () {
+                try {
+                    console.log('Part 2 complete');
+                    const fileContents = await Promise.all(files.map(file => fs.read(file)));
+                    fileContents.forEach((content, index) => {
+                        if (el) {
+                            el.innerText = 'Sending ' + files[index];
+                        }
+                        conn.send({
+                            name: 'MigrationFile',
+                            file: content,
+                            filename: files[index],
+                        });
+                    });
+                    conn.send({ name: 'MigrationEnd' });
+                    resolve(true);
+                } catch (fileReadError) {
+                    wm.notif('File read error during migration', 'An issue occurred while reading files, reboot and try again.');
+                    reject(fileReadError);
+                }
+            });
+
+            conn.on('error', (err) => {
+                wm.notif('Failed to connect', 'Reload this WebDesk, as well as the other WebDesk, and try again.');
+                reject(err);
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 async function restorefsold(zipBlob) {
@@ -245,7 +301,7 @@ async function custf(id, fname2, fblob2) {
             conn.on('error', (err) => {
                 console.error('Connection error:', err);
                 wm.snack('An error occurred while sending your file.', 2500);
-                reject(new Error('Connection error while sending the file')); 
+                reject(new Error('Connection error while sending the file'));
             });
         } catch (error) {
             console.error('Error while sending file:', error);

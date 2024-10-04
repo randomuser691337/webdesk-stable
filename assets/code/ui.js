@@ -40,6 +40,8 @@ var ui = {
         if (dr1) {
             if (anim) {
                 $(dr1).fadeOut(anim);
+            } else if (anim === 0) {
+                $(dr1).hide();
             } else {
                 $(dr1).fadeOut(210);
             }
@@ -54,6 +56,8 @@ var ui = {
         if (dr1) {
             if (anim) {
                 $(dr1).fadeIn(anim);
+            } else if (anim === 0) {
+                $(dr1).show();
             } else {
                 $(dr1).fadeIn(210);
             }
@@ -72,6 +76,8 @@ var ui = {
         if (dr1) {
             if (anim) {
                 $(dr1).fadeOut(anim, function () { dr1.remove(); });
+            } else if (anim === 0) {
+                dr1.remove();
             } else {
                 $(dr1).fadeOut(170, function () { dr1.remove(); });
             }

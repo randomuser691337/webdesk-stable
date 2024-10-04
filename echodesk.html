@@ -12,7 +12,7 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 4, 2024",
+        lastmod: "Sep 30, 2024",
         ver: "0.1.1",
     }
 
@@ -29,6 +29,7 @@
         peer: undefined,
         currentf: undefined,
         full: false,
+        echoid: undefined
     }
 
     var el = {
@@ -62,19 +63,32 @@
 <script src="./assets/code/wm.js"></script>
 <script src="./assets/code/services.js"></script>
 <script src="./assets/code/ui.js"></script>
-<script src="./assets/code/fs.js"></script>
+<script src="./assets/code/echofs.js"></script>
 <script src="./assets/code/apps.js"></script>
 <script>
+    async function strap() {
+        const url = window.location.href;
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('deskid');
+        if (id) {
+            console.log(id)
+            const id2 = gen(8);
+            sys.echoid = id;
+            await ptp.go(id2);
+        } else {
+            ui.hide(document.getElementById('death'), 300);
+            wm.wal('<p>An error occured</p>');
+        }
+    }
     async function boot() {
+        console.log('Starting')
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
-            const deskid = await fs.read('/system/deskid');
             const darkpref = await fs.read('/user/info/lightdarkpref');
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
-            await wd.desktop(sd, deskid, 'wait');
-            await ptp.go(deskid);
+            await wd.desktop(sd, sys.deskid, 'wait');
             sys.setupd = true;
             sys.name = sd;
             if (darkpref === "auto") {
@@ -113,20 +127,11 @@
                     }
                 });
             }
-        } else if (migcheck === "down") {
-            const id = gen(8);
-            await ptp.go(id);
+        } else if (migcheck) {
             ui.crtheme('#010101', true);
             wd.dark();
+            wm.wal(`<p>WebDesks in EchoDesk mode cannot enter Recovery or Migration Assistant.</p>`, () => wd.reboot(), 'Reboot', 'noclose');
             await fs.del('/system/migval');
-            app.migrate.init('down');
-        } else if (migcheck === "echo") {
-            const id = gen(8);
-            await ptp.go(id);
-            ui.crtheme('#010101', true);
-            wd.dark();
-            await fs.del('/system/migval');
-            app.echodesk.init();
         } else {
             const id = await wd.newid();
             await ptp.go(id);
@@ -150,27 +155,13 @@
         }
 
         function handleDrop(e) {
-            let dt = e.dataTransfer;
-            let files = dt.files;
-
-            handleFiles(files);
-        }
-
-        async function handleFiles(files) {
-            let filesArray = [...files];
-            filesArray.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = async function (e) {
-                    const contents = e.target.result;
-                    await fs.write(`/user/files/${file.name}`, contents);
-                };
-
-                reader.readAsDataURL(file);
-            });
+            wm.wal(`<p>WebDesks in EchoDesk mode don't support drag and drop, open the Control Center and click "Add File" to upload something.</p>`);
         }
     }
 
     function reboot() {
         window.location.reload();
     }
+
+    strap();
 </script>
