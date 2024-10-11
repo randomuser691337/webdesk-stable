@@ -211,6 +211,7 @@ var wd = {
         ui.cv('bc', 'rgb(44, 44, 44, 0.5)');
         ui.cv('font', '#fff');
         fs.write('/user/info/lightdark', 'dark');
+        ui.light = false;
     },
     light: function () {
         ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
@@ -219,6 +220,7 @@ var wd = {
         ui.cv('bc', 'rgb(200, 200, 200, 0.6)');
         ui.cv('font', '#000');
         fs.del('/user/info/lightdark');
+        ui.light = true;
     },
     clearm: function () {
         ui.cv('ui1', 'rgb(255, 255, 255, 0)');
@@ -227,11 +229,13 @@ var wd = {
         ui.cv('bc', 'rgb(255, 255, 255, 0)');
         ui.cv('font', '#000');
         fs.write('/user/info/lightdark', 'clear');
+        ui.light = true;
     },
     clearm2: function () {
         wd.clearm();
         ui.cv('font', '#fff');
         fs.write('/user/info/lightdark', 'clear2');
+        ui.light = false;
     },
     timec: function (id) {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

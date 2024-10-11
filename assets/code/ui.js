@@ -51,6 +51,7 @@ var ui = {
         const audio = new Audio(filename);
         audio.volume = sys.nvol;
         audio.play();
+        return audio;
     },
     show: function (dr1, anim) {
         if (dr1) {

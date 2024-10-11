@@ -83,18 +83,18 @@ var wm = {
     notif: function (name, cont, mode) {
         const div = tk.c('div', document.getElementById('notif'), 'notif');
         ui.play('./assets/other/notif1.ogg');
-        tk.p(name, 'bold', div);
-        tk.p(cont, undefined, div);
-        tk.cb('b4', 'Dismiss', function () {
+        const title = tk.p(name, 'bold', div);
+        const content = tk.p(cont, undefined, div);
+        const dbtn = tk.cb('b4', 'Dismiss', function () {
             ui.dest(div, 240);
         }, div);
         if (mode) {
             const open = tk.cb('b4', 'Open', undefined, div);
             open.addEventListener('click', mode);
             open.addEventListener('click', function () { ui.dest(div, 120); });
-
         }
         const txt = tk.c('span', div, 'bold');
         txt.innerText = ` - ${wd.timecs(Date.now())}`
+        return {div, title, content, dismiss: dbtn};
     }
 }

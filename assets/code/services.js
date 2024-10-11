@@ -3,9 +3,10 @@ var globcall;
 var ptp = {
     go: async function (id) {
         let retryc = 0;
+        var fucker = false;
 
         async function attemptConnection() {
-            sys.peer = new Peer(id, [{debug: 3}]);
+            sys.peer = new Peer(id, [{ debug: 3 }]);
 
             sys.peer.on('open', (peerId) => {
                 ui.masschange('deskid', peerId);
@@ -14,30 +15,44 @@ var ptp = {
                 if (sys.echoid !== undefined) {
                     boot();
                 }
+                if (fucker === true) {
+                    wm.notif(`WebDesk Services`, `Your DeskID is back online.`);
+                    fucker = false;
+                    retryc = 0;
+                }
             });
 
             sys.peer.on('error', async (err) => {
                 console.log(`<!> whoops: ${err}`);
-                wm.notif('Reboot WebDesk', `Your connection was interrupted, so your DeskID is broken. Reboot WebDesk to fix this.`);
-                if (!sys.deskid && retryc < 3) {
+                if (fucker === false) {
+                    if (err.message.includes('Lost connection to server')) {
+                        wm.notif('Connection Error', `Your connection was interrupted, so your DeskID is broken. WebDesk is trying to restore the connection.`);
+                    } else if (err.message.includes('is taken')) {
+                        wm.notif('DeskID is taken', `Your DeskID is in use by someone else or another tab. You've been given a temporary DeskID until next reboot.`);
+                    }
+                }
+                if (err.message.includes('is taken')) {
+                    ptp.go(gen(8));
+                    return;
+                } else if (err.message.includes(`Error: Could not connect to peer ` + sys.echoid)) {
+                    wm.wal(`<p class="bold">EchoDesk Connection Interrupted</p><p>The other WebDesk might have rebooted, or is encountering network issues.</p><p>Check your Internet on this side too.</p>`);
+                }
+                fucker = true;
+                if (retryc < 5) {
                     console.log('<!> DeskID failed to register, trying again...');
                     retryc++;
                     setTimeout(attemptConnection, 10000);
-                } else if (retryc >= 3) {
+                } else if (retryc >= 5) {
                     console.log('<!> Maximum retry attempts reached. DeskID registration failed.');
-                    wm.wal(`<p class="h3">WebDesk to WebDesk services are disabled</p><p>Your DeskID didn't register for some reason, therefore you can't use WebDrop, WebCall or Migration Assistant.</p><p>If you'd like, you can reboot to try again. Check your Internet too.</p>`, 'reboot()', 'Reboot');
-                } else {
-                    snack('Failed to connect.');
+                    wm.notif(`Your DeskID is disabled`, `You will not be able to send messages to other`, () => wd.reboot());
                 }
             });
 
             sys.peer.on('connection', (dataConnection) => {
-                console.log('<i> hi vro');
                 dataConnection.on('data', (data) => {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.type === 'request') {
-                            console.log('Received request:', parsedData.message);
                             const response = {
                                 response: sys.name
                             };
@@ -60,6 +75,7 @@ var ptp = {
             });
 
             sys.peer.on('call', (call) => {
+
                 const showyourself = sys.peer.connect(call.peer);
                 showyourself.on('open', () => {
                     showyourself.send(JSON.stringify({ type: 'request' }));
@@ -103,7 +119,6 @@ var ptp = {
 
 async function handleData(conn, data) {
     if (sys.webdrop === true) {
-        console.log('<i> Thing recieved!')
         if (data.name === "MigrationPackDeskFuck") {
             if (sys.setupd === false) {
                 ui.sw('setupqs', 'setuprs'); restorefsold(data.file);
@@ -149,8 +164,6 @@ async function handleData(conn, data) {
                     conn.send(ok);
                 }
             }
-        } else if (data.name === "YesImAlive-WebKey") {
-            wm.notif(`${data.uname} accepted your WebDrop.`, 'WebDesk Services');
         } else if (data.name === "YesImAlive-WebKey") {
             wm.notif(`${data.uname} accepted your WebDrop.`, 'WebDesk Services');
         } else if (data.name === "DesktoDeskMsg-WebKey") {

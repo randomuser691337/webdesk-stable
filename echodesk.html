@@ -8,12 +8,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="shortcut icon" href="./assets/img/favicon.png">
     <link rel="apple-touch-icon" href="./assets/img/noround.png">
-    <title>WebDesk</title>
+    <title>EchoDesk</title>
 </head>
 <script>
     var abt = {
-        lastmod: "Sep 30, 2024",
-        ver: "0.1.1",
+        lastmod: "Oct 11, 2024",
+        ver: "0.1.2",
     }
 
     var sys = {
@@ -58,6 +58,7 @@
 <script src="./assets/lib/jq.js"></script>
 <script src="./assets/lib/jszip.js"></script>
 <script src="./assets/lib/peer.js"></script>
+<script src="./assets/lib/ace/ace.js"></script>
 <script src="./assets/lib/picker.js"></script>
 <script src="./assets/code/core.js"></script>
 <script src="./assets/code/wm.js"></script>
@@ -71,17 +72,22 @@
         const params = new URLSearchParams(window.location.search);
         const id = params.get('deskid');
         if (id) {
-            console.log(id)
             const id2 = gen(8);
             sys.echoid = id;
             await ptp.go(id2);
         } else {
             ui.hide(document.getElementById('death'), 300);
-            wm.wal('<p>An error occured</p>');
+            wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to boot.`);
         }
     }
     async function boot() {
-        console.log('Starting')
+        let boot = false;
+        setTimeout(function () {
+            if (boot === false) {
+                ui.hide(document.getElementById('death'), 300);
+                wm.wal(`<p class="bold">EchoDesk failed to boot</p><p>Click "Try Again" if you want, otherwise check the other WebDesk, make sure your connection is OK, and disable your VPN if it's on.</p>`, () => reboot(), 'Try Again', 'noclose');
+            }
+        }, 9000);
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
@@ -109,24 +115,31 @@
             const data = await fs.read('/system/apps.json');
             if (data) {
                 const apps = JSON.parse(data);
+                try {
+                    const response = await fetch('https://appmarket.meower.xyz/refresh');
+                    const onlineApps = await response.json();
+                    apps.forEach(inapp => {
+                        const onlineApp = onlineApps.find(app => app.name === inapp.name);
 
-                const response = await fetch('https://appmarket.meower.xyz/refresh');
-                const onlineApps = await response.json();
-                apps.forEach(inapp => {
-                    const onlineApp = onlineApps.find(app => app.name === inapp.name);
-
-                    if (onlineApp.ver === inapp.ver) {
+                        if (onlineApp.ver === inapp.ver) {
+                            eval(inapp.exec);
+                            console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
+                        } else {
+                            const remove = apps.filter(item => item.id !== inapp.id);
+                            const removed = JSON.stringify(remove);
+                            fs.write('/system/apps.json', removed);
+                            app.appmark.create(onlineApp.path, onlineApp, true);
+                            console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
+                        }
+                    });
+                } catch (err) {
+                    console.log(err);
+                    apps.forEach(inapp => {
                         eval(inapp.exec);
-                        console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
-                    } else {
-                        const remove = apps.filter(item => item.id !== inapp.id);
-                        const removed = JSON.stringify(remove);
-                        fs.write('/system/apps.json', removed);
-                        app.appmark.create(onlineApp.path, onlineApp, true);
-                        console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
-                    }
-                });
+                    });
+                }
             }
+            boot = true;
         } else if (migcheck) {
             ui.crtheme('#010101', true);
             wd.dark();

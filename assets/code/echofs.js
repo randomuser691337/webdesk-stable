@@ -31,7 +31,7 @@ async function gosend(act, path, name, file) {
 }
 
 function echoerr() {
-    wm.wal(`<p>EchoDesk is having connection problems.</p>`);
+    wm.wal(`<p>EchoDesk is encountering issues.</p>`, () => reboot(), 'Reboot Now');
 }
 
 const fs = {

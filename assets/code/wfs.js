@@ -69,13 +69,6 @@ function idbop(operation, params, opt, requestId) {
                 console.error('Error fetching files:', error);
             });
             break;
-        case 'space':
-            fs2.space().then(files => {
-                self.postMessage({ type: 'result', data: files, requestId });
-            }).catch(error => {
-                console.error('Error fetching files:', error);
-            });
-            break;
         case 'ls':
             fs2.folder(params).then(result => {
                 self.postMessage({ type: 'result', data: result, requestId });
