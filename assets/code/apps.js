@@ -6,17 +6,19 @@ var app = {
             const main = tk.mbw('Settings', '300px', 'auto', true, undefined, undefined);
             const generalPane = tk.c('div', main.main, 'hide');
             const appearPane = tk.c('div', main.main, 'hide');
+            const userPane = tk.c('div', main.main, 'hide');
             const mainPane = tk.c('div', main.main);
             // Main pane
             tk.p('Settings', undefined, mainPane);
             tk.cb('b1 b2', 'General', () => ui.sw2(mainPane, generalPane), mainPane);
+            tk.cb('b1 b2', 'WebDesk User', () => ui.sw2(mainPane, userPane), mainPane);
             tk.cb('b1 b2', 'Appearance', () => ui.sw2(mainPane, appearPane), mainPane);
             // General pane
             tk.p('General', undefined, generalPane);
             tk.cb('b1 b2 red', 'Erase This WebDesk', () => app.eraseassist.init(), generalPane);
-            tk.cb('b1 b2 red', 'Remove All App Market Apps', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, function () {
-                fs.del('/system/apps.json');
-                setTimeout(function () { window.location.reload() }, 250);
+            tk.cb('b1 b2 red', 'Remove All App Market Apps', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
+                await fs.del('/system/apps.json');
+                wd.reboot();
             }, 'Okay'), generalPane);
             const earth = tk.cb('b1 b2', 'Enable Earthquake Mode (Restarting stops it)', function () {
                 const style = document.createElement('style');
@@ -74,6 +76,27 @@ var app = {
                 fs.del('/user/info/lightdarkpref');
                 wm.wal('Reboot to finish resetting colors.', () => wd.reboot(), 'Reboot');
             }, appearPane); tk.cb('b1', 'Back', () => ui.sw2(appearPane, mainPane), appearPane);
+            tk.p('WebDesk User', undefined, userPane);
+            tk.cb('b1 b2', 'Change Username', function () {
+                const ok = tk.mbw('Change Username', '300px', 'auto', true, undefined, undefined);
+                const inp = tk.c('input', ok.main, 'i1');
+                inp.placeholder = "New name here";
+                tk.cb('b1', 'Change name', async function () {
+                    await fs.write('/user/info/name', inp.value);
+                    ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your username.</p><p>All unsaved data will be lost.</p>`;
+                    tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
+                }, ok.main);
+            }, userPane);
+            tk.cb('b1 b2', 'Change DeskID', function () {
+                const ok = tk.mbw('Change DeskID', '300px', 'auto', true, undefined, undefined);
+                tk.p(`Changing your DeskID will make your WebDesk unreachable to those without your new ID.`, undefined, ok.main);
+                tk.cb('b1', 'Continue', async function () {
+                    const newid = await wd.newid();
+                    ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your DeskID.</p><p>All unsaved data will be lost. Your new ID is ${newid}.</p>`;
+                    tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
+                }, ok.main);
+            }, userPane);
+            tk.cb('b1', 'Back', () => ui.sw2(userPane, mainPane), userPane);
         }
     },
     eraseassist: {
@@ -97,10 +120,25 @@ var app = {
             const first = tk.c('div', main, 'setb');
             tk.img('./assets/img/setup/first.svg', 'setupi', first);
             tk.p('In EchoDesk Mode', 'h2', first);
-            tk.p(`Use the ID below to start your WebDesk on another WebDesk. Be aware, the other person will have full access to your files.`, undefined, first);
-            sys.model = tk.p(`Most recent file action will show here`, 'greyp', first);
-            tk.p('--------', 'h2 deskid', first);
-            tk.cb('b1', `Exit EchoDesk`, () => wd.reboot(), first);
+            tk.p(`Use the ID below/scan the QR code to start your WebDesk on another WebDesk. The other person will have full access to your files.`, undefined, first);
+            const split = tk.c('div', first, 'split');
+            const id = tk.c('div', split, 'splititem');
+            tk.p('--------', 'h2 deskid', id);
+            sys.model = tk.p(`Most recent file action will show here`, 'greyp', id);
+            tk.cb('b1', `Exit EchoDesk`, () => wd.reboot(), id);
+            const ok = tk.c('div', split, 'splititem');
+            var qrcode = new QRCode(ok, {
+                text: `${window.location.origin}/echodesk.html?deskid=${sys.deskid}`,
+                width: 128,
+                height: 128,
+                colorDark: "#ffffff",
+                colorLight: "#000000",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            setTimeout(function () {
+                qrcode.clear();
+                qrcode.makeCode(`${window.location.origin}/echodesk.html?deskid=${sys.deskid}`);
+            }, 2000);
             sys.setupd = "echo";
         }
     },
@@ -138,14 +176,31 @@ var app = {
             const transfer = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/quick.png', 'setupi', transfer);
             tk.p('Quick Start', 'h2', transfer);
-            tk.p('To copy your data, open Data Assistant on the other WebDesk, hit "Migrate", and enter this code:', undefined, transfer);
-            tk.p('--------', 'h2 deskid', transfer);
-            tk.cb('b1', 'No thanks', () => ui.sw2(transfer, warn), transfer);
+            tk.p('To copy your data, just scan the QR code, or open Data Assistant on the other WebDesk, hit "Migrate", and enter this code:', undefined, transfer);
+            const split = tk.c('div', transfer, 'split');
+            const id = tk.c('div', split, 'splititem');
+            tk.p('--------', 'h2 deskid', id);
+            sys.model = tk.p(`Waiting for other WebDesk to enter code`, undefined, id);
+            tk.cb('b1', `No thanks`, () => ui.sw2(transfer, warn), id);
+            const ok = tk.c('div', split, 'splititem');
+            var qrcode = new QRCode(ok, {
+                text: `${window.location.origin}?deskid=${sys.deskid}`,
+                width: 128,
+                height: 128,
+                colorDark: "#ffffff",
+                colorLight: "#000000",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            setTimeout(function () {
+                qrcode.clear();
+                qrcode.makeCode(`${window.location.origin}?deskid=${sys.deskid}`);
+            }, 2000);
             transfer.id = "quickstartwdsetup";
             // copying menu
             const copy = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/restore.svg', 'setupi', copy);
             tk.p('Restoring from other WebDesk', 'h2', copy);
+            tk.p('Do not touch the other WebDesk, it could interrupt the copying process.', undefined, copy);
             tk.p('This might take a while depending on settings and file size.', undefined, copy);
             el.migstat = tk.p('Starting...', 'restpg', copy);
             tk.cb('b1', 'Cancel', function () { fs.erase('reboot'); }, copy);
@@ -192,37 +247,58 @@ var app = {
             const bar = tk.c('div', main, 'setupbar');
             const tnav = tk.c('div', bar, 'tnav');
             const title = tk.c('div', bar, 'title');
-            var backup = undefined;
-            tk.cb('b4', 'Force Exit', () => wm.wal(`<p>If WebDesk is stuck, use this to leave.</p><p>Note: If you have lots of files or a slow connection, it's normal for things to take a while.</p>`, () => reboot(), 'Force Exit'), tnav);
-            tk.cb('b4 time', 'what', undefined, title);
-            // migrate menu
-            const transfer = tk.c('div', main, 'setb');
+            tk.cb('b4', 'Force Exit', () => wm.wal(
+                `<p>If WebDesk is stuck, use this to leave.</p>
+                <p>Note: If you have lots of files or a slow connection, it's normal for things to take a while.</p>`,
+                () => reboot(),
+                'Force Exit'
+            ), tnav);
+
+            // migration menu
+            let transfer = tk.c('div', main, 'setb');
             tk.img('./assets/img/setup/quick.png', 'setupi', transfer);
             tk.p('Migration Assistant', 'h2', transfer);
-            const stats = tk.p(`Only enter your own code. If you use someone else's, you might be giving your data to a scammer.`, 'bold', transfer);
-            const inp = tk.c('input', transfer, 'i1');
-            inp.placeholder = "Enter the code shown on the other WebDesk";
-            tk.cb('b1', `Cancel Migration`, function () {
-                ui.show(document.getElementById('death'), 400);
-                setTimeout(wd.reboot, 390);
+            let [the, inp, stats] = [undefined];
+            if (yeah === "skibidi") {
+                stats = tk.p(`WARNING: Scanning someone else's code shares all your files and data with them.`, 'bold', transfer);
+                tk.p(`If you scanned someone else's code, please hit "Cancel" to stop migration.`, undefined, transfer);
+                the = sys.migrid;
+            } else {
+                stats = tk.p(`WARNING: Using someone else's code shares all your files and data with them.`, 'bold', transfer);
+                inp = tk.c('input', transfer, 'i1');
+                inp.placeholder = "Enter the code shown on the other WebDesk";
+            }
+
+            tk.cb('b1', `Cancel`, function () {
+                wd.reboot();
             }, transfer);
-            tk.cb('b1', 'Done, copy data!', async function () {
+            tk.cb('b1', 'OK, copy data!', async function () {
                 stats.innerText = `Connecting to other WebDesk...`;
-                migrationgo(inp.value, stats).then((result) => {
+
+                if (inp) {
+                    the = inp.value;
+                }
+
+                migrationgo(the, stats).then((result) => {
                     if (result === true) {
                         ui.sw2(transfer, sum);
                     } else {
-                        wm.wal(`<p>Data Assistant couldn't communicate with the other WebDesk</p>`, () => wd.reboot(), 'Reboot Now');
+                        wm.wal(`<p>Data Assistant couldn't communicate with the other WebDesk</p>`,
+                            () => wd.reboot(), 'Reboot Now');
                         console.log(`<!> Data Assistant Error: ${result}`);
                     }
                 }).catch((error) => {
-                    wm.wal(`<p>Data Assistant encountered an error</p>`, () => reboot(), 'Reboot Now');
+                    wm.wal(`<p>Data Assistant encountered an error</p>`,
+                        () => reboot(), 'Reboot Now');
                     console.log('<!> ' + error);
                 });
 
                 setTimeout(function () {
-                    if (stats.innerText === `Connecting to other WebDesk...`); {
-                        wm.wal(`<p>Couldn't connect to other WebDesk, try these things to fix it:</p><li>Check your Internet connection</li><li>Disable your VPN temporarily, then reload both WebDesks</li><li>Reload the other WebDesk first, then this one second</li>`);
+                    if (stats.innerText === `Connecting to other WebDesk...`) {
+                        wm.wal(`<p>Couldn't connect to other WebDesk, try these things to fix it:</p>
+                        <li>Check your Internet connection</li>
+                        <li>Disable your VPN temporarily, then reload both WebDesks</li>
+                        <li>Reload the other WebDesk first, then this one second</li>`);
                     }
                 }, 9000);
             }, transfer);
@@ -230,9 +306,10 @@ var app = {
             // summary
             const sum = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/check.svg', 'setupi', sum);
-            tk.p('All done!', 'h2', sum);
-            tk.p(`Data has been moved to the other WebDesk. Hit "Finish" to go back to WebDesk, or you can erase this one if you're not going to use it.`, undefined, sum);
-            tk.cb('b1', 'Erase This WebDesk', function () { app.eraseassist.init(); }, sum); tk.cb('b1', 'Finish', function () { wd.reboot(); }, sum);
+            tk.p('Finishing Up', 'h2', sum);
+            tk.p(`Wait for the other WebDesk to finish before hitting "Done" or "Erase".`, undefined, sum);
+            tk.cb('b1', 'Erase', function () { app.eraseassist.init(); }, sum);
+            tk.cb('b1', 'Done', function () { wd.reboot(); }, sum);
             sum.id = "setupdone";
         }
     },
@@ -249,18 +326,29 @@ var app = {
                 const src = tk.c('source', img);
                 src.src = contents;
                 img.controls = true;
-            } else if (contents.includes('data:audio')) {
-                const img = tk.c('audio', win.main);
-                const src = tk.c('source', img);
-                src.src = contents;
-                img.controls = true;
+            } else if (contents.includes('data:application/pdf')) {
+                wm.notif(`WebDesk can't view PDFs`, 'Open PDF in a new tab?', () => window.open(contents, '_blank'));
             }
         }
     },
     textedit: {
-        runs: false,
+        runs: true,
         name: 'TextEdit',
         init: async function (contents, path) {
+            if (!path) {
+                const ok = tk.c('div', document.body, 'cm');
+                tk.p('Start new document', undefined, ok);
+                const inp = tk.c('input', ok, 'i1');
+                inp.placeholder = "File path e.g /user/files/doc.txt";
+                tk.cb('b1', 'Cancel', function () {
+                    ui.dest(ok);
+                }, ok);
+                tk.cb('b1', 'Create', function () {
+                    app.textedit.init('', inp.value);
+                    ui.dest(ok);
+                }, ok);
+                return;
+            }
             tk.css('./assets/lib/browse.css');
             const win = tk.mbw(`TextEdit`, '500px', '340px', true);
             ui.dest(win.title, 0);
@@ -280,6 +368,7 @@ var app = {
             const genit = gen(8);
             editdiv.id = genit;
             const editor = ace.edit(`${genit}`);
+            editor.setFontSize("var(--fz3)");
             editor.session.setOption("wrap", true);
             function ok() {
                 if (ui.light === true) {
@@ -300,6 +389,31 @@ var app = {
             }
             tk.cb('b4 browserbutton', 'Save', async function () {
                 await save();
+            }, btnnest);
+            tk.cb('b4 browserbutton', 'Menu', async function () {
+                const menu = tk.c('div', document.body, 'cm');
+                tk.p(`Menu`, undefined, menu);
+                tk.cb('b1 b2', 'Select All', function () {
+                    editor.selectAll();
+                    ui.dest(menu, 120);
+                }, menu);
+                tk.cb('b1 b2', 'Replace', function () {
+                    editor.execCommand('replace');
+                    ui.dest(menu, 120);
+                }, menu);
+                tk.cb('b1 b2', 'Find', function () {
+                    editor.execCommand('find');
+                    ui.dest(menu, 120);
+                }, menu);
+                tk.cb('b1', 'Undo', function () {
+                    editor.execCommand('undo');
+                }, menu);
+                tk.cb('b1', 'Close', function () {
+                    ui.dest(menu, 120);
+                }, menu);
+                tk.cb('b1', 'Redo', function () {
+                    editor.execCommand('redo');
+                }, menu);
             }, btnnest);
             wd.win();
             editor.container.addEventListener('keydown', async function (event) {
@@ -410,19 +524,47 @@ var app = {
                                 wd.download(yeah, `WebDesk File ${gen(4)}`);
                                 ui.dest(menu);
                             }, menu);
+                            tk.cb('b1 b2', 'WebDrop', function () {
+                                ui.dest(menu);
+                                const menu2 = tk.c('div', document.body, 'cm');
+                                const inp = tk.c('input', menu2, 'i1');
+                                inp.placeholder = "Enter DeskID";
+                                tk.cb('b1 b2', 'WebDrop', async function () {
+                                    menu2.innerHTML = `<p class="bold">Sending file</p><p>Depending on the size, this might take a bit</p>`;
+                                    tk.cb('b1', 'Close (No status updates)', function () {
+                                        ui.dest(menu2);
+                                    }, menu2);
+                                    await custf(inp.value, thing.name, yeah).then((check) => {
+                                        if (check === true) {
+                                            menu2.innerHTML = `<p class="bold">File sent</p><p>The other person can accept or deny</p>`;
+                                            tk.cb('b1', 'Close', function () {
+                                                ui.dest(menu2);
+                                            }, menu2);
+                                        } else {
+                                            menu2.innerHTML = `<p class="bold">An error occured</p><p>Make sure the ID is correct</p>`;
+                                            tk.cb('b1', 'Close', function () {
+                                                ui.dest(menu2);
+                                            }, menu2);
+                                        }
+                                    });
+                                }, menu2);
+                                tk.cb('b1', 'Cancel', function () {
+                                    ui.dest(menu2);
+                                }, menu2);
+                            }, menu);
                             tk.cb('b1 b2', 'Rename/Move', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
                                 const inp = tk.c('input', menu2, 'i1');
                                 inp.placeholder = "Enter new path";
                                 inp.value = thing.path;
-                                tk.cb('b1 b2', 'Rename/Move', function () {
+                                tk.cb('b1', 'Cancel', function () {
+                                    ui.dest(menu2);
+                                }, menu2);
+                                tk.cb('b1', 'Rename/Move', function () {
                                     fs.write(inp.value, yeah);
                                     fs.del(thing.path, yeah);
                                     navto(path);
-                                    ui.dest(menu2);
-                                }, menu2);
-                                tk.cb('b1', 'Cancel', function () {
                                     ui.dest(menu2);
                                 }, menu2);
                             }, menu);
@@ -466,6 +608,7 @@ var app = {
                 ok.innerHTML = `<p class="bold">Credits</p>
                 <p>All the libraries or materials that helped create WebDesk.</p>
                 <p><a href="https://peerjs.com/" target="blank">PeerJS: DeskID/online services</a></p>
+                <p><a href="https://davidshimjs.github.io/qrcodejs/" target="blank">qrcode.js: Any WebDesk QR codes</a></p>
                 <p><a href="https://jquery.com/" target="blank">jQuery: WebDesk's UI</a></p>
                 <p><a href="https://ace.c9.io/" target="blank">Ace: TextEdit's engine</a></p>
                 <p><a href="https://jscolor.com/" target="blank">jscolor: Color picker</a></p>`;
@@ -485,8 +628,7 @@ var app = {
                 tk.p(`Your apps will close, and unsaved data will be lost.`, undefined, win.main);
                 tk.cb('b1 b2', 'Migrate', async function () {
                     await fs.write('/system/migval', 'down');
-                    ui.show(document.getElementById('death'), 400);
-                    setTimeout(reboot, 390);
+                    wd.reboot();
                 }, win.main);
             } else {
                 tk.p(`You're in Guest mode. Reboot WebDesk and go through Setup to copy your data over.`, undefined, win.main);
@@ -504,12 +646,11 @@ var app = {
             if (sys.guest === true) {
                 tk.p(`Enter the EchoDesk ID and hit "Connect". The other WebDesk will appear as a window. <span class="bold">You're in Guest mode, so you can't enter EchoDesk mode.</span>`, undefined, win.main);
             } else {
-                tk.p(`If you're connecting: Enter the EchoDesk ID and hit "Connect". The other WebDesk will appear as a window.`, undefined, win.main);
-                tk.p(`If you're the host: Click "Enter EchoDesk Mode". Your apps will close, unsaved data will be lost.`, undefined, win.main);
+                tk.p(`If you're connecting: Enter the EchoDesk ID and hit either of the "Connect" buttons.`, undefined, win.main);
+                tk.p(`If you're the host: Hit "Enter EchoDesk Mode". Your apps will close, unsaved data will be lost.`, undefined, win.main);
                 tk.cb('b1 b2', 'Enter EchoDesk mode', async function () {
                     await fs.write('/system/migval', 'echo');
-                    ui.show(document.getElementById('death'), 400);
-                    setTimeout(reboot, 390);
+                    wd.reboot();
                 }, win.main);
             }
             tk.p(`Connect to other WebDesk`, undefined, win.main);
@@ -629,6 +770,7 @@ var app = {
 
             const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined);
             tk.p(`WebDesk Achievements`, 'h2', win.main);
+            tk.p(`Remember: These are jokes and don't actually do anything`, undefined, win.main);
             tk.p(`Unlocked <span class="b achcount"></span> achievements`, undefined, win.main);
             await load();
         },
@@ -819,7 +961,7 @@ var app = {
                                     oncall = true;
                                     ui.dest(win.tbn, 100);
                                     ui.dest(win.win, 100);
-                                    app.webcall.answer(remoteStream, call, parsedData.response);
+                                    app.webcall.answer(remoteStream, call, parsedData.response, stream);
                                 });
 
                                 call.on('error', (err) => {
@@ -839,28 +981,34 @@ var app = {
                 go();
             }, win.main);
         },
-        answer: async function (remoteStream, call, name) {
+        answer: async function (remoteStream, call, name, fein) {
             const win = tk.mbw('WebCall', '250px', 'auto', true, undefined, undefined);
             const stat = tk.ps(`WebCall - ${name}`, undefined, win.main);
             const audioElement = tk.c('audio', win.main, 'hide');
             audioElement.srcObject = remoteStream;
             audioElement.autoplay = true;
             audioElement.controls = true;
+
             let isMuted = false;
             const remoteAudioTrack = remoteStream.getAudioTracks()[0];
+
             const muteButton = tk.cb('b1', 'Mute', function () {
-                if (isMuted) {
-                    remoteAudioTrack.enabled = true;
-                    muteButton.textContent = 'Mute';
-                } else {
-                    remoteAudioTrack.enabled = false;
-                    muteButton.textContent = 'Unmute';
+                if (remoteAudioTrack) {
+                    if (isMuted) {
+                        remoteAudioTrack.enabled = true;
+                        muteButton.textContent = 'Mute';
+                    } else {
+                        remoteAudioTrack.enabled = false;
+                        muteButton.textContent = 'Unmute';
+                    }
+                    isMuted = !isMuted;
                 }
-                isMuted = !isMuted;
             }, win.main);
 
             function crashout() {
                 call.close();
+                fein.getTracks().forEach(track => track.stop());
+                remoteStream.getTracks().forEach(track => track.stop());
                 ui.dest(win.tbn, 100);
                 ui.dest(win.win, 100);
             }
@@ -877,9 +1025,9 @@ var app = {
 
             tk.cb('b1', 'End', () => crashout(), win.main);
 
-            win.closebtn.addEventListener('click', function () {
+            win.closebtn.addEventListener('mousedown', function () {
                 crashout();
             });
         }
-    }
+    },
 };

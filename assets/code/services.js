@@ -6,7 +6,7 @@ var ptp = {
         var fucker = false;
 
         async function attemptConnection() {
-            sys.peer = new Peer(id, [{ debug: 3 }]);
+            sys.peer = new Peer(id, { config: { 'iceServers': [{ urls: 'stun:freeturn.net:3478' }, { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' }] } });
 
             sys.peer.on('open', (peerId) => {
                 ui.masschange('deskid', peerId);
@@ -24,15 +24,20 @@ var ptp = {
 
             sys.peer.on('error', async (err) => {
                 console.log(`<!> whoops: ${err}`);
+                if (err.message.includes('Could not connect to')) {
+                    return;
+                }
                 if (fucker === false) {
                     if (err.message.includes('Lost connection to server')) {
                         wm.notif('Connection Error', `Your connection was interrupted, so your DeskID is broken. WebDesk is trying to restore the connection.`);
+                        app.ach.unlock('DeskID Issues', `Here's an achievement for your troubles.`);
                     } else if (err.message.includes('is taken')) {
                         wm.notif('DeskID is taken', `Your DeskID is in use by someone else or another tab. You've been given a temporary DeskID until next reboot.`);
+                        app.ach.unlock('Identity Theft', "¯\\_(ツ)_/¯");
                     }
                 }
                 if (err.message.includes('is taken')) {
-                    ptp.go(gen(8));
+                    ptp.go(gen(7));
                     return;
                 } else if (err.message.includes(`Error: Could not connect to peer ` + sys.echoid)) {
                     wm.wal(`<p class="bold">EchoDesk Connection Interrupted</p><p>The other WebDesk might have rebooted, or is encountering network issues.</p><p>Check your Internet on this side too.</p>`);
@@ -44,7 +49,20 @@ var ptp = {
                     setTimeout(attemptConnection, 10000);
                 } else if (retryc >= 5) {
                     console.log('<!> Maximum retry attempts reached. DeskID registration failed.');
-                    wm.notif(`Your DeskID is disabled`, `You will not be able to send messages to other`, () => wd.reboot());
+                    const ok = tk.c('div', document.body, 'cm');
+                    tk.p(`Your DeskID couldn't be restored`, 'bold', ok);
+                    tk.p(`Select an option to continue`, undefined, ok);
+                    tk.cb('b1 b2', 'Keep trying', function () {
+                        retryc = 0;
+                        attemptConnection();
+                        ui.dest(ok);
+                    }, ok);
+                    tk.cb('b1 b2', 'Reboot WebDesk', function () {
+                        wd.reboot();
+                    }, ok);
+                    tk.cb('b1', 'Close', function () {
+                        ui.dest(ok);
+                    }, ok);
                 }
             });
 
@@ -60,7 +78,6 @@ var ptp = {
                             dataConnection.send(JSON.stringify(response));
                         }
                     } catch (err) {
-                        console.log('<!> offload time: ' + err);
                         handleData(dataConnection, data);
                     }
                 });
@@ -90,7 +107,7 @@ var ptp = {
                                 navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
                                     call.answer(stream);
                                     call.on('stream', (remoteStream) => {
-                                        app.webcall.answer(remoteStream, call, parsedData.response);
+                                        app.webcall.answer(remoteStream, call, parsedData.response, stream);
                                     });
                                 }).catch((err) => {
                                     wm.notif('WebCall Error', 'Microphone access is denied, calling/answering might fail.');
@@ -131,8 +148,8 @@ async function handleData(conn, data) {
                     return;
                 }
                 ui.sw('quickstartwdsetup', 'quickstartwdgoing');
+                el.migstat.innerText = "Copying: " + data.filename;
                 fs.write(data.filename, data.file);
-                el.migstat.innerText = "Restored: " + data.filename;
             }
         } else if (data.name === "MigrationEnd") {
             if (sys.setupd === false) {
@@ -165,7 +182,7 @@ async function handleData(conn, data) {
                 }
             }
         } else if (data.name === "YesImAlive-WebKey") {
-            wm.notif(`${data.uname} accepted your WebDrop.`, 'WebDesk Services');
+            wm.notif(`${data.uname}`, 'accepted your WebDrop.');
         } else if (data.name === "DesktoDeskMsg-WebKey") {
             wm.notif(data.file, 'WebDesk Services');
         } else if (data.name === "DeclineCall-WebKey") {
@@ -174,12 +191,10 @@ async function handleData(conn, data) {
         } else if (data === "Name and FUCKING address please") {
             conn.send(sys.user);
         } else {
-            recb = data.file;
-            recn = data.name;
-            play('./assets/other/webdrop.ogg');
-            wal(`<p class="h3">WebDrop</p><p><span class="med dropn">what</span> would like to share <span class="med dropf">what</span></p>`, `acceptdrop();custf('${data.id}', 'YesImAlive-WebKey');`, 'Accept', './assets/img/apps/webdrop.svg');
-            masschange('dropn', data.uname);
-            masschange('dropf', data.name);
+            wm.notif(`${data.uname} would like to share ${data.name}`, 'Hit "Open" to accept', async function () {
+                await fs.write(`/user/files/` + data.name, data.file);
+                custf(data.id, 'YesImAlive-WebKey');
+            });
         }
     } else {
         custf(data.id, 'DesktoDeskMsg-WebKey', `${deskid} isn't accepting WebDrops right now.`);

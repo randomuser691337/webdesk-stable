@@ -1,4 +1,4 @@
-// WebDesk 0.0.9
+// WebDesk 0.1.3
 // Rebuild 7 (wtf)
 
 function gen(length) {
@@ -179,7 +179,7 @@ var wd = {
             tk.cb('b1 time', '--:--', () => controlcenter(), titletb);
         }
         if (waitopt === "wait") {
-            setTimeout(function () { desktopgo(); }, 400);
+            setTimeout(function () { desktopgo(); }, 200);
         } else {
             desktopgo();
         }
@@ -202,39 +202,50 @@ var wd = {
         ui.sw2(div1, div2); ui.masschange('name', name); fs.write('/user/info/name', name); fs.write('/system/info/setuptime', Date.now()); fs.write('/system/info/setupver', abt.ver);
     },
     reboot: function () {
-        window.location.reload();
+        ui.show(document.getElementById('death'), 200);
+        setTimeout(function () {
+            window.location.href = window.location.origin;
+        }, 200);
     },
-    dark: function () {
+    dark: function (fucker) {
         ui.cv('ui1', 'rgb(40, 40, 40, 0.6)');
         ui.cv('ui2', '#1b1b1b');
         ui.cv('ui3', '#2b2b2b');
-        ui.cv('bc', 'rgb(44, 44, 44, 0.5)');
+        ui.cv('bc', 'rgb(70, 70, 70, 0.6)');
         ui.cv('font', '#fff');
-        fs.write('/user/info/lightdark', 'dark');
+        if (!fucker === "nosave") {
+            fs.write('/user/info/lightdark', 'dark');
+        }
         ui.light = false;
     },
-    light: function () {
+    light: function (fucker) {
         ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
         ui.cv('ui2', '#ffffff');
         ui.cv('ui3', '#dddddd');
-        ui.cv('bc', 'rgb(200, 200, 200, 0.6)');
+        ui.cv('bc', 'rgb(220, 220, 220, 0.6)');
         ui.cv('font', '#000');
-        fs.del('/user/info/lightdark');
+        if (!fucker === "nosave") {
+            fs.del('/user/info/lightdark');
+        }
         ui.light = true;
     },
-    clearm: function () {
+    clearm: function (fucker) {
         ui.cv('ui1', 'rgb(255, 255, 255, 0)');
         ui.cv('ui2', 'rgba(var(--accent), 0.1)');
         ui.cv('ui3', 'rgba(var(--accent) 0.2)');
         ui.cv('bc', 'rgb(255, 255, 255, 0)');
         ui.cv('font', '#000');
-        fs.write('/user/info/lightdark', 'clear');
+        if (!fucker === "nosave") {
+            fs.write('/user/info/lightdark', 'clear');
+        }
         ui.light = true;
     },
-    clearm2: function () {
+    clearm2: function (fucker) {
         wd.clearm();
         ui.cv('font', '#fff');
-        fs.write('/user/info/lightdark', 'clear2');
+        if (!fucker === "nosave") {
+            fs.write('/user/info/lightdark', 'clear2');
+        }
         ui.light = false;
     },
     timec: function (id) {
@@ -322,7 +333,7 @@ var wd = {
         await fs.write('/system/apps.json', JSON.stringify(obj, null, 4));
     },
     newid: async function () {
-        const sigma = gen(8);
+        const sigma = gen(7);
         await fs.write('/system/deskid', sigma);
         return sigma;
     },
@@ -337,15 +348,15 @@ var wd = {
     },
     download: function (file, fileName) {
         let downloadLink = document.createElement('a')
-  
+
         if (typeof file === 'string' && file.startsWith('data:')) {
-          downloadLink.href = file
-          downloadLink.download = fileName
+            downloadLink.href = file
+            downloadLink.download = fileName
         } else if (file instanceof File || file instanceof Blob) {
-          downloadLink.href = URL.createObjectURL(file)
-          downloadLink.download = file.name || fileName
+            downloadLink.href = URL.createObjectURL(file)
+            downloadLink.download = file.name || fileName
         }
-      
+
         downloadLink.style.display = 'none'
         document.body.appendChild(downloadLink)
         downloadLink.click()

@@ -14,10 +14,10 @@
     --bl2: 8px;
     --rad1: 16px;
     --rad2: 12px;
-    --rad3: 9px;
+    --rad3: 10px;
     --fz1: 15px;
-    --fz2: 12px;
-    --fz3: 10px;
+    --fz2: 14px;
+    --fz3: 12px;
     --inv: 0;
     --wina: 0px;
 }
@@ -28,10 +28,10 @@
     right: 0;
     bottom: 0;
     top: 0;
-    width: 100%;
     z-index: -2;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(180deg, var(--bg2), var(--bg1));
+    background: var(--bg1);
 }
 
 @font-face {
@@ -146,6 +146,7 @@ p {
     background-color: var(--ui1);
     border-radius: var(--rad1);
     max-width: 85% !important;
+    max-height: 85% !important;
     animation: setup 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     width: 550px;
     height: 400px;
@@ -186,7 +187,7 @@ p {
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
     resize: both;
-    animation: winanim 0.35s ease;
+    animation: winanim 0.3s ease;
     min-width: 80px;
     min-height: 50px;
 }
@@ -210,6 +211,7 @@ p {
     border-top-right-radius: 13px;
     border-bottom: 1px solid var(--bc);
     transition: 0.05s;
+    z-index: 9999;
 }
 
 .tnav {
@@ -265,7 +267,7 @@ p {
     padding: 3px;
     border-radius: var(--rad2);
     text-align: left;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
     background-color: var(--ui1);
 }
 
@@ -366,7 +368,7 @@ p {
     padding: 1px 3px;
     border-radius: 8px;
     background-color: rgba(var(--accent), 0.25);
-    font-size: var(--fz2);
+    font-size: var(--fz3);
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.05s ease-in-out;
@@ -593,13 +595,14 @@ p {
 
 .i1:focus {
     background-color: rgba(var(--accent), 0.38);
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 20px 4px;
 }
 
 #notif {
     position: fixed;
     top: 0px;
     right: 0px;
-    bottom: 55px;
+    bottom: 45px;
     width: 250px;
     padding: 10px;
     overflow-x: visible;
@@ -634,7 +637,7 @@ p {
     padding: 8px;
     border-radius: var(--rad1);
     margin-bottom: 5px;
-    animation: notif 0.7s ease-out;
+    animation: notif 0.5s ease-out;
     text-align: left;
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
@@ -699,6 +702,10 @@ p {
     border-top: 1px solid var(--bc);
 }
 
+.taskbar button {
+    padding: 3px 5px;
+    font-size: var(--fz2);
+}
 
 @keyframes tb {
     0% {
@@ -730,8 +737,8 @@ p {
     border: 1px solid var(--bc);
     transform: translate(-50%, -50%);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
-    z-index: 10;
-    width: 240px;
+    z-index: 9998;
+    width: 250px;
 }
 
 .tbmenu {
@@ -745,9 +752,10 @@ p {
     padding: 7px;
     max-width: 80%;
     max-width: 360px;
-    max-height: 80%;
-    z-index: 4;
-    animation: tb2 0.25s ease-out;
+    max-height: 70%;
+    z-index: 9998;
+    animation: tb2 0.22s ease-out;
+    overflow-y: auto !important;
 }
 
 .tbmenu::-webkit-scrollbar {
@@ -757,7 +765,7 @@ p {
 
 @keyframes tb2 {
     0% {
-        bottom: 100px;
+        bottom: 115px;
         opacity: 0%;
     }
 
@@ -874,4 +882,43 @@ a:active {
     80% { transform: translate(-0.75px, 1.5px) rotate(1.125deg); }
     90% { transform: translate(2.25px, -0.75px) rotate(-0.75deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.split {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px auto;
+    width: 75%;
+}
+
+.splititem {
+    max-width: 50%;
+    text-align: center;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding: 10px;
+}
+
+.splititem img {
+    border-radius: 8px;
+    border: 1px solid #000;
+}
+
+.splititem p {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
+
+.splititem:first-child {
+    border-right: 2px solid #444;
+}
+
+@media (max-width: 768px) {
+    .splititem {
+        width: 100%;
+        max-width: 100% !important;
+    }
 }

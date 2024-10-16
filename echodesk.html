@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 11, 2024",
-        ver: "0.1.2",
+        lastmod: "Oct 16, 2024",
+        ver: "0.1.3",
     }
 
     var sys = {
@@ -50,6 +50,10 @@
     <div id="notif"></div>
     <div id="death"
         style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000;">
+        <div class="center">
+            <p class="bold" style="color: #fff !important;">Loading</p>
+            <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things might be slower than usual.</p>
+        </div>
     </div>
 </body>
 
@@ -72,11 +76,11 @@
         const params = new URLSearchParams(window.location.search);
         const id = params.get('deskid');
         if (id) {
-            const id2 = gen(8);
+            const id2 = gen(7);
             sys.echoid = id;
             await ptp.go(id2);
         } else {
-            ui.hide(document.getElementById('death'), 300);
+            ui.hide(document.getElementById('death'), 200);
             wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to boot.`);
         }
     }
@@ -84,17 +88,17 @@
         let boot = false;
         setTimeout(function () {
             if (boot === false) {
-                ui.hide(document.getElementById('death'), 300);
+                ui.hide(document.getElementById('death'), 200);
                 wm.wal(`<p class="bold">EchoDesk failed to boot</p><p>Click "Try Again" if you want, otherwise check the other WebDesk, make sure your connection is OK, and disable your VPN if it's on.</p>`, () => reboot(), 'Try Again', 'noclose');
             }
-        }, 9000);
+        }, 8000);
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
+            boot = true;
             const darkpref = await fs.read('/user/info/lightdarkpref');
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
-            await wd.desktop(sd, sys.deskid, 'wait');
             sys.setupd = true;
             sys.name = sd;
             if (darkpref === "auto") {
@@ -103,13 +107,13 @@
                 sys.autodarkacc = false;
             }
             if (lightdark === "dark") {
-                wd.dark();
+                wd.dark('nosave');
             } else if (lightdark === "clear") {
-                wd.clearm();
+                wd.clearm('nosave');
             } else if (lightdark === "clear2") {
-                wd.clearm2();
+                wd.clearm2('nosave');
             } else {
-                wd.light();
+                wd.light('nosave');
             }
             ui.crtheme(color);
             const data = await fs.read('/system/apps.json');
@@ -139,7 +143,7 @@
                     });
                 }
             }
-            boot = true;
+            await wd.desktop(sd, sys.deskid, 'wait');
         } else if (migcheck) {
             ui.crtheme('#010101', true);
             wd.dark();
@@ -151,8 +155,7 @@
             app.setup.init();
             sys.setupd = false;
         }
-
-        ui.hide(document.getElementById('death'), 300);
+        ui.hide(document.getElementById('death'), 200);
 
         const dropZone = document.body;
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

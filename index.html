@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-    <link rel="stylesheet" href="./assets/style.css">
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="./assets/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="shortcut icon" href="./assets/img/favicon.png">
@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 11, 2024",
-        ver: "0.1.2",
+        lastmod: "Oct 16, 2024",
+        ver: "0.1.3",
     }
 
     var sys = {
@@ -30,7 +30,7 @@
         currentf: undefined,
         full: false,
         guest: false,
-        light: true,   
+        light: true,
     }
 
     var el = {
@@ -59,6 +59,7 @@
 <script src="./assets/lib/jq.js"></script>
 <script src="./assets/lib/jszip.js"></script>
 <script src="./assets/lib/peer.js"></script>
+<script src="./assets/lib/qrcode.js"></script>
 <script src="./assets/lib/ace/ace.js"></script>
 <script src="./assets/lib/picker.js"></script>
 <script src="./assets/code/core.js"></script>
@@ -67,13 +68,29 @@
 <script src="./assets/code/ui.js"></script>
 <script src="./assets/code/fs.js"></script>
 <script src="./assets/code/apps.js"></script>
-<script type="text/javascript" src="https://unpkg.com/jsnes/dist/jsnes.min.js"></script>
 <script>
     async function boot() {
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
+            const url = window.location.href;
+            const params = new URLSearchParams(window.location.search);
+            const uid = params.get('deskid');
+            if (uid) {
+                sys.migrid = uid;
+                const id = gen(7);
+                await ptp.go(id);
+                ui.crtheme('#010101', true);
+                wd.dark('nosave');
+                app.migrate.init('skibidi');
+                ui.hide(document.getElementById('death'), 200);
+                return;
+            }
             const deskid = await fs.read('/system/deskid');
+            if (deskid.length === 8) {
+                await wd.newid();
+                window.location.reload();
+            }
             const darkpref = await fs.read('/user/info/lightdarkpref');
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
@@ -81,7 +98,6 @@
             if (!placehold) {
                 fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
             }
-            await wd.desktop(sd, deskid, 'wait');
             await ptp.go(deskid);
             sys.setupd = true;
             sys.name = sd;
@@ -91,15 +107,19 @@
                 sys.autodarkacc = false;
             }
             if (lightdark === "dark") {
-                wd.dark();
+                wd.dark('nosave');
             } else if (lightdark === "clear") {
-                wd.clearm();
+                wd.clearm('nosave');
             } else if (lightdark === "clear2") {
-                wd.clearm2();
+                wd.clearm2('nosave');
             } else {
-                wd.light();
+                wd.light('nosave');
             }
-            ui.crtheme(color);
+            if (color) {
+                ui.crtheme(color);
+            } else {
+                ui.crtheme('#7A7AFF');
+            }
             const data = await fs.read('/system/apps.json');
             if (data) {
                 const apps = JSON.parse(data);
@@ -127,28 +147,29 @@
                     });
                 }
             }
+            await wd.desktop(sd, deskid, 'wait');
         } else if (migcheck === "down") {
-            const id = gen(8);
+            const id = gen(7);
             await ptp.go(id);
             ui.crtheme('#010101', true);
-            wd.dark();
+            wd.dark('nosave');
             await fs.del('/system/migval');
             app.migrate.init('down');
         } else if (migcheck === "echo") {
-            const id = gen(8);
+            const id = gen(7);
             await ptp.go(id);
             ui.crtheme('#010101', true);
-            wd.dark();
+            wd.dark('nosave');
             await fs.del('/system/migval');
             app.echodesk.init();
         } else {
+            ui.crtheme('#7A7AFF');
             const id = await wd.newid();
             await ptp.go(id);
             app.setup.init();
             sys.setupd = false;
         }
-
-        ui.hide(document.getElementById('death'), 300);
+        ui.hide(document.getElementById('death'), 200);
 
         const dropZone = document.body;
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -185,6 +206,6 @@
     }
 
     function reboot() {
-        window.location.reload();
+        wd.reboot();
     }
 </script>

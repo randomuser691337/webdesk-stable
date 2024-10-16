@@ -12,7 +12,7 @@ wfs.onmessage = function (event) {
     } else if (type === 'db_ready') {
         boot();
     } else if (type === "reboot") {
-        window.location.reload();
+        wd.reboot();
     } else {
         console.warn('Unknown message type or requestId from wfs:', type);
     }

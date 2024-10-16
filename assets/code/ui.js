@@ -9,7 +9,7 @@ var ui = {
     },
     crtheme: async function (hex, opt) {
         const a = ui.hextool(hex, 25);
-        ui.theme(ui.hextool(hex, 20), a, ui.hextool(hex, 35), ui.hextool(hex, 50), ui.hextorgb(hex));
+        ui.theme(ui.hextool(hex, 20), a, ui.hextool(hex, 35), ui.hextool(hex, 50), ui.hextorgb(ui.hextool(hex, 55)));
         if (!opt === true) {
             await fs.write('/user/info/color', hex);
             if (sys.autodarkacc === true) {
