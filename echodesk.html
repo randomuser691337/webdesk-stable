@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 16, 2024",
-        ver: "0.1.3",
+        lastmod: "Oct 23, 2024",
+        ver: "0.1.4",
     }
 
     var sys = {
@@ -29,7 +29,8 @@
         peer: undefined,
         currentf: undefined,
         full: false,
-        echoid: undefined
+        echoid: undefined,
+        fucker: false,
     }
 
     var el = {
@@ -52,7 +53,8 @@
         style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000;">
         <div class="center">
             <p class="bold" style="color: #fff !important;">Loading</p>
-            <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things might be slower than usual.</p>
+            <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things will be slower than
+                usual.</p>
         </div>
     </div>
 </body>
@@ -81,7 +83,7 @@
             await ptp.go(id2);
         } else {
             ui.hide(document.getElementById('death'), 200);
-            wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to boot.`);
+            wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to the URL to boot.`);
         }
     }
     async function boot() {
@@ -94,11 +96,19 @@
         }, 8000);
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
-        if (sd && !migcheck) {
+        if (sd && !migcheck && boot === false) {
             boot = true;
             const darkpref = await fs.read('/user/info/lightdarkpref');
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
+            const font = await fs.read('/user/info/font');
+            if (font === "big") {
+                wd.bgft();
+            } else if (font === "small") {
+                wd.smft();
+            } else {
+                wd.meft();
+            }
             sys.setupd = true;
             sys.name = sd;
             if (darkpref === "auto") {
@@ -122,41 +132,43 @@
                 try {
                     const response = await fetch('https://appmarket.meower.xyz/refresh');
                     const onlineApps = await response.json();
-                    apps.forEach(inapp => {
-                        const onlineApp = onlineApps.find(app => app.name === inapp.name);
-
-                        if (onlineApp.ver === inapp.ver) {
-                            eval(inapp.exec);
-                            console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
-                        } else {
-                            const remove = apps.filter(item => item.id !== inapp.id);
-                            const removed = JSON.stringify(remove);
-                            fs.write('/system/apps.json', removed);
-                            app.appmark.create(onlineApp.path, onlineApp, true);
-                            console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
-                        }
-                    });
+                    for (const inapp of apps) {
+                        await wd.loadapps(inapp, onlineApps, apps);
+                    }
                 } catch (err) {
                     console.log(err);
-                    apps.forEach(inapp => {
-                        eval(inapp.exec);
-                    });
+                    try {
+                        for (const inapp of apps) {
+                            await wd.loadapps(inapp, inapp, inapp);
+                        }
+                    } catch (error) {
+                        if (sys.fucker === false) {
+                            sys.fucker = true;
+                            fs.del('/system/apps.json');
+                            fs.delfold('/system/apps');
+                            wm.notif('App Issues', 'All apps were uninstalled due to corruption or an update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
+                        }
+                    }
                 }
             }
             await wd.desktop(sd, sys.deskid, 'wait');
         } else if (migcheck) {
             ui.crtheme('#010101', true);
-            wd.dark();
-            wm.wal(`<p>WebDesks in EchoDesk mode cannot enter Recovery or Migration Assistant.</p>`, () => wd.reboot(), 'Reboot', 'noclose');
+            wd.dark('nosave');
+            wm.wal(`<p>WebDesks in EchoDesk mode cannot enter Recovery, Migration Assistant, etc.</p>`, () => wd.reboot(), 'Reboot', 'noclose');
+            app.ach.unlock('Dead End', `Life is an endless series of trainwrecks with only brief, commercial-like breaks of happiness.`);
             await fs.del('/system/migval');
+            boot = true;
         } else {
-            const id = await wd.newid();
-            await ptp.go(id);
-            app.setup.init();
+            wm.wal(`<p>I'm sorry, how did you get here?</p><p>Come on dude, at least go fully set up the other WebDesk.</p>`);
             sys.setupd = false;
+            boot = true;
         }
-        ui.hide(document.getElementById('death'), 200);
 
+        wd.perfmon();
+        ui.hide(document.getElementById('death'), 200);
+        wm.notif('Welcome to EchoDesk', `Your current DeskID is temporary, and features are disabled.`);
+        app.ach.unlock(`EchoDesk`, `Better than remote desktop in some cases?`);
         const dropZone = document.body;
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, preventDefaults, false);
@@ -176,7 +188,7 @@
     }
 
     function reboot() {
-        window.location.reload();
+        wd.reboot();
     }
 
     strap();

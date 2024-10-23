@@ -44,3 +44,23 @@ search.addEventListener('input', function (event) {
         finish = tk.p('Answers will appear here', undefined, main);
     }
 }, */
+
+// Old WebDesk bits
+
+/* function sends(name, file) {
+    fname = name;
+    fblob = file;
+    opapp('sendf');
+    masschange('fname', name);
+}
+
+function sendf(id) {
+    try {
+        custf(id, fname, fblob);
+        snack('File has been sent.', 2500);
+        play('./assets/other/woosh.ogg');
+    } catch (error) {
+        console.log('<!> Error while sending file:', error);
+        snack('An error occurred while sending your file.', 2500);
+    }
+} */

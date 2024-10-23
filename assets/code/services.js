@@ -30,6 +30,7 @@ var ptp = {
                 if (fucker === false) {
                     if (err.message.includes('Lost connection to server')) {
                         wm.notif('Connection Error', `Your connection was interrupted, so your DeskID is broken. WebDesk is trying to restore the connection.`);
+                        ui.masschange('deskid', 'disabled');
                         app.ach.unlock('DeskID Issues', `Here's an achievement for your troubles.`);
                     } else if (err.message.includes('is taken')) {
                         wm.notif('DeskID is taken', `Your DeskID is in use by someone else or another tab. You've been given a temporary DeskID until next reboot.`);
@@ -46,7 +47,7 @@ var ptp = {
                 if (retryc < 5) {
                     console.log('<!> DeskID failed to register, trying again...');
                     retryc++;
-                    setTimeout(attemptConnection, 10000);
+                    setTimeout(attemptConnection, 5000);
                 } else if (retryc >= 5) {
                     console.log('<!> Maximum retry attempts reached. DeskID registration failed.');
                     const ok = tk.c('div', document.body, 'cm');
@@ -103,7 +104,7 @@ var ptp = {
                         const parsedData = JSON.parse(data);
 
                         if (parsedData.response) {
-                            wm.notif(`Call from ${parsedData.response}`, 'Answer?', function () {
+                            wm.notif(`Call from ${parsedData.response}`, function () {
                                 navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
                                     call.answer(stream);
                                     call.on('stream', (remoteStream) => {
@@ -113,7 +114,7 @@ var ptp = {
                                     wm.notif('WebCall Error', 'Microphone access is denied, calling/answering might fail.');
                                     console.log(`<!> ${err}`);
                                 });
-                            });
+                            }, 'Answer');
                         }
                     } catch (err) {
                         console.error('Failed to parse data:', err);
@@ -149,7 +150,7 @@ async function handleData(conn, data) {
                 }
                 ui.sw('quickstartwdsetup', 'quickstartwdgoing');
                 el.migstat.innerText = "Copying: " + data.filename;
-                fs.write(data.filename, data.file);
+                await fs.write(data.filename, data.file);
             }
         } else if (data.name === "MigrationEnd") {
             if (sys.setupd === false) {
@@ -191,10 +192,11 @@ async function handleData(conn, data) {
         } else if (data === "Name and FUCKING address please") {
             conn.send(sys.user);
         } else {
-            wm.notif(`${data.uname} would like to share ${data.name}`, 'Hit "Open" to accept', async function () {
+            wm.notif(`${data.uname} would like to share`, data.name, async function () {
                 await fs.write(`/user/files/` + data.name, data.file);
                 custf(data.id, 'YesImAlive-WebKey');
-            });
+                app.files.init('/user/files/');
+            }, 'Accept');
         }
     } else {
         custf(data.id, 'DesktoDeskMsg-WebKey', `${deskid} isn't accepting WebDrops right now.`);
@@ -288,24 +290,6 @@ async function restorefsold(zipBlob) {
         ui.sw('quickstartwdgoing', 'setupdone');
     } catch (error) {
         console.error('Error during restoration:', error);
-    }
-}
-
-function sends(name, file) {
-    fname = name;
-    fblob = file;
-    opapp('sendf');
-    masschange('fname', name);
-}
-
-function sendf(id) {
-    try {
-        custf(id, fname, fblob);
-        snack('File has been sent.', 2500);
-        play('./assets/other/woosh.ogg');
-    } catch (error) {
-        console.log('<!> Error while sending file:', error);
-        snack('An error occurred while sending your file.', 2500);
     }
 }
 

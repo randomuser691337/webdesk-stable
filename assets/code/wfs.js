@@ -62,11 +62,21 @@ function idbop(operation, params, opt, requestId) {
         case 'list':
             fs2.list(params);
             break;
+        case 'persist':
+            fs2.persist();
+            break;
         case 'all':
             fs2.all().then(files => {
                 self.postMessage({ type: 'result', data: files, requestId });
             }).catch(error => {
                 console.error('Error fetching files:', error);
+            });
+            break;
+        case 'delfold':
+            fs2.nukefold(params).then(result => {
+                self.postMessage({ type: 'result', data: result, requestId });
+            }).catch(error => {
+                self.postMessage({ type: 'error', data: error, requestId });
             });
             break;
         case 'ls':
@@ -164,6 +174,21 @@ var fs2 = {
             console.log("<!> Error erasing: ", event.target.error);
         };
     },
+    persist: function () {
+        if ('storage' in navigator && 'persist' in navigator.storage) {
+            navigator.storage.persist().then(function (persistent) {
+                if (persistent) {
+                    console.log('<i> Persistence is granted.');
+                } else {
+                    console.log('<!> Persistence is not granted.');
+                }
+            }).catch(function (error) {
+                console.error('<!> Error requesting persistence:', error);
+            });
+        } else {
+            console.log('<!> Persistence API is not supported in this browser.');
+        }
+    },
     folder: function (path) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['main'], 'readonly');
@@ -186,6 +211,33 @@ var fs2 = {
                     cursor.continue();
                 } else {
                     resolve({ items: Array.from(items.values()) });
+                }
+            };
+
+            objectStore.openCursor().onerror = function (event) {
+                reject(event.target.error);
+            };
+        });
+    },
+    nukefold: async function (path) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['main'], 'readonly');
+            const objectStore = transaction.objectStore('main');
+            objectStore.openCursor().onsuccess = async function (event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    if (cursor.key.startsWith(path)) {
+                        const relativePath = cursor.key.substring(path.length);
+                        const parts = relativePath.split('/');
+                        if (parts.length > 1) {
+                            fs2.nukefold(path + parts[0] + '/');
+                        } else {
+                            fs2.del(cursor.key);
+                        }
+                    }
+                    cursor.continue();
+                } else {
+                    resolve(true);
                 }
             };
 

@@ -1,5 +1,5 @@
-// WebDesk 0.1.3
-// Rebuild 7 (wtf)
+// WebDesk 0.1.4
+// Based on Rebuild 7 (wtf)
 
 function gen(length) {
     if (length <= 0) {
@@ -204,28 +204,32 @@ var wd = {
     reboot: function () {
         ui.show(document.getElementById('death'), 200);
         setTimeout(function () {
-            window.location.href = window.location.origin;
+            if (window.location.href.includes('echodesk')) {
+                window.location.reload();
+            } else {
+                window.location.href = window.location.origin;
+            }
         }, 200);
     },
     dark: function (fucker) {
-        ui.cv('ui1', 'rgb(40, 40, 40, 0.6)');
+        ui.cv('ui1', 'rgb(44, 44, 44, 0.6)');
         ui.cv('ui2', '#1b1b1b');
         ui.cv('ui3', '#2b2b2b');
         ui.cv('bc', 'rgb(70, 70, 70, 0.6)');
         ui.cv('font', '#fff');
-        if (!fucker === "nosave") {
+        if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'dark');
         }
         ui.light = false;
     },
     light: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
+        ui.cv('ui1', 'rgb(250, 250, 250, 0.6)');
         ui.cv('ui2', '#ffffff');
         ui.cv('ui3', '#dddddd');
         ui.cv('bc', 'rgb(220, 220, 220, 0.6)');
         ui.cv('font', '#000');
-        if (!fucker === "nosave") {
-            fs.del('/user/info/lightdark');
+        if (fucker !== "nosave") {
+            fs.write('/user/info/lightdark', 'light');
         }
         ui.light = true;
     },
@@ -235,7 +239,7 @@ var wd = {
         ui.cv('ui3', 'rgba(var(--accent) 0.2)');
         ui.cv('bc', 'rgb(255, 255, 255, 0)');
         ui.cv('font', '#000');
-        if (!fucker === "nosave") {
+        if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'clear');
         }
         ui.light = true;
@@ -243,7 +247,7 @@ var wd = {
     clearm2: function (fucker) {
         wd.clearm();
         ui.cv('font', '#fff');
-        if (!fucker === "nosave") {
+        if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'clear2');
         }
         ui.light = false;
@@ -361,6 +365,55 @@ var wd = {
         document.body.appendChild(downloadLink)
         downloadLink.click()
         document.body.removeChild(downloadLink)
+    },
+    smft: function () {
+        ui.cv('fz3', '10px');
+        ui.cv('fz2', '12px');
+        ui.cv('fz1', '13px');
+    },
+    meft: function () {
+        ui.cv('fz3', '12px');
+        ui.cv('fz2', '14px');
+        ui.cv('fz1', '15px');
+    },
+    bgft: function () {
+        ui.cv('fz3', '14px');
+        ui.cv('fz2', '15px');
+        ui.cv('fz1', '17px');
+    },
+    loadapps: async function (inapp, onlineApps, apps) {
+        const onlineApp = onlineApps.find(app => app.name === inapp.name);
+
+        if (onlineApp.ver === inapp.ver && sys.fucker === false) {
+            console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
+            const fucker = await fs.read(inapp.exec);
+            if (fucker) {
+                eval(fucker);
+            } else {
+                fs.del('/system/apps.json');
+                fs.delfold('/system/apps');
+                wm.notif('App Issues', 'All apps were uninstalled due to corruption or an update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
+                sys.fucker = true;
+                return;
+            }
+        } else {
+            const remove = apps.filter(item => item.appid !== inapp.appid);
+            const removed = JSON.stringify(remove);
+            fs.write('/system/apps.json', removed);
+            app.appmark.create(onlineApp.path, onlineApp, true);
+            console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
+        }
+    },
+    perfmon: function () {
+        if (performance.memory) {
+            setInterval(() => {
+                const memoryUsage = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+                if (memoryUsage > 0.75) {
+                    app.ach.unlock(`Time to make the chimichangas!`, `Quite literally, if your device gets that hot.`);
+                    wm.notif(`STOP WHATEVER YOU'RE DOING`, `WebDesk is going to crash due to overuse of resources, or it will start deleting things from memory.`);
+                }
+            }, 4000);
+        }
     }
 }
 

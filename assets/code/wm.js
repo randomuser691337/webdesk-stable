@@ -19,12 +19,18 @@ var wm = {
             btn.addEventListener('click', btn1);
         }
     },
-    snack: function (txt) {
+    snack: function (txt, time) {
         const div = tk.c('div', document.body, 'snack');
         div.innerText = txt;
-        setTimeout(() => {
-            ui.dest(div, 300);
-        }, 4000);
+        if (time) {
+            setTimeout(() => {
+                ui.dest(div, 300);
+            }, time);
+        } else {
+            setTimeout(() => {
+                ui.dest(div, 300);
+            }, 4000);
+        }
         div.addEventListener('click', function () {
             ui.dest(div, 140);
         });
@@ -58,9 +64,7 @@ var wm = {
             log(`<!> Error closing window. Window: ${div} - Button: ${document.getElementById(fuck)}`);
         }
     },
-
-    max: function (id) {
-        const wid = document.getElementById(id);
+    max: function (wid) {
         if (wid) {
             wid.classList.toggle('max');
             if (!wid.classList.contains('max')) {
@@ -71,30 +75,31 @@ var wm = {
             }
         }
     },
-
     mini: function (window) {
         hidef(window, 120);
     },
-
     mini: function (window) {
         showf(window, 0);
     },
-
-    notif: function (name, cont, mode) {
+    notif: function (name, cont, mode, button) {
         const div = tk.c('div', document.getElementById('notif'), 'notif');
         ui.play('./assets/other/notif1.ogg');
         const title = tk.p(name, 'bold', div);
         const content = tk.p(cont, undefined, div);
-        const dbtn = tk.cb('b4', 'Dismiss', function () {
+        const dbtn = tk.cb('b4', 'Close', function () {
             ui.dest(div, 240);
         }, div);
+        let the = "Open";
+        if (button) {
+            the = button;
+        }
         if (mode) {
-            const open = tk.cb('b4', 'Open', undefined, div);
+            const open = tk.cb('b4', the, undefined, div);
             open.addEventListener('click', mode);
             open.addEventListener('click', function () { ui.dest(div, 120); });
         }
         const txt = tk.c('span', div, 'bold');
         txt.innerText = ` - ${wd.timecs(Date.now())}`
-        return {div, title, content, dismiss: dbtn};
+        return { div, title, content, dismiss: dbtn };
     }
 }

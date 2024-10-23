@@ -177,6 +177,16 @@ var ui = {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    },
+    copy: function (text) {
+        navigator.clipboard.writeText(text);
+    }, 
+    truncater: function (inputString, size) {
+        if (inputString.length <= size) {
+            return inputString;
+        } else {
+            return inputString.slice(0, size - 3) + '...';
+        }
     }
 }
 
@@ -259,9 +269,10 @@ var tk = {
         windowDiv.style.height = hei;
         var titlebarDiv = tk.c('div', undefined, 'd tb');
         var winbtns = tk.c('div', undefined, 'tnav');
-        var closeButton = document.createElement('div');
+        var closeButton = document.createElement('button');
         closeButton.classList.add('winb');
-        const tbn = tk.cb('b1', title, function () {
+        const shortened = ui.truncater(title, 11);
+        const tbn = tk.cb('b1', shortened, function () {
             ui.show(windowDiv, 120);
             wd.win(windowDiv);
         }, el.tr);
@@ -273,7 +284,7 @@ var tk = {
             });
         }
 
-        var minimizeButton = document.createElement('div');
+        var minimizeButton = document.createElement('button');
         minimizeButton.classList.add('winb');
         if (min === undefined) {
             minimizeButton.classList.add('yel');
@@ -281,12 +292,12 @@ var tk = {
                 ui.hide(windowDiv, 100);
             });
         }
-        var maximizeButton = document.createElement('div');
+        var maximizeButton = document.createElement('button');
         maximizeButton.classList.add('winb');
         if (full === undefined) {
             maximizeButton.classList.add('gre');
             maximizeButton.addEventListener('mousedown', function () {
-                max(windowDiv.id);
+                wm.max(windowDiv);
             });
         }
 
@@ -303,7 +314,11 @@ var tk = {
         contentDiv.classList.add('content');
         windowDiv.appendChild(contentDiv);
         document.body.appendChild(windowDiv);
-        wd.win(); ui.center(windowDiv);
+        wd.win();
+        windowDiv.addEventListener('mousedown', function () {
+            wd.win(windowDiv);
+        });
+        setTimeout(function () { ui.center(windowDiv); }, 15);
         return { win: windowDiv, main: contentDiv, tbn, title: titlebarDiv, closebtn: closeButton };
     }
 }

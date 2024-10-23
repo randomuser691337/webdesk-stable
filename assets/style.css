@@ -5,7 +5,7 @@
     --bg2: #aaccff;
     --accent: 0, 60, 255;
     --acc: var(--accent);
-    --ui1: rgb(255, 255, 255, 0.6);
+    --ui1: rgb(250, 250, 250, 0.6);
     --ui2: #ffffff;
     --ui3: #dddddd;
     --bc: rgb(220, 220, 220, 0.6);
@@ -231,18 +231,15 @@ p {
 .winb {
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(0, 0, 0, 0) important;
+    border: none;
     margin-right: 7px;
     border-radius: 50%;
     background-color: rgba(127, 127, 127, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s ease;
+    cursor: default !important;
 }
 
 .winb:active {
-    opacity: 75%;
+    opacity: 50%;
 }
 
 .red {
@@ -343,7 +340,7 @@ p {
 }
 
 .b3:hover {
-    background-color: rgba(var(--accent), 0.4);
+    background-color: rgba(var(--accent), 0.45);
     border: 1px solid rgba(var(--accent), 0.65);
 }
 
@@ -634,10 +631,10 @@ p {
     box-sizing: border-box;
     background-color: var(--ui1);
     border: 1px solid var(--bc);
-    padding: 8px;
+    padding: 9px;
     border-radius: var(--rad1);
     margin-bottom: 5px;
-    animation: notif 0.5s ease-out;
+    animation: notif 0.45s ease-out;
     text-align: left;
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
@@ -658,9 +655,7 @@ p {
     margin-bottom: 2px;
     margin-top: 2px;
     font-size: var(--fz2) !important;
-    cursor: pointer;
-    -webkit-backdrop-filter: blur(var(--bl1));
-    backdrop-filter: blur(var(--bl1));
+    background-color: var(--ui2);
 }
 
 .list {
@@ -697,7 +692,7 @@ p {
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     z-index: 3;
-    overflow-x: auto;
+    overflow-x: auto !important;
     white-space: nowrap;
     border-top: 1px solid var(--bc);
 }
@@ -921,4 +916,26 @@ a:active {
         width: 100%;
         max-width: 100% !important;
     }
+}
+
+.max {
+    position: fixed;
+    left: 0px !important;
+    top: 0px !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    transition: 0.3s all ease !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10;
+    border-radius: 0px;
+}
+
+.unmax {
+    transition: 0.3s;
+}
+
+.window.max .tb {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }

@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 16, 2024",
-        ver: "0.1.3",
+        lastmod: "Oct 23, 2024",
+        ver: "0.1.4",
     }
 
     var sys = {
@@ -31,6 +31,7 @@
         full: false,
         guest: false,
         light: true,
+        fucker: false,
     }
 
     var el = {
@@ -70,6 +71,12 @@
 <script src="./assets/code/apps.js"></script>
 <script>
     async function boot() {
+        let boot = false;
+        setTimeout(function () {
+            if (boot === false) {
+                app.recovery.init();
+            }
+        }, 7000);
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
@@ -87,13 +94,26 @@
                 return;
             }
             const deskid = await fs.read('/system/deskid');
-            if (deskid.length === 8) {
+            if (deskid) {
+                if (deskid.length === 8) {
+                    await wd.newid();
+                    window.location.reload();
+                }
+            } else {
                 await wd.newid();
                 window.location.reload();
             }
             const darkpref = await fs.read('/user/info/lightdarkpref');
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
+            const font = await fs.read('/user/info/font');
+            if (font === "big") {
+                wd.bgft();
+            } else if (font === "small") {
+                wd.smft();
+            } else {
+                wd.meft();
+            }
             const placehold = await fs.read('/user/files/Welcome to WebDesk!.txt');
             if (!placehold) {
                 fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
@@ -112,6 +132,8 @@
                 wd.clearm('nosave');
             } else if (lightdark === "clear2") {
                 wd.clearm2('nosave');
+            } else if (lightdark === "light") {
+                wd.light('nosave');
             } else {
                 wd.light('nosave');
             }
@@ -126,25 +148,23 @@
                 try {
                     const response = await fetch('https://appmarket.meower.xyz/refresh');
                     const onlineApps = await response.json();
-                    apps.forEach(inapp => {
-                        const onlineApp = onlineApps.find(app => app.name === inapp.name);
-
-                        if (onlineApp.ver === inapp.ver) {
-                            eval(inapp.exec);
-                            console.log(`<i> ${inapp.name} is up to date (${inapp.ver} = ${onlineApp.ver})`);
-                        } else {
-                            const remove = apps.filter(item => item.id !== inapp.id);
-                            const removed = JSON.stringify(remove);
-                            fs.write('/system/apps.json', removed);
-                            app.appmark.create(onlineApp.path, onlineApp, true);
-                            console.log(`<!> ${inapp.name} was updated (${inapp.ver} --> ${onlineApp.ver})`);
-                        }
-                    });
+                    for (const inapp of apps) {
+                        await wd.loadapps(inapp, onlineApps, apps);
+                    }
                 } catch (err) {
                     console.log(err);
-                    apps.forEach(inapp => {
-                        eval(inapp.exec);
-                    });
+                    try {
+                        for (const inapp of apps) {
+                            await wd.loadapps(inapp, inapp, inapp);
+                        }
+                    } catch (error) {
+                        if (sys.fucker === false) {
+                            sys.fucker = true;
+                            fs.del('/system/apps.json');
+                            fs.delfold('/system/apps');
+                            wm.notif('App Issues', 'All apps were uninstalled due to corruption or a WebDesk update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
+                        }
+                    }
                 }
             }
             await wd.desktop(sd, deskid, 'wait');
@@ -155,6 +175,7 @@
             wd.dark('nosave');
             await fs.del('/system/migval');
             app.migrate.init('down');
+            boot = true;
         } else if (migcheck === "echo") {
             const id = gen(7);
             await ptp.go(id);
@@ -162,13 +183,19 @@
             wd.dark('nosave');
             await fs.del('/system/migval');
             app.echodesk.init();
+            boot = true;
+        } else if (migcheck === "rec") {
+            await app.recovery.init();
         } else {
             ui.crtheme('#7A7AFF');
             const id = await wd.newid();
             await ptp.go(id);
             app.setup.init();
             sys.setupd = false;
+            boot = true;
         }
+
+        wd.perfmon();
         ui.hide(document.getElementById('death'), 200);
 
         const dropZone = document.body;
@@ -198,13 +225,14 @@
                 reader.onload = async function (e) {
                     const contents = e.target.result;
                     await fs.write(`/user/files/${file.name}`, contents);
+                    app.files.init('/user/files/');
                 };
 
                 reader.readAsDataURL(file);
             });
         }
+        boot = true;
     }
-
     function reboot() {
         wd.reboot();
     }
