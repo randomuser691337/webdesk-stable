@@ -85,7 +85,10 @@ var wm = {
         const div = tk.c('div', document.getElementById('notif'), 'notif');
         ui.play('./assets/other/notif1.ogg');
         const title = tk.p(name, 'bold', div);
-        const content = tk.p(cont, undefined, div);
+        let content;
+        if (cont) {
+            content = tk.p(cont, undefined, div);
+        }
         const dbtn = tk.cb('b4', 'Close', function () {
             ui.dest(div, 240);
         }, div);

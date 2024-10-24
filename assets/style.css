@@ -8,7 +8,7 @@
     --ui1: rgb(250, 250, 250, 0.6);
     --ui2: #ffffff;
     --ui3: #dddddd;
-    --bc: rgb(220, 220, 220, 0.6);
+    --bc: rgb(220, 220, 220, 0.4);
     --font: #000;
     --bl1: 12px;
     --bl2: 8px;
@@ -231,11 +231,13 @@ p {
 .winb {
     width: 14px;
     height: 14px;
+    padding: 0px !important;
     border: none;
     margin-right: 7px;
     border-radius: 50%;
     background-color: rgba(127, 127, 127, 0.5);
     cursor: default !important;
+    box-sizing: border-box;
 }
 
 .winb:active {
@@ -734,6 +736,8 @@ p {
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
     z-index: 9998;
     width: 250px;
+    max-width: 85%;
+    max-height: 85%;
 }
 
 .tbmenu {
@@ -779,7 +783,7 @@ p {
 }
 
 .flist:hover {
-    background-color: var(--ui2);
+    background-color: var(--ui3);
 }
 
 .width {
@@ -798,7 +802,7 @@ p {
 }
 
 .embed {
-    border-radius: 9px;
+    border-radius: var(--rad3);
     width: 100%;
     box-sizing: border-box;
     resize: both;
@@ -812,6 +816,7 @@ p {
     background-color: var(--ui2);
     resize: none !important;
     padding: 6px;
+    overflow: auto !important;
 }
 
 .warn {

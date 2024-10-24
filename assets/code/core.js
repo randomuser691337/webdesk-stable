@@ -215,7 +215,7 @@ var wd = {
         ui.cv('ui1', 'rgb(44, 44, 44, 0.6)');
         ui.cv('ui2', '#1b1b1b');
         ui.cv('ui3', '#2b2b2b');
-        ui.cv('bc', 'rgb(70, 70, 70, 0.6)');
+        ui.cv('bc', 'rgb(60, 60, 60, 0.4)');
         ui.cv('font', '#fff');
         if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'dark');
@@ -226,7 +226,7 @@ var wd = {
         ui.cv('ui1', 'rgb(250, 250, 250, 0.6)');
         ui.cv('ui2', '#ffffff');
         ui.cv('ui3', '#dddddd');
-        ui.cv('bc', 'rgb(220, 220, 220, 0.6)');
+        ui.cv('bc', 'rgb(220, 220, 220, 0.4)');
         ui.cv('font', '#000');
         if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'light');

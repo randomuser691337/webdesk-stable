@@ -11,7 +11,9 @@ var ptp = {
             sys.peer.on('open', (peerId) => {
                 ui.masschange('deskid', peerId);
                 sys.deskid = peerId;
+                ui.masschange('deskid', peerId);
                 console.log('<i> DeskID is online. ID: ' + sys.deskid);
+                fucker = true;
                 if (sys.echoid !== undefined) {
                     boot();
                 }
@@ -30,6 +32,7 @@ var ptp = {
                 if (fucker === false) {
                     if (err.message.includes('Lost connection to server')) {
                         wm.notif('Connection Error', `Your connection was interrupted, so your DeskID is broken. WebDesk is trying to restore the connection.`);
+                        sys.deskid = "disabled";
                         ui.masschange('deskid', 'disabled');
                         app.ach.unlock('DeskID Issues', `Here's an achievement for your troubles.`);
                     } else if (err.message.includes('is taken')) {

@@ -22,10 +22,14 @@ var app = {
             // General pane
             tk.p('General', undefined, generalPane);
             tk.cb('b1 b2 red', 'Erase This WebDesk', () => app.eraseassist.init(), generalPane);
-            tk.cb('b1 b2 red', 'Request Persistance (Stops browser from erasing WebDesk)', function () {
-                fs.persist();
-                app.ach.unlock('The Keeper', `Won't save your data from the death of the universe, though!`);
-                wm.notif('Requested persistance!', 'Might have worked, might have not.');
+            tk.cb('b1 b2 red', 'Request Persistence (Stops browser from erasing WebDesk)', function () {
+                const fucker = fs.persist();
+                if (fucker === true) {
+                    app.ach.unlock('The Keeper', `Won't save your data from the death of the universe, though!`);
+                    wm.notif('Persistence turned on');
+                } else {
+                    wm.notif(`Couldn't turn on persistence`);
+                }
             }, generalPane);
             tk.cb('b1 b2 red', 'Remove All App Market Apps', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
                 await fs.del('/system/apps.json');
@@ -379,7 +383,7 @@ var app = {
                 () => reboot(),
                 'Force Exit'
             ), tnav);
-
+            tk.cb('b4 time', 'what', undefined, title);
             // migration menu
             let transfer = tk.c('div', main, 'setb');
             tk.img('./assets/img/setup/quick.png', 'setupi', transfer);
@@ -453,6 +457,24 @@ var app = {
                 const src = tk.c('source', img);
                 src.src = contents;
                 img.controls = true;
+            } else if (contents.includes('data:application/x-zip-')) {
+                win.win.style.width = "300px";
+                const base64Data = contents.split(',')[1];
+                const binaryData = atob(base64Data);
+                const uint8Array = new Uint8Array(binaryData.length);
+                for (let i = 0; i < binaryData.length; i++) {
+                    uint8Array[i] = binaryData.charCodeAt(i);
+                }
+                const zip = new JSZip();
+                const zipContent = await zip.loadAsync(uint8Array);
+                tk.p('ZIP file', 'h2', win.main);
+                tk.p(`ZIP files are read-only for the time being.`, undefined, win.main);
+                let div = tk.c('div', win.main);
+                zipContent.forEach((relativePath, zipEntry) => {
+                    tk.cb('flist', relativePath, async function () {
+                        wm.snack('ZIP files are read-only for now.');
+                    }, div);
+                });
             } else if (contents.includes('data:application/pdf')) {
                 wm.notif(`WebDesk can't view PDFs`, 'Open PDF in a new tab?', () => window.open(contents, '_blank'));
             }
@@ -463,17 +485,10 @@ var app = {
         name: 'TextEdit',
         init: async function (contents, path) {
             if (!path) {
-                const ok = tk.c('div', document.body, 'cm');
-                tk.p('Start new document', undefined, ok);
-                const inp = tk.c('input', ok, 'i1');
-                inp.placeholder = "File path e.g /user/files/doc.txt";
-                tk.cb('b1', 'Cancel', function () {
-                    ui.dest(ok);
-                }, ok);
-                tk.cb('b1', 'Create', function () {
-                    app.textedit.init('', inp.value);
-                    ui.dest(ok);
-                }, ok);
+                const path2 = await app.files.pick('new', 'Create new document/code');
+                if (path2 !== false) {
+                    app.textedit.init('', path2);
+                }
                 return;
             }
             tk.css('./assets/lib/browse.css');
@@ -501,7 +516,7 @@ var app = {
             tk.cb('winb gre', '', function () {
                 wm.max(win.win);
             }, btnnest);
-            editor.setFontSize("var(--fz3)");
+            editor.setFontSize("var(--fz2)");
             editor.session.setOption("wrap", true);
             function ok() {
                 if (ui.light === true) {
@@ -525,7 +540,7 @@ var app = {
             }, btnnest);
             tk.cb('b4 browserbutton', 'Menu', async function () {
                 const menu = tk.c('div', document.body, 'cm');
-                tk.p(`Menu`, undefined, menu);
+                tk.p('Editing ' + path, undefined, menu);
                 tk.cb('b1 b2', 'Select All', function () {
                     editor.selectAll();
                     ui.dest(menu, 120);
@@ -576,7 +591,7 @@ var app = {
         runs: true,
         name: 'Files',
         init: async function () {
-            const win = tk.mbw(`Files`, '340px', 'auto', undefined, undefined, undefined);
+            const win = tk.mbw(`Files`, '340px', '340px', undefined, undefined, undefined);
             const breadcrumbs = tk.c('div', win.main);
             const items = tk.c('div', win.main);
             var fuck = undefined;
@@ -780,6 +795,86 @@ var app = {
             }
 
             navto('/user/files/');
+        },
+        pick: function (type, text) {
+            return new Promise(async (resolve, reject) => {
+                let win = {};
+                win.win = tk.c('div', document.body, 'cm');
+                tk.p(text, 'bold', win.win);
+                const breadcrumbs = tk.c('div', win.win);
+                win.main = tk.c('div', win.win, 'embed nest');
+                win.win.style.background = "var(--ui1)";
+                win.win.style.width = "300px";
+                win.main.style.height = "300px";
+                win.main.style.overflow = "auto";
+                win.main.style.marginBottom = "5px";
+                win.main.style.marginTop = "5px";
+                const items = tk.c('div', win.main);
+                let selectedPath = undefined;
+
+                async function navto(path) {
+                    items.innerHTML = "";
+                    breadcrumbs.innerHTML = "";
+                    let crumbs = path.split('/').filter(Boolean);
+                    let currentPath = '/';
+
+                    tk.cb('flist', 'Root', () => navto('/'), breadcrumbs);
+
+                    crumbs.forEach((crumb, index) => {
+                        currentPath += crumb + '/';
+                        tk.cb('flists', '/', undefined, breadcrumbs);
+                        tk.cb('flist', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
+                    });
+
+                    selectedPath = currentPath;
+                    const thing = await fs.ls(path);
+                    thing.items.forEach(function (thing) {
+                        if (thing.type === "folder") {
+                            const target = tk.cb('flist width', "Folder: " + thing.name, () => navto(thing.path + "/"), items);
+                        } else {
+                            if (thing.name == "") {
+                                return;
+                            }
+                            const target = tk.cb('flist width', "File: " + thing.name, async function () {
+                                if (type !== "new") {
+                                    const menu = tk.c('div', document.body, 'cm');
+                                    tk.p(thing.path, 'bold', menu);
+                                    tk.cb('b1', 'Cancel', function () {
+                                        ui.dest(menu);
+                                    }, menu);
+                                    tk.cb('b1', 'Choose', function () {
+                                        ui.dest(menu);
+                                        resolve(thing.path);
+                                    }, menu);
+                                }
+                            }, items);
+                        }
+                    });
+                }
+                let inp;
+                if (type === "new") {
+                    inp = tk.c('input', win.win, 'i1');
+                    inp.placeholder = "File name here";
+                }
+
+                tk.cb('b1', 'Close', function () {
+                    ui.dest(win.win);
+                    reject(false);
+                }, win.win);
+
+                if (type === "new") {
+                    tk.cb('b1', 'New File', function () {
+                        if (inp.value === "") {
+                            wm.snack('Enter a filename.');
+                        } else {
+                            resolve(selectedPath + inp.value);
+                            ui.dest(win.win);
+                        }
+                    }, win.win);
+                }
+
+                navto('/user/files/');
+            });
         }
     },
     about: {
