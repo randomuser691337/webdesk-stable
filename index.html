@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Oct 24, 2024",
-        ver: "0.1.5",
+        lastmod: "Oct 30, 2024",
+        ver: "0.1.6",
     }
 
     var sys = {
@@ -32,14 +32,21 @@
         guest: false,
         light: true,
         fucker: false,
+        clip: undefined,
+        dev: false,
     }
 
     var el = {
         taskbar: undefined,
         migstat: undefined,
+        webchat: undefined,
+        currentid: undefined,
         sm: undefined,
         tr: undefined,
         cc: undefined,
+    }
+
+    var wc = {
     }
 </script>
 
@@ -107,6 +114,11 @@
             const lightdark = await fs.read('/user/info/lightdark');
             const color = await fs.read('/user/info/color');
             const font = await fs.read('/user/info/font');
+            const dev = await fs.read('/system/info/devmode');
+            if (dev === "true") {
+                sys.dev = true;
+                wm.notif(`Developer Mode is enabled.`);
+            }
             if (font === "big") {
                 wd.bgft();
             } else if (font === "small") {
@@ -140,7 +152,7 @@
             if (color) {
                 ui.crtheme(color);
             } else {
-                ui.crtheme('#7A7AFF');
+                wd.seasonal();
             }
             const data = await fs.read('/system/apps.json');
             if (data) {
@@ -159,10 +171,12 @@
                         }
                     } catch (error) {
                         if (sys.fucker === false) {
-                            sys.fucker = true;
-                            fs.del('/system/apps.json');
-                            fs.delfold('/system/apps');
-                            wm.notif('App Issues', 'All apps were uninstalled due to corruption or a WebDesk update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
+                            wm.notif(`An issue occured with your apps.`, `Remove them? Their data will be safe, and you can reinstall them.`, function () {
+                                sys.fucker = true;
+                                fs.del('/system/apps.json');
+                                fs.delfold('/system/apps');
+                                wm.notif('App Issues', 'All apps were uninstalled due to corruption or a WebDesk update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
+                            }, 'Remove');
                         }
                     }
                 }
@@ -187,7 +201,7 @@
         } else if (migcheck === "rec") {
             await app.recovery.init();
         } else {
-            ui.crtheme('#7A7AFF');
+            wd.seasonal();
             const id = await wd.newid();
             await ptp.go(id);
             app.setup.init();

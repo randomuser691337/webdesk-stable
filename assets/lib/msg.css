@@ -1,0 +1,11 @@
+.splitmsg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.splitmsg2 {
+    width: 50%;
+    text-align: center;
+}

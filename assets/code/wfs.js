@@ -1,5 +1,6 @@
 let db;
 const request = indexedDB.open("WebDeskDB", 2);
+const pin = undefined;
 
 request.onerror = function (event) {
     console.error('Error opening database:', event.target.error);
@@ -29,6 +30,9 @@ self.onmessage = function (event) {
 
 function idbop(operation, params, opt, requestId) {
     switch (operation) {
+        case 'unlock':
+            pin = params;
+            break;
         case 'read':
             fs2.read(params)
                 .then(data => {
@@ -180,14 +184,14 @@ var fs2 = {
                 if (persistent) {
                     return true;
                 } else {
-                    return false;
+                    return `Some weird issue occured.`;
                 }
             }).catch(function (error) {
-                console.error('<!> Error requesting persistence:', error);
-                return false;
+                console.log('<!> Error requesting persistence: ', error);
+                return error;
             });
         } else {
-            console.log('<!> Persistence API is not supported in this browser.');
+            return "Persistence isn't supported in this browser.";
         }
     },
     folder: function (path) {

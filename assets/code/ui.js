@@ -187,7 +187,15 @@ var ui = {
         } else {
             return inputString.slice(0, size - 3) + '...';
         }
-    }
+    },
+    key: function (element, keycode, action) {
+        element.addEventListener('keydown', (event) => {
+            if (event.key === keycode) {
+                event.preventDefault();
+                action();
+            }
+        });
+    }    
 }
 
 var tk = {

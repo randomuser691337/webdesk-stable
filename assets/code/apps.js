@@ -22,8 +22,8 @@ var app = {
             // General pane
             tk.p('General', undefined, generalPane);
             tk.cb('b1 b2 red', 'Erase This WebDesk', () => app.eraseassist.init(), generalPane);
-            tk.cb('b1 b2 red', 'Request Persistence (Stops browser from erasing WebDesk)', function () {
-                const fucker = fs.persist();
+            tk.cb('b1 b2 red', 'Request Persistence (Stops browser from erasing WebDesk)', async function () {
+                const fucker = await fs.persist();
                 if (fucker === true) {
                     app.ach.unlock('The Keeper', `Won't save your data from the death of the universe, though!`);
                     wm.notif('Persistence turned on');
@@ -36,12 +36,32 @@ var app = {
                 await fs.delfold('/system/apps');
                 wd.reboot();
             }, 'Okay'), generalPane);
-            if (sys.guest !== true) {
-                tk.cb('b1 b2 red', 'Enter Recovery Mode', function () {
-                    fs.write('/system/migval', 'rec');
-                    wd.reboot();
-                }, generalPane);
-            }
+            tk.cb('b1 b2 red', 'Enter Recovery Mode', function () {
+                fs.write('/system/migval', 'rec');
+                wd.reboot();
+            }, generalPane);
+            tk.cb('b1 b2 red', 'Developer Mode', async function () {
+                const win = tk.mbw('Developer Mode', '340px');
+                const opt = await fs.read('/system/info/devmode');
+                const pane = tk.c('div', win.main);
+                if (opt !== "true") {
+                    tk.p(`Warning: Developer Mode lets you install third-party apps but removes security protections.`, undefined, pane);
+                    tk.p(`Use caution, there's no support for issues relating to Developer Mode.`, undefined, pane);
+                    tk.cb(`b1 b2`, 'Enable (Will cause reboot)', async function () {
+                        await fs.write(`/system/info/devmode`, 'true');
+                        await wd.reboot();
+                    }, pane);
+                } else {
+                    tk.p(`Developer Mode is enabled.`, undefined, pane);
+                    tk.p(`Disabling it will re-enable protections, but all apps will be uninstalled. Their data will be saved.`, undefined, pane);
+                    tk.cb(`b1 b2`, 'Disable (Will cause reboot)', async function () {
+                        await fs.del(`/system/info/devmode`);
+                        await fs.del(`/system/apps.json`);
+                        await fs.delfold(`/system/apps`);
+                        await wd.reboot();
+                    }, pane);  
+                }
+            }, generalPane);
             const earth = tk.cb('b1 b2', 'Enable Earthquake Mode (Restarting stops it)', function () {
                 const style = document.createElement('style');
                 style.innerHTML = `
@@ -100,6 +120,9 @@ var app = {
             }, appearPane); tk.cb('b1', 'Back', () => ui.sw2(appearPane, mainPane), appearPane);
             // User pane
             tk.p('WebDesk User', undefined, userPane);
+            tk.cb('b1 b2', 'Enable WebChat Beta', function () {
+                app.webchat.runs = true;
+            }, userPane);
             tk.cb('b1 b2', 'Change Username', function () {
                 const ok = tk.mbw('Change Username', '300px', 'auto', true, undefined, undefined);
                 const inp = tk.c('input', ok.main, 'i1');
@@ -113,14 +136,18 @@ var app = {
             tk.cb('b1 b2', 'Change DeskID', function () {
                 const ok = tk.mbw('Change DeskID', '300px', 'auto', true, undefined, undefined);
                 tk.p(`Changing your DeskID will make your WebDesk unreachable to those without your new ID.`, undefined, ok.main);
+                let yeah = false;
                 tk.cb('b1', 'Continue', async function () {
+                    yeah = true;
                     const newid = await wd.newid();
                     ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your DeskID.</p><p>All unsaved data will be lost. Your new ID is ${newid}.</p>`;
                     tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
                     app.ach.unlock('The Vanisher', 'Good luck WebDropping to nothing!');
                 }, ok.main);
                 ok.closebtn.addEventListener('mousedown', function () {
-                    app.ach.unlock('Nevermind', 'Your dark reputation follows you.');
+                    if (yeah === false) {
+                        app.ach.unlock('Nevermind', 'Your dark reputation follows you.');
+                    }
                 });
             }, userPane);
             tk.cb('b1', 'Back', () => ui.sw2(userPane, mainPane), userPane);
@@ -258,7 +285,7 @@ var app = {
             tk.cb('b1 b2', `Half-boot (Lets you use WebDesk, but won't fix your problem)`, function () {
                 wd.desktop('Half-boot', id, undefined);
                 ui.dest(main, 200);
-                app.ach.unlock('Maximum effort...?', `Just fix the issue at hand!`);
+                app.ach.unlock('Maximum effort...?', `Recovery Mode exists for a reason.`);
             }, first);
             tk.cb('b1 b2', 'Delete Apps (Usually the main issue, your data will remain)', function () {
                 fs.del('/system/apps.json');
@@ -877,6 +904,72 @@ var app = {
             });
         }
     },
+    webchat: {
+        runs: false,
+        name: "WebChat (Beta)",
+        init: async function (deskid, chat) {
+            if (el.webchat !== undefined) {
+                wd.win(el.webchat);
+                el.currentid = deskid;
+            } else {
+                el.webchat = tk.mbw('WebChat', '300px');
+                let otherid = undefined;
+                wc.dms = tk.c('div', el.webchat.main);
+                wc.messaging = tk.c('div', el.webchat.main, 'hide');
+                wc.chatting = tk.c('div', wc.messaging, 'embed nest')
+                tk.p(`Chats are not saved`, undefined, wc.dms);
+                wc.deskidin = tk.c('input', wc.dms, 'i1');
+                wc.deskidin.placeholder = "Enter DeskID of other user";
+                wc.chatting.style.overflow = "auto";
+                wc.chatting.style.height = "400px";
+                el.currentid = deskid;
+
+                tk.cb('b1', 'Message', function () {
+                    ui.sw2(wc.dms, wc.messaging);
+                    otherid = wc.deskidin.value;
+                    el.currentid = wc.deskidin.value;
+                }, wc.dms);
+
+                if (deskid) {
+                    otherid = deskid;
+                }
+
+                wc.messagein = tk.c('input', wc.messaging, 'i1');
+                wc.messagein.placeholder = "Message";
+
+                function send() {
+                    const msg = wc.messagein.value;
+                    if (msg && otherid) {
+                        custf(otherid, 'Message-WebKey', msg);
+                        wc.sendmsg = tk.c('div', wc.chatting, 'full msg mesent');
+                        wc.sendmsg.innerText = `${sys.deskid}: ` + msg;
+                        wc.messagein.value = '';
+                    }
+                }
+
+                tk.cb('b1', 'Send', () => send(), wc.messaging);
+
+                ui.key(wc.messagein, "Enter", () => send());
+            }
+
+            el.webchat.closebtn.addEventListener('mousedown', function () {
+                el.webchat = undefined;
+                custf(el.currentid, 'Message-WebKey', `End chat with ${el.currentid}`);
+            });
+
+            return new Promise((resolve) => {
+                let checkDeskAndChat = setInterval(() => {
+                    if (typeof deskid === "string" && typeof chat === "string") {
+                        clearInterval(checkDeskAndChat);
+                        ui.sw2(wc.dms, wc.messaging);
+                        const msg = tk.c('div', wc.chatting, 'msg full');
+                        msg.innerText = `${deskid}: ` + chat;
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+    },
     about: {
         runs: true,
         name: 'About',
@@ -1247,7 +1340,7 @@ var app = {
         },
         view: async function (path2) {
             tk.css('./assets/lib/browse.css');
-            const win = tk.mbw(`Embedder - ` + path2, '80vw', '82vh', true);
+            const win = tk.mbw(`Embedder`, '640px', '440px', true);
             ui.dest(win.title, 0);
             const tabs = tk.c('div', win.main, 'tabbar d');
             const btnnest = tk.c('div', tabs, 'tnav');

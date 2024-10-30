@@ -2,26 +2,32 @@ var globcall;
 // This is a clusterfuck of bullshit that needs to be rewritten eventually
 var ptp = {
     go: async function (id) {
-        let retryc = 0;
-        var fucker = false;
+        let retryCount = 0;
+        let notify = false;
 
         async function attemptConnection() {
-            sys.peer = new Peer(id, { config: { 'iceServers': [{ urls: 'stun:freeturn.net:3478' }, { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' }] } });
+            sys.peer = new Peer(id, {
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:freeturn.net:3478' },
+                        { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' }
+                    ]
+                }
+            });
 
             sys.peer.on('open', (peerId) => {
                 ui.masschange('deskid', peerId);
                 sys.deskid = peerId;
-                ui.masschange('deskid', peerId);
                 console.log('<i> DeskID is online. ID: ' + sys.deskid);
-                fucker = true;
                 if (sys.echoid !== undefined) {
                     boot();
                 }
-                if (fucker === true) {
+
+                if (notify) {
                     wm.notif(`WebDesk Services`, `Your DeskID is back online.`);
-                    fucker = false;
-                    retryc = 0;
+                    retryCount = 0;
                 }
+                notify = false;
             });
 
             sys.peer.on('error', async (err) => {
@@ -29,44 +35,44 @@ var ptp = {
                 if (err.message.includes('Could not connect to')) {
                     return;
                 }
-                if (fucker === false) {
-                    if (err.message.includes('Lost connection to server')) {
-                        wm.notif('Connection Error', `Your connection was interrupted, so your DeskID is broken. WebDesk is trying to restore the connection.`);
+
+                if (err.message.includes('Lost connection to server')) {
+                    if (!notify) {
+                        wm.notif('Connection Error', `Your connection was interrupted. WebDesk is trying to restore the connection.`);
                         sys.deskid = "disabled";
                         ui.masschange('deskid', 'disabled');
                         app.ach.unlock('DeskID Issues', `Here's an achievement for your troubles.`);
-                    } else if (err.message.includes('is taken')) {
-                        wm.notif('DeskID is taken', `Your DeskID is in use by someone else or another tab. You've been given a temporary DeskID until next reboot.`);
-                        app.ach.unlock('Identity Theft', "¯\\_(ツ)_/¯");
                     }
-                }
-                if (err.message.includes('is taken')) {
+                } else if (err.message.includes('is taken')) {
+                    wm.notif('DeskID is taken', `Your DeskID is in use by someone else or another tab. You've been given a temporary DeskID until the next reboot.`);
+                    app.ach.unlock('Identity Theft', "¯\\_(ツ)_/¯");
                     ptp.go(gen(7));
                     return;
                 } else if (err.message.includes(`Error: Could not connect to peer ` + sys.echoid)) {
                     wm.wal(`<p class="bold">EchoDesk Connection Interrupted</p><p>The other WebDesk might have rebooted, or is encountering network issues.</p><p>Check your Internet on this side too.</p>`);
                 }
-                fucker = true;
-                if (retryc < 5) {
+
+                notify = true;
+                if (retryCount < 5) {
                     console.log('<!> DeskID failed to register, trying again...');
-                    retryc++;
+                    retryCount++;
                     setTimeout(attemptConnection, 5000);
-                } else if (retryc >= 5) {
+                } else {
                     console.log('<!> Maximum retry attempts reached. DeskID registration failed.');
-                    const ok = tk.c('div', document.body, 'cm');
-                    tk.p(`Your DeskID couldn't be restored`, 'bold', ok);
-                    tk.p(`Select an option to continue`, undefined, ok);
+                    const dialog = tk.c('div', document.body, 'cm');
+                    tk.p(`Your DeskID couldn't be restored`, 'bold', dialog);
+                    tk.p(`Select an option to continue`, undefined, dialog);
                     tk.cb('b1 b2', 'Keep trying', function () {
-                        retryc = 0;
+                        retryCount = 0;
                         attemptConnection();
-                        ui.dest(ok);
-                    }, ok);
+                        ui.dest(dialog);
+                    }, dialog);
                     tk.cb('b1 b2', 'Reboot WebDesk', function () {
                         wd.reboot();
-                    }, ok);
+                    }, dialog);
                     tk.cb('b1', 'Close', function () {
-                        ui.dest(ok);
-                    }, ok);
+                        ui.dest(dialog);
+                    }, dialog);
                 }
             });
 
@@ -75,10 +81,7 @@ var ptp = {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.type === 'request') {
-                            const response = {
-                                response: sys.name
-                            };
-
+                            const response = { response: sys.name };
                             dataConnection.send(JSON.stringify(response));
                         }
                     } catch (err) {
@@ -96,27 +99,27 @@ var ptp = {
             });
 
             sys.peer.on('call', (call) => {
-
-                const showyourself = sys.peer.connect(call.peer);
-                showyourself.on('open', () => {
-                    showyourself.send(JSON.stringify({ type: 'request' }));
+                const showYourself = sys.peer.connect(call.peer);
+                showYourself.on('open', () => {
+                    showYourself.send(JSON.stringify({ type: 'request' }));
                 });
 
-                showyourself.on('data', (data) => {
+                showYourself.on('data', (data) => {
                     try {
                         const parsedData = JSON.parse(data);
-
                         if (parsedData.response) {
                             wm.notif(`Call from ${parsedData.response}`, function () {
-                                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                                    call.answer(stream);
-                                    call.on('stream', (remoteStream) => {
-                                        app.webcall.answer(remoteStream, call, parsedData.response, stream);
+                                navigator.mediaDevices.getUserMedia({ audio: true })
+                                    .then((stream) => {
+                                        call.answer(stream);
+                                        call.on('stream', (remoteStream) => {
+                                            app.webcall.answer(remoteStream, call, parsedData.response, stream);
+                                        });
+                                    })
+                                    .catch((err) => {
+                                        wm.notif('WebCall Error', 'Microphone access is denied, calling/answering might fail.');
+                                        console.log(`<!> ${err}`);
                                     });
-                                }).catch((err) => {
-                                    wm.notif('WebCall Error', 'Microphone access is denied, calling/answering might fail.');
-                                    console.log(`<!> ${err}`);
-                                });
                             }, 'Answer');
                         }
                     } catch (err) {
@@ -124,11 +127,11 @@ var ptp = {
                     }
                 });
 
-                showyourself.on('error', (err) => {
+                showYourself.on('error', (err) => {
                     wm.notif('WebCall Error', err);
                 });
 
-                showyourself.on('close', () => {
+                showYourself.on('close', () => {
                     console.log('Data connection closed');
                 });
             });
@@ -136,7 +139,7 @@ var ptp = {
 
         attemptConnection();
     },
-}
+};
 
 async function handleData(conn, data) {
     if (sys.webdrop === true) {
@@ -192,6 +195,34 @@ async function handleData(conn, data) {
         } else if (data.name === "DeclineCall-WebKey") {
             fesw('caller3', 'caller1');
             snack('Your call was declined.');
+        } else if (data.name === "Message-WebKey") {
+            if (el.currentid !== data.id) {
+                wm.notif(`Message from ${data.id}`, data.file, async function () {
+                    if (el.currentid !== undefined) {
+                        wm.notif(`Warning`, `Opening this message will end & delete your current DM.`, async function () {
+                            ui.dest(el.webchat.win, 100);
+                            ui.dest(el.webchat.tbn, 100);
+                            el.webchat = undefined;
+                            el.currentid = data.id;
+                            custf(data.id, 'Message-WebKey', `End chat with ${data.id}`);
+                            await app.webchat.init(`${data.id}`, `${data.file}`);
+                        });
+                    } else {
+                        if (data.file === `End chat with ${sys.deskid}`) {
+                            ui.dest(el.webchat.win, 100);
+                            ui.dest(el.webchat.tbn, 100);
+                            el.webchat = undefined;
+                            el.currentid = undefined;
+                            wm.snack(`Other user ended the chat`, 10000);
+                            return;
+                        }
+                        el.currentid = data.id;
+                        await app.webchat.init(`${data.id}`, `${data.file}`);
+                    }
+                }, 'Open');
+            } else {
+                await app.webchat.init(`${data.id}`, `${data.file}`);
+            }
         } else if (data === "Name and FUCKING address please") {
             conn.send(sys.user);
         } else {
