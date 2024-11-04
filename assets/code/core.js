@@ -48,7 +48,7 @@ var wd = {
 
         $('.d').not('.dragged').on('mousedown touchstart', function (event) {
             var $window = $(this).closest('.window');
-            if (!$window.hasClass('max')) {
+            if (!$window.hasClass('max') && sys.mob !== true) {
                 var offsetX, offsetY;
                 var windows = $('.window');
                 var highestZIndex = Math.max.apply(null, windows.map(function () {
@@ -102,9 +102,9 @@ var wd = {
             if (el.sm == undefined) {
                 el.sm = tk.c('div', document.body, 'tbmenu');
                 el.sm.style.width = "200px";
-                el.sm.style.left = "4px";
+                el.sm.style.left = "5px";
                 const btm = el.taskbar.getBoundingClientRect();
-                el.sm.style.bottom = btm.height + btm.x + 4 + "px";
+                el.sm.style.bottom = btm.height + btm.x + 5 + "px";
                 tk.p(`Hello, ${name}!`, 'h2', el.sm);
                 tk.p(`Your DeskID is ${sys.deskid}`, undefined, el.sm);
                 const ok = tk.c('div', el.sm, 'embed nest');
@@ -130,15 +130,17 @@ var wd = {
             if (el.cc == undefined) {
                 el.cc = tk.c('div', document.body, 'tbmenu');
                 el.cc.style.width = "200px";
-                el.cc.style.right = "4px";
+                el.cc.style.right = "5px";
                 const btm = el.taskbar.getBoundingClientRect();
-                el.cc.style.bottom = btm.height + btm.x + 4 + "px";
+                el.cc.style.bottom = btm.height + btm.x + 5 + "px";
                 tk.p(`Controls`, 'h2', el.cc);
                 tk.p(`Your DeskID is ${sys.deskid}`, undefined, el.cc);
                 const ok = tk.c('div', el.cc, 'embed nest');
-                tk.cb('b3 b2', 'Settings', function () {
-                    app.settings.init();
-                    controlcenter();
+                tk.cb('b3 b2', 'Sleep', function () {
+                    app.lockscreen.init();
+                }, ok);
+                tk.cb('b3 b2', 'Reboot/Reload', function () {
+                    wd.reboot();
                 }, ok);
                 tk.cb('b3 b2', 'Toggle Fullscreen', function () {
                     wd.fullscreen();
@@ -177,9 +179,12 @@ var wd = {
             const start = tk.cb('b1', 'Apps', () => startmenu(), lefttb);
             el.tr = tk.c('div', lefttb);
             tk.cb('b1 time', '--:--', () => controlcenter(), titletb);
+            if (sys.mob === true) {
+                el.tb.style.boxShadow = "none";
+            }
         }
         if (waitopt === "wait") {
-            setTimeout(function () { desktopgo(); }, 500);
+            setTimeout(function () { desktopgo(); }, 300);
         } else {
             desktopgo();
         }
@@ -188,11 +193,13 @@ var wd = {
         const currentTime = new Date();
         let hours = currentTime.getHours();
         const minutes = currentTime.getMinutes();
-        const seconds = currentTime.getSeconds();
-        const formattedHours = hours < 10 ? `0${hours}` : hours;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const formattedHours = `${hours}`;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-        const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
-        const formattedTime = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        const formattedTime = sys.seconds
+            ? `${formattedHours}:${formattedMinutes}:${currentTime.getSeconds().toString().padStart(2, '0')} ${ampm}`
+            : `${formattedHours}:${formattedMinutes} ${ampm}`;
         const elements = document.getElementsByClassName("time");
         for (let i = 0; i < elements.length; i++) {
             elements[i].innerText = formattedTime;
@@ -212,7 +219,7 @@ var wd = {
         }, 200);
     },
     dark: function (fucker) {
-        ui.cv('ui1', 'rgb(44, 44, 44, 0.6)');
+        ui.cv('ui1', 'rgb(45, 45, 45, 0.6)');
         ui.cv('ui2', '#1b1b1b');
         ui.cv('ui3', '#2b2b2b');
         ui.cv('bc', 'rgb(60, 60, 60, 0.4)');
@@ -223,9 +230,9 @@ var wd = {
         ui.light = false;
     },
     light: function (fucker) {
-        ui.cv('ui1', 'rgb(250, 250, 250, 0.6)');
+        ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
         ui.cv('ui2', '#ffffff');
-        ui.cv('ui3', '#dddddd');
+        ui.cv('ui3', '#ededed');
         ui.cv('bc', 'rgb(220, 220, 220, 0.4)');
         ui.cv('font', '#000');
         if (fucker !== "nosave") {
@@ -234,7 +241,7 @@ var wd = {
         ui.light = true;
     },
     clearm: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0)');
+        ui.cv('ui1', 'rgb(255, 255, 255, 0.2)');
         ui.cv('ui2', 'rgba(var(--accent), 0.1)');
         ui.cv('ui3', 'rgba(var(--accent) 0.2)');
         ui.cv('bc', 'rgb(255, 255, 255, 0)');
@@ -351,32 +358,45 @@ var wd = {
         }
     },
     download: function (file, fileName) {
-        let downloadLink = document.createElement('a')
-
+        let downloadLink = document.createElement('a');
+        let url;
+    
         if (typeof file === 'string' && file.startsWith('data:')) {
-            downloadLink.href = file
-            downloadLink.download = fileName
+            url = file;
         } else if (file instanceof File || file instanceof Blob) {
-            downloadLink.href = URL.createObjectURL(file)
-            downloadLink.download = file.name || fileName
+            url = URL.createObjectURL(file);
+        } else if (typeof file === 'string') {
+            const blob = new Blob([file], { type: 'text/plain' });
+            url = URL.createObjectURL(blob);
+        } else {
+            const blob = new Blob([JSON.stringify(file)], { type: 'application/json' });
+            url = URL.createObjectURL(blob);
         }
-
-        downloadLink.style.display = 'none'
-        document.body.appendChild(downloadLink)
-        downloadLink.click()
-        document.body.removeChild(downloadLink)
-    },
+    
+        downloadLink.href = url;
+        downloadLink.download = fileName || file.name || 'download';
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        if (file instanceof Blob || file instanceof File || url.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+    },     
     smft: function () {
-        ui.cv('fz3', '10px');
+        ui.cv('fz4', '10px');
+        ui.cv('fz3', '11px');
         ui.cv('fz2', '12px');
         ui.cv('fz1', '13px');
     },
     meft: function () {
-        ui.cv('fz3', '12px');
+        ui.cv('fz4', '12px');
+        ui.cv('fz3', '13px');
         ui.cv('fz2', '14px');
         ui.cv('fz1', '15px');
     },
     bgft: function () {
+        ui.cv('fz4', '13px');
         ui.cv('fz3', '14px');
         ui.cv('fz2', '15px');
         ui.cv('fz1', '17px');
@@ -457,7 +477,26 @@ var wd = {
         } else {
             ui.crtheme('#7A7AFF');
         }
+    },
+    savecity: async function () {
+        const ipinfoResponse = await fetch('https://ipinfo.io/json');
+        const ipinfoData = await ipinfoResponse.json();
+        const city = ipinfoData.city;
+        const region = ipinfoData.region;
+        const country = ipinfoData.country;
+        const unit = (country === 'US') ? 'Imperial' : 'Metric';
+
+        return {
+            location: `${city}, ${region}, ${country}`,
+            unit: unit
+        }
     }
 }
+
+document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+        app.lockscreen.init();
+    }
+});
 
 setInterval(wd.clock, 1000);

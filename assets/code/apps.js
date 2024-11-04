@@ -9,15 +9,62 @@ var app = {
             const accPane = tk.c('div', main.main, 'hide');
             const userPane = tk.c('div', main.main, 'hide');
             const appPane = tk.c('div', main.main, 'hide');
+            tk.p('App Management', undefined, appPane);
+            const shitStain = tk.c('div', appPane);
             const mainPane = tk.c('div', main.main);
             // Main pane
             tk.p('Settings', undefined, mainPane);
             if (sys.guest !== true) {
                 tk.cb('b1 b2', 'General', () => ui.sw2(mainPane, generalPane), mainPane);
                 tk.cb('b1 b2', 'WebDesk User', () => ui.sw2(mainPane, userPane), mainPane);
+            } else {
+                tk.p(`Some options are disabled, because you're in Guest mode.`, undefined, mainPane);
             }
             tk.cb('b1 b2', 'Accessibility', () => ui.sw2(mainPane, accPane), mainPane);
-            tk.cb('b1 b2', 'Manage Apps', () => ui.sw2(mainPane, appPane), mainPane);
+            tk.cb('b1 b2', 'Manage Apps', async function () {
+                ui.sw2(mainPane, appPane);
+                shitStain.innerHTML = "";
+                const data = await fs.read('/system/apps.json');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    parsed.forEach((entry) => {
+                        const notif = tk.c('div', shitStain, 'notif2');
+                        tk.p(entry.name, 'bold', notif);
+                        tk.p(entry.appid, undefined, notif);
+                        tk.cb('b3', 'App info', async function () {
+                            const ok = tk.c('div', document.body, 'cm');
+                            tk.p('App Info', 'h2', ok);
+                            const ok2 = tk.c('div', ok, undefined);
+                            tk.p(`<span class="bold">Name</span> ` + entry.name, undefined, ok2);
+                            if (entry.installedon === undefined) {
+                                tk.p(`<span class="bold">Modified</span> ` + 'Unknown', undefined, ok2);
+                            } else {
+                                tk.p(`<span class="bold">Modified</span> ` + wd.timec(entry.installedon), undefined, ok2);
+                            }
+                            tk.p(`<span class="bold">App ID</span> ` + entry.appid, undefined, ok2);
+                            if (entry.dev === undefined) {
+                                tk.p(`<span class="bold">Developer</span> ` + 'Unknown', undefined, ok2);
+                            } else {
+                                tk.p(`<span class="bold">Developer</span> ` + entry.dev, undefined, ok2);
+                            }
+                            tk.p(`<span class="bold">Version</span> ` + entry.ver, undefined, ok2);
+                            tk.cb('b1', 'Close', function () {
+                                ui.dest(ok);
+                            }, ok)
+                        }, notif);
+                        tk.cb('b3', 'Remove', async function () {
+                            const updatedApps = parsed.filter(item => item.appid !== entry.appid);
+                            const updatedData = JSON.stringify(updatedApps);
+                            await fs.write('/system/apps.json', updatedData);
+                            delete app[entry.appid];
+                            ui.dest(notif);
+                            wm.notif('Removed ' + entry.name, `It's been removed, but a reboot is needed to clear it completely.`, function () {
+                                wd.reboot();
+                            }, 'Reboot');
+                        }, notif);
+                    });
+                }
+            }, mainPane);
             tk.cb('b1 b2', 'Appearance', () => ui.sw2(mainPane, appearPane), mainPane);
             // General pane
             tk.p('General', undefined, generalPane);
@@ -31,50 +78,53 @@ var app = {
                     wm.notif(`Couldn't turn on persistence`);
                 }
             }, generalPane);
-            tk.cb('b1 b2 red', 'Remove All App Market Apps', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
-                await fs.del('/system/apps.json');
-                await fs.delfold('/system/apps');
-                wd.reboot();
-            }, 'Okay'), generalPane);
+            tk.cb('b1 b2 red', 'Toggle mobile UI', async function () {
+                if (sys.mob === true) {
+                    await fs.write('/user/info/mobile', 'false');
+                } else {
+                    await fs.del('/user/info/mobile');
+                }
+                wm.notif('Reboot to apply changes', undefined, () => wd.reboot(), 'Reboot');
+            }, generalPane);
             tk.cb('b1 b2 red', 'Enter Recovery Mode', function () {
                 fs.write('/system/migval', 'rec');
                 wd.reboot();
             }, generalPane);
             tk.cb('b1 b2 red', 'Developer Mode', async function () {
-                const win = tk.mbw('Developer Mode', '340px');
+                const win = tk.c('div', document.body, 'cm');
                 const opt = await fs.read('/system/info/devmode');
-                const pane = tk.c('div', win.main);
+                const pane = tk.c('div', win);
                 if (opt !== "true") {
-                    tk.p(`Warning: Developer Mode lets you install third-party apps but removes security protections.`, undefined, pane);
+                    tk.p(`WARNING: Developer Mode lets you install third-party apps but removes security protections.`, undefined, pane);
                     tk.p(`Use caution, there's no support for issues relating to Developer Mode.`, undefined, pane);
-                    tk.cb(`b1 b2`, 'Enable (Will cause reboot)', async function () {
+                    tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
+                    tk.cb(`b1`, 'Enable (reboot)', async function () {
                         await fs.write(`/system/info/devmode`, 'true');
                         await wd.reboot();
                     }, pane);
                 } else {
                     tk.p(`Developer Mode is enabled.`, undefined, pane);
                     tk.p(`Disabling it will re-enable protections, but all apps will be uninstalled. Their data will be saved.`, undefined, pane);
-                    tk.cb(`b1 b2`, 'Disable (Will cause reboot)', async function () {
+                    tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
+                    tk.cb(`b1`, 'Disable (reboot)', async function () {
                         await fs.del(`/system/info/devmode`);
                         await fs.del(`/system/apps.json`);
                         await fs.delfold(`/system/apps`);
                         await wd.reboot();
-                    }, pane);  
+                    }, pane);
                 }
             }, generalPane);
-            const earth = tk.cb('b1 b2', 'Enable Earthquake Mode (Restarting stops it)', function () {
-                const style = document.createElement('style');
-                style.innerHTML = `
-                    div, button, p {
-                        display: inline-block;
-                        animation: wiggle 0.26s infinite !important;
-                    }
-                `;
-                document.head.appendChild(style);
-                const sigma = ui.play('/assets/other/quake.mp3');
-                sigma.loop = true;
-                app.ach.unlock('Japan Simulator', `Maybe reconsider living there?`);
-            }, generalPane);
+            const p = tk.c('div', generalPane, 'list');
+            const ok = tk.c('span', p);
+            ok.innerText = "Clock seconds ";
+            tk.cb('b3', 'On', async function () {
+                sys.seconds = true;
+                await fs.write('/user/info/clocksec', 'true');
+            }, p);
+            tk.cb('b3', 'Off', async function () {
+                sys.seconds = false;
+                await fs.write('/user/info/clocksec', 'false');
+            }, p);
             tk.cb('b1', 'Back', () => ui.sw2(generalPane, mainPane), generalPane);
             // Appearance pane
             tk.p('Appearance', undefined, appearPane);
@@ -123,15 +173,8 @@ var app = {
             tk.cb('b1 b2', 'Enable WebChat Beta', function () {
                 app.webchat.runs = true;
             }, userPane);
-            tk.cb('b1 b2', 'Change Username', function () {
-                const ok = tk.mbw('Change Username', '300px', 'auto', true, undefined, undefined);
-                const inp = tk.c('input', ok.main, 'i1');
-                inp.placeholder = "New name here";
-                tk.cb('b1', 'Change name', async function () {
-                    await fs.write('/user/info/name', inp.value);
-                    ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your username.</p><p>All unsaved data will be lost.</p>`;
-                    tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
-                }, ok.main);
+            tk.cb('b1 b2', 'Location Settings', function () {
+                app.locset.init();
             }, userPane);
             tk.cb('b1 b2', 'Change DeskID', function () {
                 const ok = tk.mbw('Change DeskID', '300px', 'auto', true, undefined, undefined);
@@ -150,6 +193,16 @@ var app = {
                     }
                 });
             }, userPane);
+            tk.cb('b1 b2', 'Change Name', function () {
+                const ok = tk.mbw('Change Username', '300px', 'auto', true, undefined, undefined);
+                const inp = tk.c('input', ok.main, 'i1');
+                inp.placeholder = "New name here";
+                tk.cb('b1', 'Change name', async function () {
+                    await fs.write('/user/info/name', inp.value);
+                    ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your username.</p><p>All unsaved data will be lost.</p>`;
+                    tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
+                }, ok.main);
+            }, userPane);
             tk.cb('b1', 'Back', () => ui.sw2(userPane, mainPane), userPane);
             // Access pane
             tk.p('Font size', undefined, accPane);
@@ -167,52 +220,11 @@ var app = {
             }, accPane);
             tk.cb('b1', 'Back', () => ui.sw2(accPane, mainPane), accPane);
             // App pane
-            tk.p('App Management', undefined, appPane);
-            try {
-                const data = await fs.read('/system/apps.json');
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    parsed.forEach((entry) => {
-                        const notif = tk.c('div', appPane, 'notif2');
-                        tk.p(entry.name, 'bold', notif);
-                        tk.p(entry.appid, undefined, notif);
-                        tk.cb('b3', 'App info', async function () {
-                            const ok = tk.c('div', document.body, 'cm');
-                            tk.p('App Info', 'h2', ok);
-                            const ok2 = tk.c('div', ok, undefined);
-                            tk.p(`<span class="bold">Name</span> ` + entry.name, undefined, ok2);
-                            if (entry.installedon === undefined) {
-                                tk.p(`<span class="bold">Modified</span> ` + 'Unknown', undefined, ok2);
-                            } else {
-                                tk.p(`<span class="bold">Modified</span> ` + wd.timec(entry.installedon), undefined, ok2);
-                            }
-                            tk.p(`<span class="bold">App ID</span> ` + entry.appid, undefined, ok2);
-                            if (entry.dev === undefined) {
-                                tk.p(`<span class="bold">Developer</span> ` + 'Unknown', undefined, ok2);
-                            } else {
-                                tk.p(`<span class="bold">Developer</span> ` + entry.dev, undefined, ok2);
-                            }
-                            tk.p(`<span class="bold">Version</span> ` + entry.ver, undefined, ok2);
-                            tk.cb('b1', 'Close', function () {
-                                ui.dest(ok);
-                            }, ok)
-                        }, notif);
-                        tk.cb('b3', 'Remove', async function () {
-                            const updatedApps = parsed.filter(item => item.appid !== entry.appid);
-                            const updatedData = JSON.stringify(updatedApps);
-                            await fs.write('/system/apps.json', updatedData);
-                            delete app[entry.appid];
-                            ui.dest(notif);
-                            wm.notif('Removed ' + entry.name, `It's been removed, but a reboot is needed to clear it completely.`, function () {
-                                wd.reboot();
-                            }, 'Reboot');
-                        }, notif);
-                    });
-                }
-            } catch (error) {
-                console.log('<!> Achievements shat itself: ', error);
-                return null;
-            }
+            tk.cb('b1', 'Remove All', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
+                await fs.del('/system/apps.json');
+                await fs.delfold('/system/apps');
+                wd.reboot();
+            }, 'Okay'), appPane);
             tk.cb('b1', 'Back', () => ui.sw2(appPane, mainPane), appPane);
         }
     },
@@ -223,10 +235,41 @@ var app = {
             wm.wal(`<p>Warning: Erasing this WebDesk will destroy all data stored on it, this cannot be undone!</p>`, () => fs.erase('reboot'), 'Erase');
         }
     },
+    locset: {
+        runs: false,
+        init: function () {
+            const ok = tk.mbw('Location Settings', '320px', 'auto', true, undefined, undefined);
+                tk.p(`<span class="bold">Location</span> ${sys.city}`, undefined, ok.main);
+                tk.p(`<span class="bold">Measurement </span> ${sys.unit} (${sys.unitsym})`, undefined, ok.main);
+                tk.cb('b1 b2', 'Disable Location', async function () {
+                    await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+                    sys.city = "Paris, France";
+                    sys.unit = "Metric";
+                    sys.unitsym = "°C";
+                    sys.defaultloc = true;
+                    ok.closebtn.click();
+                    wm.snack('Location set to Paris, France so that WebDesk has something to fall back on.');
+                }, ok.main);
+                tk.cb('b1 b2', 'Update Location', async function () {
+                    const data = await wd.savecity();
+                    await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
+                    sys.city = data.location;
+                    sys.unit = data.unit;
+                    sys.defaultloc = false;
+                    if (ok.unit === "Metric") {
+                        sys.unitsym = "°C";
+                    } else {
+                        sys.unitsym = "°F";
+                    }
+                    ok.closebtn.click();
+                    wm.snack(`New location: ${data.location}`);
+                }, ok.main);
+        }
+    },
     echodesk: {
         runs: false,
         init: function () {
-            const main = tk.c('div', document.getElementById('setuparea'), 'setupbox');
+            const main = tk.c('div', tk.g('setuparea'), 'setupbox');
             // create setup menubar
             const bar = tk.c('div', main, 'setupbar');
             const tnav = tk.c('div', bar, 'tnav');
@@ -267,8 +310,8 @@ var app = {
             ui.crtheme('#010101', true);
             wd.dark('nosave');
             await fs.del('/system/migval');
-            ui.hide(document.getElementById('death'), 200);
-            const main = tk.c('div', document.getElementById('setuparea'), 'setupbox');
+            ui.hide(tk.g('death'), 200);
+            const main = tk.c('div', tk.g('setuparea'), 'setupbox');
             // HAHAHAHAHA FUNNY NUMBER!!!!
             main.style.height = "420px";
             // create setup menubar
@@ -301,7 +344,7 @@ var app = {
     setup: {
         runs: false,
         init: function () {
-            const main = tk.c('div', document.getElementById('setuparea'), 'setupbox');
+            const main = tk.c('div', tk.g('setuparea'), 'setupbox');
             // create setup menubar
             const bar = tk.c('div', main, 'setupbar');
             const tnav = tk.c('div', bar, 'tnav');
@@ -377,15 +420,11 @@ var app = {
             const user = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/user.svg', 'setupi', user);
             tk.p('Create a User', 'h2', user);
-            tk.p(`Data is stored on your device only. You can optionally give your city's name for unit detection, weather info, etc.`, undefined, user);
+            tk.p(`Data is stored on your device only. WebDesk does not collect any data from you.`, undefined, user);
             const input = tk.c('input', user, 'i1');
             input.placeholder = "Enter a name to use with WebDesk";
-            const loc = tk.c('input', user, 'i1');
-            loc.placeholder = "The city you're in (not required)";
             tk.cb('b1', 'Done!', function () {
-                wd.finishsetup(input.value, user, sum); if (loc.value !== "") {
-                    fs.write('/user/info/city', loc.value);
-                }
+                wd.finishsetup(input.value, user, sum);
             }, user);
             // summary
             const sum = tk.c('div', main, 'setb hide');
@@ -399,7 +438,7 @@ var app = {
     migrate: {
         runs: false,
         init: function (yeah) {
-            const main = tk.c('div', document.getElementById('setuparea'), 'setupbox');
+            const main = tk.c('div', tk.g('setuparea'), 'setupbox');
             // create setup menubar
             const bar = tk.c('div', main, 'setupbar');
             const tnav = tk.c('div', bar, 'tnav');
@@ -475,10 +514,63 @@ var app = {
         runs: false,
         name: 'Iris',
         init: async function (contents) {
-            const win = tk.mbw('Iris Media Viewer', '550px', 'auto', undefined, undefined, undefined);
+            const win = tk.mbw('Iris Media Viewer', '400px', 'auto', undefined, undefined, undefined);
             if (contents.includes('data:image')) {
-                const img = tk.c('img', win.main, 'embed');
+                const container = tk.c('div', win.main);
+                container.style.marginBottom = "4px";
+                const img = tk.c('img', container, 'embed');
                 img.src = contents;
+                let cropperinstance = null;
+                function cropbtn() {
+                    const cropButton = tk.cb('b1', 'Crop', function () {
+                        if (!cropperinstance) {
+                            cropButton.innerText = "Cancel";
+                            cropperinstance = new Cropper(img);
+
+                            const preview = tk.cb('b1', 'Preview', async function () {
+                                const croppedimg = getCroppedImage();
+                                app.imgview.init(croppedimg);
+                            }, win.main);
+
+                            const savebutton = tk.cb('b1', 'Save', async function () {
+                                const croppedimg = getCroppedImage();
+                                const skibidi = await app.files.pick('new', 'Save crop as');
+                                await fs.write(skibidi + ".png", croppedimg);
+                                wm.snack('Saved as ' + skibidi + ".png");
+                                cropperinstance.destroy();
+                                cropperinstance = null;
+                                cropButton.innerText = "Crop";
+                                savebutton.remove();
+                                preview.remove();
+                            }, win.main);
+
+                            function getCroppedImage() {
+                                const croppedCanvas = cropperinstance.getCroppedCanvas();
+                                return croppedCanvas.toDataURL('image/png');
+                            }
+
+                        } else {
+                            cropperinstance.destroy();
+                            cropperinstance = null;
+                            cropButton.innerText = "Crop";
+
+                            const buttons = win.main.querySelectorAll('button');
+                            buttons.forEach(button => {
+                                if (button.innerText === "Save" || button.innerText === "Preview") {
+                                    button.remove();
+                                }
+                            });
+                        }
+                    }, win.main);
+                }
+
+                win.closebtn.addEventListener('click', () => {
+                    if (cropperinstance) {
+                        cropperinstance.destroy();
+                        cropperinstance = null;
+                    }
+                });
+                cropbtn();
             } else if (contents.includes('data:video')) {
                 const img = tk.c('video', win.main, 'embed');
                 const src = tk.c('source', img);
@@ -543,8 +635,11 @@ var app = {
             tk.cb('winb gre', '', function () {
                 wm.max(win.win);
             }, btnnest);
-            editor.setFontSize("var(--fz2)");
-            editor.session.setOption("wrap", true);
+            editor.setOptions({
+                fontFamily: "MonoS",
+                fontSize: "var(--fz3)",
+                wrap: true,
+            });
             function ok() {
                 if (ui.light === true) {
                     editor.setTheme(null);
@@ -830,7 +925,7 @@ var app = {
                 tk.p(text, 'bold', win.win);
                 const breadcrumbs = tk.c('div', win.win);
                 win.main = tk.c('div', win.win, 'embed nest');
-                win.win.style.background = "var(--ui1)";
+                win.win.style.background = "var(--ui3)";
                 win.win.style.width = "300px";
                 win.main.style.height = "300px";
                 win.main.style.overflow = "auto";
@@ -890,7 +985,10 @@ var app = {
                 }, win.win);
 
                 if (type === "new") {
-                    tk.cb('b1', 'New File', function () {
+                    tk.cb('b1', 'Generate name', function () {
+                        inp.value = gen(8);
+                    }, win.win);
+                    tk.cb('b1', 'New file', function () {
                         if (inp.value === "") {
                             wm.snack('Enter a filename.');
                         } else {
@@ -906,7 +1004,7 @@ var app = {
     },
     webchat: {
         runs: false,
-        name: "WebChat (Beta)",
+        name: "WebChat (beta)",
         init: async function (deskid, chat) {
             if (el.webchat !== undefined) {
                 wd.win(el.webchat);
@@ -984,7 +1082,7 @@ var app = {
             tk.p(`<span class="bold">Updated</span> ${abt.lastmod}`, undefined, info);
             tk.p(`<span class="bold">DeskID</span> ${sys.deskid}`, undefined, info);
             tk.p(`<span class="bold">Version</span> ${abt.ver}`, undefined, info);
-            tk.cb('b2 b4', 'Credits', function () {
+            tk.cb('b4', 'Creds', function () {
                 const ok = tk.c('div', document.body, 'cm');
                 ok.innerHTML = `<p class="bold">Credits</p>
                 <p>All the libraries or materials that helped create WebDesk.</p>
@@ -994,6 +1092,26 @@ var app = {
                 <p><a href="https://ace.c9.io/" target="blank">Ace: TextEdit's engine</a></p>
                 <p><a href="https://jscolor.com/" target="blank">jscolor: Color picker</a></p>
                 <p><a href="https://ace.c9.io/" target="blank">jszip: ZIP file handling</a></p>`;
+                tk.cb('b1', 'Close', function () {
+                    ui.dest(ok, 200);
+                }, ok);
+            }, info);
+            tk.cb('b4', 'Discord', () => window.open('https://discord.gg/pCbG6hAxFe', '_blank'), info);
+            tk.cb('b4', 'More info', async function () {
+                const ok = tk.c('div', document.body, 'cm');
+                const setupon = await fs.read('/system/info/setuptime');
+                const ogver = await fs.read('/system/info/setupver');
+                const color = await fs.read('/user/info/color');
+                if (setupon) {
+                    const fucker = wd.timec(Number(setupon));
+                    tk.p(`<span class="bold">Set up on</span> ${fucker}`, undefined, ok);
+                }
+                if (ogver) {
+                    tk.p(`<span class="bold">Original version</span> ${ogver}`, undefined, ok);
+                }
+                if (color) {
+                    tk.p(`<span class="bold">Color</span> ${color}`, undefined, ok);
+                }
                 tk.cb('b1', 'Close', function () {
                     ui.dest(ok, 200);
                 }, ok);
@@ -1008,7 +1126,7 @@ var app = {
             const win = tk.mbw('Data Assistant', '300px', 'auto', true, undefined, undefined);
             if (sys.guest === false) {
                 tk.p(`Your apps will close, and unsaved data will be lost.`, undefined, win.main);
-                tk.cb('b1 b2', 'Migrate', async function () {
+                tk.cb('b1', 'Migrate', async function () {
                     await fs.write('/system/migval', 'down');
                     wd.reboot();
                 }, win.main);
@@ -1018,6 +1136,74 @@ var app = {
                     wd.reboot();
                 }, win.main);
             }
+        }
+    },
+    lockscreen: {
+        runs: false,
+        name: 'Lockscreen',
+        init: async function () {
+            if (!el.lock) {
+                el.lock = tk.c('div', document.body, 'lockscreen');
+                const clock = tk.c('div', el.lock, 'center');
+                ui.show(el.lock, 400);
+                const img = tk.img(`https://openweathermap.org/img/wn/10d@2x.png`, 'locki', clock);
+                const p = tk.p('--:--', 'time h2', clock);
+                const weather = tk.p('Loading', 'smtxt', clock);
+                p.style.color = weather.style.color = "#fff";
+                const updateweather = async () => {
+                    try {
+                        const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
+                        const info = await response.json();
+                        weather.innerText = `${info.weather[0].description}, ${info.main.temp}${sys.unitsym}`;
+                        img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
+                    } catch (error) {
+                        weather.innerText = "Error";
+                    }
+                };
+
+                await updateweather();
+                const interval = setInterval(updateweather, 300000);
+                el.lock.addEventListener('mousedown', async () => {
+                    const { innerHeight: windowHeight } = window;
+                    el.lock.style.transition = 'transform 0.4s ease';
+                    el.lock.style.transform = `translateY(-${windowHeight}px)`;
+                    await new Promise(resolve => {
+                        el.lock.addEventListener('transitionend', function onTransitionEnd() {
+                            el.lock.removeEventListener('transitionend', onTransitionEnd);
+                            clearInterval(interval);
+                            el.lock.remove();
+                            el.lock = undefined;
+                            resolve();
+                        });
+                    });
+                });
+            }
+        }
+    },
+    wetter: {
+        runs: true,
+        name: 'Weather',
+        init: async function () {
+            const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
+            win.win.style.minWidth = "200px;"
+            win.win.style.maxWidth = "330px";
+            win.main.innerHTML = "Loading";
+            async function refresh() {
+                const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
+                const info = await response.json();
+                win.main.innerHTML = "";
+                const skibidi = tk.c('div', win.main);
+                skibidi.style.textAlign = "left";
+                tk.p(`${sys.city}`, 'bold', skibidi);
+                tk.p(`<span class="bold">Temperature</span> ${info.main.temp}${sys.unitsym}`, undefined, skibidi);
+                tk.p(`<span class="bold">Conditions</span> ${info.weather[0].description}`, undefined, skibidi);
+                tk.p(`<span class="bold">Sunset</span> ${wd.timecs(info.sys.sunset)}`, undefined, skibidi);
+                tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
+                tk.cb('b1', 'Refresh', function () {
+                    refresh(); wm.snack('Refreshed');
+                }, skibidi);
+            }
+            await refresh();
         }
     },
     echoclient: {
@@ -1154,43 +1340,6 @@ var app = {
             tk.p(`Unlocked <span class="b achcount"></span> achievements`, undefined, win.main);
             await load();
         },
-        liltman: async function () {
-            async function load() {
-                try {
-                    const data = await fs.read('/system/apps.json');
-                    if (data) {
-                        const parsed = JSON.parse(data);
-                        let yeah = 0;
-
-                        parsed.forEach((entry) => {
-                            const notif = tk.c('div', win.main, 'notif2');
-                            tk.p(entry.name, 'bold', notif);
-                            tk.p(entry.appid, undefined, notif);
-                            tk.cb('b3', 'Remove', async function () {
-                                const updatedApps = parsed.filter(item => item.appid !== entry.appid);
-                                const updatedData = JSON.stringify(updatedApps);
-                                await fs.write('/system/apps.json', updatedData);
-                                delete app[entry.appid];
-                                ui.dest(notif);
-                                wm.notif('Removed ' + entry.name, `It's been removed, but a reboot is needed to clear it completely.`, function () {
-                                    wd.reboot();
-                                }, 'Reboot');
-                            }, notif);
-                            yeah++;
-                        });
-                    }
-                } catch (error) {
-                    console.log('<!> Achievements shat itself: ', error);
-                    return null;
-                }
-            }
-
-            const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined);
-            tk.p(`Apps`, 'h2', win.main);
-            tk.p(`Remember: These are jokes and don't actually do anything`, undefined, win.main);
-            tk.p(`Unlocked <span class="b achcount"></span> achievements`, undefined, win.main);
-            await load();
-        },
         unlock: async function (name, content) {
             try {
                 const data = await fs.read('/user/info/achieve.json');
@@ -1215,7 +1364,7 @@ var app = {
     },
     browser: {
         runs: true,
-        name: 'Browser',
+        name: 'Browser (beta)',
         init: async function (path2) {
             tk.css('./assets/lib/browse.css');
             const win = tk.mbw('Browser', '80vw', '82vh', true);

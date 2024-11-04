@@ -5,19 +5,20 @@
     --bg2: #aaccff;
     --accent: 0, 60, 255;
     --acc: var(--accent);
-    --ui1: rgb(250, 250, 250, 0.6);
+    --ui1: rgb(255, 255, 255, 0.6);
     --ui2: #ffffff;
-    --ui3: #dddddd;
+    --ui3: #ededed;
     --bc: rgb(220, 220, 220, 0.4);
     --font: #000;
-    --bl1: 12px;
-    --bl2: 8px;
+    --bl1: 10px;
+    --bl2: 7px;
     --rad1: 16px;
     --rad2: 12px;
     --rad3: 10px;
     --fz1: 15px;
     --fz2: 14px;
-    --fz3: 12px;
+    --fz3: 13px;
+    --fz4: 12px;
     --inv: 0;
     --wina: 0px;
 }
@@ -71,6 +72,10 @@ body {
     font-family: "PoppinsM";
 }
 
+.smtxt {
+    font-size: var(--fz2);
+}
+
 html,
 body {
     overscroll-behavior: none;
@@ -106,7 +111,7 @@ button {
 .setupi {
     width: 50px;
     height: 50px;
-    border-radius: var(--rad2);
+    border-radius: 13px;
 }
 
 p {
@@ -149,7 +154,7 @@ p {
     max-height: 85% !important;
     animation: setup 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     width: 550px;
-    height: 400px;
+    height: 405px;
     overflow: auto !important;
     z-index: 4 !important;
 }
@@ -177,8 +182,6 @@ p {
     border-radius: var(--rad1);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 150px 30px;
     border: 1px solid var(--bc);
-    max-width: 90vw;
-    max-height: 90vh;
     width: auto;
     height: auto;
     z-index: 5;
@@ -335,7 +338,7 @@ p {
     border-radius: 8px;
     background-color: rgba(var(--accent), 0.35);
     font-size: var(--fz1);
-    border: 1px solid transparent;
+    border: 2px solid transparent;
     cursor: pointer;
     transition: all 0.07s ease;
     margin: 1px;
@@ -343,7 +346,7 @@ p {
 
 .b3:hover {
     background-color: rgba(var(--accent), 0.45);
-    border: 1px solid rgba(var(--accent), 0.65);
+    border: 2px solid rgba(var(--accent), 0.65);
 }
 
 .b3:active {
@@ -367,7 +370,7 @@ p {
     padding: 1px 3px;
     border-radius: 8px;
     background-color: rgba(var(--accent), 0.25);
-    font-size: var(--fz3);
+    font-size: var(--fz4);
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.05s ease-in-out;
@@ -667,6 +670,7 @@ p {
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 5px;
+    margin: 1px;
 }
 
 .rb {
@@ -690,7 +694,7 @@ p {
     border-top-right-radius: var(--rad1);
     background-color: var(--ui1);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
-    animation: tb 1s ease;
+    animation: tb 0.5s ease;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     z-index: 3;
@@ -706,17 +710,11 @@ p {
 
 @keyframes tb {
     0% {
-        bottom: -70px;
-        left: 40px;
-        right: 40px;
-        border-radius: var(--rad1);
+        bottom: -90px;
     }
 
-    55% {
-        bottom: 50px;
-        left: 48px;
-        right: 48px;
-        border-radius: var(--rad1);
+    70% {
+        bottom: 4px;
     }
 
     100% {
@@ -728,7 +726,7 @@ p {
     position: fixed;
     left: 50%;
     top: 50%;
-    padding: 12px;
+    padding: 14px;
     border-radius: var(--rad1);
     background-color: var(--ui2);
     border: 1px solid var(--bc);
@@ -738,6 +736,7 @@ p {
     width: 250px;
     max-width: 85%;
     max-height: 85%;
+    overflow: auto !important;
 }
 
 .tbmenu {
@@ -753,7 +752,7 @@ p {
     max-width: 360px;
     max-height: 70%;
     z-index: 9998;
-    animation: tb2 0.22s ease-out;
+    animation: tb2 0.2s ease-out;
     overflow-y: auto !important;
 }
 
@@ -816,6 +815,7 @@ p {
 
 .embed {
     border-radius: var(--rad3);
+    max-width: 100%;
     width: 100%;
     box-sizing: border-box;
     resize: both;
@@ -956,4 +956,27 @@ a:active {
 .window.max .tb {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+
+.lockscreen {
+    position: fixed;
+    left: 0px; 
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    z-index: 9998;
+    background-color: #000;
+    display: none;
+    cursor: none !important;
+}
+
+.locki {
+    width: 50px;
+    height: auto;
+    border: none;
+    margin: 0px;
+    padding: 0px;
+    border-radius: 14px;
+    background-color: #1f1f1f;
+    box-shadow: #4a4a4a 0px 0px 200px 40px;
 }
