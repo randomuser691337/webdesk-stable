@@ -33,6 +33,7 @@
     width: 100%;
     height: 100%;
     background: var(--bg1);
+    transition: 0.02s;
 }
 
 @font-face {
@@ -334,10 +335,10 @@ p {
 }
 
 .b3 {
-    padding: 2px 6px;
+    padding: 2px 4px;
     border-radius: 8px;
     background-color: rgba(var(--accent), 0.35);
-    font-size: var(--fz1);
+    font-size: var(--fz2);
     border: 2px solid transparent;
     cursor: pointer;
     transition: all 0.07s ease;
@@ -393,7 +394,6 @@ p {
 }
 
 @media (max-width:1030px) {
-
     .circle,
     .circle2 {
         width: 35vw !important;
@@ -553,6 +553,7 @@ p {
     z-index: 0;
     box-shadow: var(--sh2) 0px 0px 300px 60px;
     animation: circle 1.35s ease;
+    transition: 0.02s;
 }
 
 .circle2 {
@@ -562,6 +563,7 @@ p {
     z-index: 0;
     box-shadow: var(--sh2) 0px 0px 300px 60px;
     animation: circle2 1.35s ease;
+    transition: 0.02s;
 }
 
 .t1 {
@@ -694,7 +696,7 @@ p {
     border-top-right-radius: var(--rad1);
     background-color: var(--ui1);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
-    animation: tb 0.5s ease;
+    animation: tb 0.6s ease;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     z-index: 3;
@@ -705,7 +707,7 @@ p {
 
 .taskbar button {
     padding: 3px 5px;
-    font-size: var(--fz2);
+    font-size: var(--fz2) !important;
 }
 
 @keyframes tb {
@@ -713,12 +715,13 @@ p {
         bottom: -90px;
     }
 
-    70% {
-        bottom: 4px;
+    73% {
+        bottom: 0px;
+        padding-bottom: 11px;
     }
 
     100% {
-        bottom: 0px;
+        padding-bottom: 4px;
     }
 }
 
@@ -777,7 +780,7 @@ p {
     font: var(--font);
     padding: 4px;
     border: none;
-    border-radius: 9px;
+    border-radius: var(--rad2);
     font-family: 'PoppinsB', Arial;
 }
 
@@ -814,7 +817,7 @@ p {
 }
 
 .embed {
-    border-radius: var(--rad3);
+    border-radius: var(--rad2);
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
@@ -838,7 +841,7 @@ p {
 
 @keyframes snack {
     0% {
-        bottom: 80px;
+        bottom: 90px;
         opacity: 0%
     }
 
@@ -862,6 +865,7 @@ p {
     background-color: var(--ui2);
     z-index: 9999;
     animation: snack 0.5s ease-in-out;
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 75px 15px;
 }
 
 .greyp {
@@ -881,20 +885,6 @@ a:hover {
 
 a:active {
     opacity: 0.6;
-}
-
-@keyframes wiggle {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    10% { transform: translate(-1.5px, 1.5px) rotate(0.75deg); }
-    20% { transform: translate(1.5px, -1.5px) rotate(-1.125deg); }
-    30% { transform: translate(-2.25px, 0.75px) rotate(1.35deg); }
-    40% { transform: translate(2.25px, -0.75px) rotate(-1.5deg); }
-    50% { transform: translate(0.75px, 2.25px) rotate(0deg); }
-    60% { transform: translate(-1.5px, -0.75px) rotate(0.75deg); }
-    70% { transform: translate(1.5px, -2.25px) rotate(-1.35deg); }
-    80% { transform: translate(-0.75px, 1.5px) rotate(1.125deg); }
-    90% { transform: translate(2.25px, -0.75px) rotate(-0.75deg); }
-    100% { transform: translate(0, 0) rotate(0deg); }
 }
 
 .split {
@@ -964,7 +954,7 @@ a:active {
     right: 0px;
     top: 0px;
     bottom: 0px;
-    z-index: 9998;
+    z-index: 9999;
     background-color: #000;
     display: none;
     cursor: none !important;
@@ -979,4 +969,14 @@ a:active {
     border-radius: 14px;
     background-color: #1f1f1f;
     box-shadow: #4a4a4a 0px 0px 200px 40px;
+}
+
+.webcomm {
+    border-radius: var(--rad2);
+    margin-bottom: 2px;
+    text-align: left;
+}
+
+.uul {
+    text-align: left !important; margin: 0px;
 }

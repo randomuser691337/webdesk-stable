@@ -37,17 +37,23 @@ var app = {
                             const ok2 = tk.c('div', ok, undefined);
                             tk.p(`<span class="bold">Name</span> ` + entry.name, undefined, ok2);
                             if (entry.installedon === undefined) {
-                                tk.p(`<span class="bold">Modified</span> ` + 'Unknown', undefined, ok2);
+                                tk.p(`<span class="bold">Modified</span> Unknown`, undefined, ok2);
                             } else {
                                 tk.p(`<span class="bold">Modified</span> ` + wd.timec(entry.installedon), undefined, ok2);
                             }
-                            tk.p(`<span class="bold">App ID</span> ` + entry.appid, undefined, ok2);
+                            const appid = tk.p(`<span class="bold">App ID</span> `, undefined, ok2);
+                            const appids = tk.c('span', appid);
+                            appids.innerText = entry.appid;
                             if (entry.dev === undefined) {
                                 tk.p(`<span class="bold">Developer</span> ` + 'Unknown', undefined, ok2);
                             } else {
-                                tk.p(`<span class="bold">Developer</span> ` + entry.dev, undefined, ok2);
+                                const dev = tk.p(`<span class="bold">Developer</span> `, undefined, ok2);
+                                const devs = tk.c('span', dev);
+                                devs.innerText = entry.dev;
                             }
-                            tk.p(`<span class="bold">Version</span> ` + entry.ver, undefined, ok2);
+                            const ver = tk.p(`<span class="bold">Version</span>`, undefined, ok2);
+                            const vers = tk.c('span', ver);
+                            vers.innerText = entry.ver;
                             tk.cb('b1', 'Close', function () {
                                 ui.dest(ok);
                             }, ok)
@@ -95,8 +101,8 @@ var app = {
                 const opt = await fs.read('/system/info/devmode');
                 const pane = tk.c('div', win);
                 if (opt !== "true") {
-                    tk.p(`WARNING: Developer Mode lets you install third-party apps but removes security protections.`, undefined, pane);
-                    tk.p(`Use caution, there's no support for issues relating to Developer Mode.`, undefined, pane);
+                    tk.p(`WARNING: Developer Mode lets you install third-party apps, and enables debug buttons, but removes security protections.`, undefined, pane);
+                    tk.p(`Use caution, there's no support for issues relating to Developer Mode. Disabling Developer Mode will erase WebDesk, but will keep your files.`, undefined, pane);
                     tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
                     tk.cb(`b1`, 'Enable (reboot)', async function () {
                         await fs.write(`/system/info/devmode`, 'true');
@@ -104,12 +110,13 @@ var app = {
                     }, pane);
                 } else {
                     tk.p(`Developer Mode is enabled.`, undefined, pane);
-                    tk.p(`Disabling it will re-enable protections, but all apps will be uninstalled. Their data will be saved.`, undefined, pane);
+                    tk.p(`Disabling it will reset WebDesk, but will keep your files, along with your DeskID and name.`, undefined, pane);
                     tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
                     tk.cb(`b1`, 'Disable (reboot)', async function () {
-                        await fs.del(`/system/info/devmode`);
-                        await fs.del(`/system/apps.json`);
-                        await fs.delfold(`/system/apps`);
+                        await fs.delfold('/system/');
+                        await fs.delfold('/user/info/');
+                        await fs.write('/user/info/name', sys.name);
+                        await fs.write('/system/deskid', sys.deskid);
                         await wd.reboot();
                     }, pane);
                 }
@@ -166,13 +173,12 @@ var app = {
                 fs.del('/user/info/color');
                 fs.del('/user/info/lightdark');
                 fs.del('/user/info/lightdarkpref');
-                wm.wal('Reboot to finish resetting colors.', () => wd.reboot(), 'Reboot');
+                wd.defaultcolor();
+                wm.snack('Reset colors');
             }, appearPane); tk.cb('b1', 'Back', () => ui.sw2(appearPane, mainPane), appearPane);
             // User pane
             tk.p('WebDesk User', undefined, userPane);
-            tk.cb('b1 b2', 'Enable WebChat Beta', function () {
-                app.webchat.runs = true;
-            }, userPane);
+            tk.p(`Keep your WebDesk open when possible. <span class="bold">When WebDesk isn't open, anyone's able to take your DeskID.</span>`, undefined, userPane);
             tk.cb('b1 b2', 'Location Settings', function () {
                 app.locset.init();
             }, userPane);
@@ -205,19 +211,22 @@ var app = {
             }, userPane);
             tk.cb('b1', 'Back', () => ui.sw2(userPane, mainPane), userPane);
             // Access pane
-            tk.p('Font size', undefined, accPane);
-            tk.cb('b1 b2', 'Bigger', function () {
+            tk.p('Accessibility', undefined, accPane);
+            const p2 = tk.c('div', accPane, 'list');
+            const ok2 = tk.c('span', p2);
+            ok2.innerText = "Font size ";
+            tk.cb('b3', 'Big', async function () {
                 wd.bgft();
                 fs.write('/user/info/font', 'big');
-            }, accPane);
-            tk.cb('b1 b2', 'Normal', function () {
+            }, p2);
+            tk.cb('b3', 'Normal', function () {
                 wd.meft();
                 fs.write('/user/info/font', 'normal');
-            }, accPane);
-            tk.cb('b1 b2', 'Smaller', function () {
+            }, p2);
+            tk.cb('b3', 'Small', function () {
                 wd.smft();
                 fs.write('/user/info/font', 'small');
-            }, accPane);
+            }, p2);
             tk.cb('b1', 'Back', () => ui.sw2(accPane, mainPane), accPane);
             // App pane
             tk.cb('b1', 'Remove All', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
@@ -239,31 +248,35 @@ var app = {
         runs: false,
         init: function () {
             const ok = tk.mbw('Location Settings', '320px', 'auto', true, undefined, undefined);
-                tk.p(`<span class="bold">Location</span> ${sys.city}`, undefined, ok.main);
-                tk.p(`<span class="bold">Measurement </span> ${sys.unit} (${sys.unitsym})`, undefined, ok.main);
-                tk.cb('b1 b2', 'Disable Location', async function () {
-                    await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
-                    sys.city = "Paris, France";
-                    sys.unit = "Metric";
+            const locp = tk.p(`<span class="bold">Location</span> `, undefined, ok.main);
+            const locps = tk.c('span', locp);
+            locps.innerText = sys.city;
+            const degp = tk.p(`<span class="bold">Measurement</span> `, undefined, ok.main);
+            const degps = tk.c('span', degp);
+            degps.innerText = `${sys.unit} (${sys.unitsym})`;
+            tk.cb('b1 b2', 'Disable Location', async function () {
+                await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+                sys.city = "Paris, France";
+                sys.unit = "Metric";
+                sys.unitsym = "°C";
+                sys.defaultloc = true;
+                ok.closebtn.click();
+                wm.snack('Location set to Paris, France so that WebDesk has something to fall back on.');
+            }, ok.main);
+            tk.cb('b1 b2', 'Update Location', async function () {
+                const data = await wd.savecity();
+                await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
+                sys.city = data.location;
+                sys.unit = data.unit;
+                sys.defaultloc = false;
+                if (ok.unit === "Metric") {
                     sys.unitsym = "°C";
-                    sys.defaultloc = true;
-                    ok.closebtn.click();
-                    wm.snack('Location set to Paris, France so that WebDesk has something to fall back on.');
-                }, ok.main);
-                tk.cb('b1 b2', 'Update Location', async function () {
-                    const data = await wd.savecity();
-                    await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
-                    sys.city = data.location;
-                    sys.unit = data.unit;
-                    sys.defaultloc = false;
-                    if (ok.unit === "Metric") {
-                        sys.unitsym = "°C";
-                    } else {
-                        sys.unitsym = "°F";
-                    }
-                    ok.closebtn.click();
-                    wm.snack(`New location: ${data.location}`);
-                }, ok.main);
+                } else {
+                    sys.unitsym = "°F";
+                }
+                ok.closebtn.click();
+                wm.snack(`New location: ${data.location}`);
+            }, ok.main);
         }
     },
     echodesk: {
@@ -389,7 +402,7 @@ var app = {
                 height: 128,
                 colorDark: "#ffffff",
                 colorLight: "#000000",
-                correctLevel: QRCode.CorrectLevel.H
+                correctLevel: QRCode.CorrectLevel.M
             });
             setTimeout(function () {
                 qrcode.clear();
@@ -409,8 +422,9 @@ var app = {
             const warn = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/noround.png', 'setupi', warn);
             tk.p(`WebDesk Online services`, 'h2', warn);
-            tk.p('WebDesk makes an ID called a DeskID for you. Others can use this ID to send you files or call you.', undefined, warn);
-            tk.p('To recieve calls and files from others, WebDesk needs to be open. When not in use, WebDesk uses less resources.', undefined, warn);
+            tk.p('WebDesk makes a DeskID for you. Others can use this ID to send you files or call you.', undefined, warn);
+            tk.p('To recieve from others, WebDesk needs to be open. When not in use, WebDesk uses less resources.', undefined, warn);
+            tk.p(`Keep your WebDesk open when possible. <span class="bold">When WebDesk isn't open, anyone's able to take your DeskID.</span>`, undefined, warn);
             tk.cb('b1', `What's my DeskID?`, function () {
                 const box = wm.cm();
                 tk.p(`Your DeskID is <span class="med">${sys.deskid}</span>. You'll need to finish setup to use it.`, undefined, box);
@@ -420,10 +434,14 @@ var app = {
             const user = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/user.svg', 'setupi', user);
             tk.p('Create a User', 'h2', user);
-            tk.p(`Data is stored on your device only. WebDesk does not collect any data from you.`, undefined, user);
+            tk.p(`Data is stored on your device only. WebDesk does not collect any data from you. The name you enter is visible to anyone with your DeskID.`, undefined, user);
             const input = tk.c('input', user, 'i1');
             input.placeholder = "Enter a name to use with WebDesk";
             tk.cb('b1', 'Done!', function () {
+                if (input.value.length > 14) {
+                    wm.snack(`Set a name under 14 characters`, 3200);
+                    return;
+                }
                 wd.finishsetup(input.value, user, sum);
             }, user);
             // summary
@@ -602,13 +620,15 @@ var app = {
     textedit: {
         runs: true,
         name: 'TextEdit',
-        init: async function (contents, path) {
-            if (!path) {
-                const path2 = await app.files.pick('new', 'Create new document/code');
-                if (path2 !== false) {
-                    app.textedit.init('', path2);
+        init: async function (contents, path, readonly) {
+            if (readonly !== true) {
+                if (!path) {
+                    const path2 = await app.files.pick('new', 'Create new document/code');
+                    if (path2 !== false) {
+                        app.textedit.init('', path2);
+                    }
+                    return;
                 }
-                return;
             }
             tk.css('./assets/lib/browse.css');
             const win = tk.mbw(`TextEdit`, '500px', '340px', true);
@@ -657,53 +677,77 @@ var app = {
                 await fs.write(path, newContents);
                 wm.snack('Saved');
             }
-            tk.cb('b4 browserbutton', 'Save', async function () {
-                await save();
-            }, btnnest);
+            if (readonly !== true) {
+                tk.cb('b4 browserbutton', 'Save', async function () {
+                    await save();
+                }, btnnest);
+            } else {
+                tk.cb('b4 browserbutton', 'Save As', async function () {
+                    const path = await app.files.pick('new', 'Save in new file');
+                    const newContents = editor.getValue();
+                    fs.write(path, newContents);
+                    wm.snack('Saved');
+                }, btnnest);
+                editor.setReadOnly(true);
+            }
             tk.cb('b4 browserbutton', 'Menu', async function () {
                 const menu = tk.c('div', document.body, 'cm');
-                tk.p('Editing ' + path, undefined, menu);
+                if (readonly !== true) {
+                    tk.p('Editing ' + path, undefined, menu);
+                } else {
+                    tk.p('Read-only text');
+                }
                 tk.cb('b1 b2', 'Select All', function () {
                     editor.selectAll();
                     ui.dest(menu, 120);
                 }, menu);
-                tk.cb('b1 b2', 'Replace', function () {
-                    editor.execCommand('replace');
-                    ui.dest(menu, 120);
-                }, menu);
-                tk.cb('b1 b2', 'Find', function () {
+                tk.cb('b1 b2', 'Find Text', function () {
                     editor.execCommand('find');
                     ui.dest(menu, 120);
                 }, menu);
-                tk.cb('b1', 'Undo', function () {
-                    editor.execCommand('undo');
-                }, menu);
+                if (readonly !== true) {
+                    tk.cb('b1 b2', 'Replace', function () {
+                        editor.execCommand('replace');
+                        ui.dest(menu, 120);
+                    }, menu);
+                    tk.cb('b1', 'Undo', function () {
+                        editor.execCommand('undo');
+                    }, menu);
+                }
                 tk.cb('b1', 'Close', function () {
                     ui.dest(menu, 120);
                 }, menu);
-                tk.cb('b1', 'Redo', function () {
-                    editor.execCommand('redo');
-                }, menu);
+                if (readonly !== true) {
+                    tk.cb('b1', 'Redo', function () {
+                        editor.execCommand('redo');
+                    }, menu);
+                }
             }, btnnest);
             tk.cb('b4 browserbutton', 'Run', async function () {
                 const menu = tk.c('div', document.body, 'cm');
-                tk.p(`WAIT!!!`, 'h2', menu);
-                tk.p(`RUN THIS CODE CAREFULLY. It will have full access to your data. It's safer to use an incognito window, if possible. If you were told to copy/paste something here, you're probably getting scammed.`, undefined, menu);
-                tk.cb('b1 b2', 'I understand, run the code', function () {
-                    ui.dest(menu, 120);
-                    eval(editor.getValue());
-                }, menu);
+                if (sys.dev === true) {
+                    tk.p(`WAIT!!!`, 'h2', menu);
+                    tk.p(`RUN THIS CODE CAREFULLY. It will have full access to your data. It's safer to use an incognito window, if possible. If you were told to copy/paste something here, you're probably getting scammed.`, undefined, menu);
+                    tk.cb('b1 b2', 'I understand, run the code', function () {
+                        ui.dest(menu, 120);
+                        eval(editor.getValue());
+                    }, menu);
+                } else {
+                    tk.p(`Enable Developer Mode in Settings -> General to run custom code.`, undefined, menu);
+                }
                 tk.cb('b1', 'Close', function () {
                     ui.dest(menu, 120);
                 }, menu);
             }, btnnest);
             wd.win();
-            editor.container.addEventListener('keydown', async function (event) {
-                if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-                    event.preventDefault();
-                    await save();
-                }
-            });
+            if (readonly !== true) {
+                editor.container.addEventListener('keydown', async function (event) {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                        event.preventDefault();
+                        await save();
+                    }
+                });
+            }
             new ResizeObserver(() => {
                 editor.resize();
             }).observe(win.win);
@@ -713,27 +757,36 @@ var app = {
         runs: true,
         name: 'Files',
         init: async function () {
-            const win = tk.mbw(`Files`, '340px', '340px', undefined, undefined, undefined);
+            const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined);
             const breadcrumbs = tk.c('div', win.main);
             const items = tk.c('div', win.main);
-            var fuck = undefined;
+            if (sys.mob === true) {
+                items.style.maxHeight = screen.height - 180 + "px";
+            } else {
+                items.style.maxHeight = "400px";
+            }
+            items.style.overflow = "auto";
+            items.style.borderRadius = "12px";
+            items.style.padding = "6px";
+            win.main.style.padding = "8px";
+            var currentPath = undefined;
             let dragoverListener = null;
             let dropListener = null;
+
             async function navto(path) {
                 items.innerHTML = "";
                 breadcrumbs.innerHTML = "";
                 let crumbs = path.split('/').filter(Boolean);
-                let currentPath = '/';
+                let tempPath = '/';
 
                 tk.cb('flist', 'Root', () => navto('/'), breadcrumbs);
-
                 crumbs.forEach((crumb, index) => {
-                    currentPath += crumb + '/';
+                    tempPath += crumb + '/';
                     tk.cb('flists', '/', undefined, breadcrumbs);
                     tk.cb('flist', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
                 });
 
-                fuck = currentPath;
+                currentPath = tempPath;
 
                 if (dragoverListener) items.removeEventListener('dragover', dragoverListener);
                 if (dropListener) items.removeEventListener('drop', dropListener);
@@ -742,42 +795,41 @@ var app = {
                 dropListener = async e => {
                     e.preventDefault();
                     const text = e.dataTransfer.getData('text/plain');
-                    const move1 = await fs.read(text);
+                    const fileData = await fs.read(text);
                     const relativePath = text.split('/').pop();
-                    await fs.write(currentPath + relativePath, move1);
+                    await fs.write(currentPath + relativePath, fileData);
                     setTimeout(() => navto(currentPath), 300);
                 };
 
                 items.addEventListener('dragover', dragoverListener);
                 items.addEventListener('drop', dropListener);
 
-                const thing = await fs.ls(path);
-                thing.items.forEach(function (thing) {
-                    if (thing.type === "folder") {
-                        const target = tk.cb('flist width', "Folder: " + thing.name, () => navto(thing.path + "/"), items);
-                        let timer;
+                const contents = await fs.ls(path);
+                contents.items.forEach(item => {
+                    if (item.type === "folder") {
+                        const folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path + "/"), items);
                         let isLongPress = false;
+                        let timer;
 
                         function openmenu() {
+                            if (item.path.includes('/system') || item.path.includes('/user/info') && sys.dev === false) {
+                                wm.snack('Enable Developer Mode to modify this folder.', 6000)
+                                return;
+                            }
                             const menu = tk.c('div', document.body, 'cm');
-                            tk.p(thing.path, 'bold', menu);
-                            if (thing.path.includes('/system')) {
-                                tk.p('This is the system folder, modifying it will likely cause damage.', 'warn', menu);
+                            tk.p(item.path, 'bold', menu);
+                            if (item.path.includes('/system') || item.path.includes('/user/info')) {
+                                tk.p('This is an important folder, modifying it will likely cause damage.', 'warn', menu);
                             }
-                            if (thing.path.includes('/user')) {
-                                tk.p('This is your user folder, modifying this could cause harm.', 'warn', menu);
-                            }
-                            tk.cb('b1 b2', 'Delete folder', function () {
-                                fs.delfold(thing.path);
-                                ui.dest(target);
+                            tk.cb('b1 b2', 'Delete folder', () => {
+                                fs.delfold(item.path);
+                                ui.dest(folder);
                                 ui.dest(menu);
                             }, menu);
-                            tk.cb('b1', 'Close', function () {
-                                ui.dest(menu);
-                            }, menu);
+                            tk.cb('b1', 'Close', () => ui.dest(menu), menu);
                         }
 
-                        target.addEventListener('touchstart', function (e) {
+                        folder.addEventListener('touchstart', e => {
                             e.preventDefault();
                             isLongPress = false;
                             timer = setTimeout(() => {
@@ -785,49 +837,45 @@ var app = {
                                 openmenu();
                             }, 500);
                         });
-
-                        target.addEventListener('touchend', function (e) {
+                        folder.addEventListener('touchend', () => {
                             clearTimeout(timer);
                             if (!isLongPress) {
-                                navto(thing.path + "/");
+                                navto(item.path + "/");
                             }
                         });
-
-                        target.addEventListener('touchmove', function (e) {
-                            clearTimeout(timer);
-                        });
-
-                        target.addEventListener('touchcancel', function (e) {
-                            clearTimeout(timer);
-                        });
-
-                        target.addEventListener('contextmenu', function (e) {
+                        folder.addEventListener('touchmove', () => clearTimeout(timer));
+                        folder.addEventListener('touchcancel', () => clearTimeout(timer));
+                        folder.addEventListener('contextmenu', e => {
                             e.preventDefault();
                             openmenu();
                         });
 
                     } else {
-                        if (thing.name == "") {
-                            return;
-                        }
-                        const target = tk.cb('flist width', "File: " + thing.name, async function () {
-                            const skibidi = tk.c('div', document.body, 'cm');
-                            skibidi.innerText = `Loading ` + thing.name + ", this might take a bit";
-                            const yeah = await fs.read(thing.path);
-                            const menu = tk.c('div', document.body, 'cm');
-                            tk.p(thing.path, 'bold', menu);
-                            if (thing.path.includes('/system')) {
-                                tk.p('This is a system file, modifying it will likely cause damage.', 'warn', menu);
+                        if (item.name === "") return;
+
+                        const fileItem = tk.cb('flist width', "File: " + item.name, async function () {
+                            if (!sys.dev && item.path.includes('/system') || item.path.includes('/user/info') && sys.dev === false) {
+                                wm.snack('Enable Developer Mode to modify system files.', 6000);
+                                return;
                             }
-                            if (thing.path.includes('/user/info/name')) {
+
+                            const skibidi = tk.c('div', document.body, 'cm');
+                            skibidi.innerText = `Loading ${item.name}, this might take a bit`;
+                            const filecontent = await fs.read(item.path);
+                            const menu = tk.c('div', document.body, 'cm');
+                            tk.p(item.path, 'bold', menu);
+
+                            if (item.path.includes('/system') || item.path.includes('/user/info')) {
+                                tk.p('This is an important file, modifying it will likely cause damage.', 'warn', menu);
+                            }
+                            if (item.path.includes('/user/info/name')) {
                                 tk.p('Deleting this file will erase your data on next restart.', 'warn', menu);
                             }
                             tk.cb('b1 b2', 'Open', async function () {
-                                const yeah = await fs.read(thing.path);
-                                if (yeah.includes('data:')) {
-                                    app.imgview.init(yeah);
+                                if (filecontent.includes('data:')) {
+                                    app.imgview.init(filecontent);
                                 } else {
-                                    app.textedit.init(yeah, thing.path);
+                                    app.textedit.init(filecontent, item.path);
                                 }
                                 ui.dest(menu);
                             }, menu);
@@ -835,83 +883,67 @@ var app = {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
                                 tk.cb('b1 b2', 'Iris Media Viewer', function () {
-                                    app.imgview.init(yeah);
+                                    app.imgview.init(filecontent);
                                     ui.dest(menu2);
                                 }, menu2);
                                 tk.cb('b1 b2', 'Text Editor', function () {
-                                    app.textedit.init(yeah, thing.path);
+                                    app.textedit.init(filecontent, item.path);
                                     ui.dest(menu2);
                                 }, menu2);
                                 tk.cb('b1 b2', 'console.log', function () {
-                                    console.log(yeah);
+                                    console.log(filecontent);
                                     ui.dest(menu2);
                                 }, menu2);
-                                tk.cb('b1', 'Cancel', function () {
-                                    ui.dest(menu2);
-                                }, menu2);
+                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
                             }, menu);
-                            tk.cb('b1 b2', 'Download', function () {
-                                wd.download(yeah, `WebDesk File ${gen(4)}`);
+                            tk.cb('b1 b2', 'Download', () => {
+                                wd.download(filecontent, `WebDesk File ${gen(4)}`);
                                 ui.dest(menu);
                             }, menu);
                             tk.cb('b1 b2', 'WebDrop', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
-                                const inp = tk.c('input', menu2, 'i1');
-                                inp.placeholder = "Enter DeskID";
-                                tk.cb('b1', 'Cancel', function () {
-                                    ui.dest(menu2);
-                                }, menu2);
+                                const input = tk.c('input', menu2, 'i1');
+                                input.placeholder = "Enter DeskID";
+                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
                                 tk.cb('b1', 'WebDrop', async function () {
                                     menu2.innerHTML = `<p class="bold">Sending file</p><p>Depending on the size, this might take a bit</p>`;
-                                    tk.cb('b1', 'Close (No status updates)', function () {
-                                        ui.dest(menu2);
-                                    }, menu2);
-                                    await custf(inp.value, thing.name, yeah).then((check) => {
-                                        if (check === true) {
-                                            menu2.innerHTML = `<p class="bold">File sent</p><p>The other person can accept or deny</p>`;
-                                            tk.cb('b1', 'Close', function () {
-                                                ui.dest(menu2);
-                                            }, menu2);
-                                        } else {
-                                            menu2.innerHTML = `<p class="bold">An error occured</p><p>Make sure the ID is correct</p>`;
-                                            tk.cb('b1', 'Close', function () {
-                                                ui.dest(menu2);
-                                            }, menu2);
-                                        }
+                                    tk.cb('b1', 'Close (No status updates)', () => ui.dest(menu2), menu2);
+                                    await custf(input.value, item.name, filecontent).then(success => {
+                                        menu2.innerHTML = success
+                                            ? `<p class="bold">File sent</p><p>The other person can accept or deny</p>`
+                                            : `<p class="bold">An error occurred</p><p>Make sure the ID is correct</p>`;
+                                        tk.cb('b1', 'Close', () => ui.dest(menu2), menu2);
                                     });
                                 }, menu2);
                             }, menu);
                             tk.cb('b1 b2', 'Rename/Move', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
-                                const inp = tk.c('input', menu2, 'i1');
-                                inp.placeholder = "Enter new path";
-                                inp.value = thing.path;
-                                tk.cb('b1', 'Cancel', function () {
-                                    ui.dest(menu2);
-                                }, menu2);
-                                tk.cb('b1', 'Rename/Move', function () {
-                                    fs.write(inp.value, yeah);
-                                    fs.del(thing.path, yeah);
+                                const input = tk.c('input', menu2, 'i1');
+                                input.placeholder = "Enter new path";
+                                input.value = item.path;
+                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                                tk.cb('b1', 'Rename/Move', () => {
+                                    fs.write(input.value, filecontent);
+                                    fs.del(item.path);
                                     navto(path);
                                     ui.dest(menu2);
                                 }, menu2);
                             }, menu);
-                            tk.cb('b1 b2', 'Delete file', function () {
-                                fs.del(thing.path);
-                                ui.dest(target);
+                            tk.cb('b1 b2', 'Delete file', () => {
+                                fs.del(item.path);
+                                ui.dest(fileItem);
                                 ui.dest(menu);
                             }, menu);
-                            tk.cb('b1', 'Cancel', function () {
-                                ui.dest(menu);
-                            }, menu);
+                            tk.cb('b1', 'Cancel', () => ui.dest(menu), menu);
                             ui.dest(skibidi);
                         }, items);
-                        target.addEventListener('dragstart', (e) => {
-                            e.dataTransfer.setData('text/plain', thing.path);
+
+                        fileItem.addEventListener('dragstart', e => {
+                            e.dataTransfer.setData('text/plain', item.path);
                         });
-                        target.draggable = true;
+                        fileItem.draggable = true;
                     }
                 });
             }
@@ -966,6 +998,12 @@ var app = {
                                     }, menu);
                                     tk.cb('b1', 'Choose', function () {
                                         ui.dest(menu);
+                                        if (thing.path.includes('/system') || thing.path.includes('/user/info')) {
+                                            if (sys.dev === false) {
+                                                wm.snack(`Enable Developer Mode to make or edit files here.`);
+                                                return;
+                                            }
+                                        }
                                         resolve(thing.path);
                                     }, menu);
                                 }
@@ -992,6 +1030,12 @@ var app = {
                         if (inp.value === "") {
                             wm.snack('Enter a filename.');
                         } else {
+                            if (selectedPath.includes('/system') || selectedPath.includes('/user/info')) {
+                                if (sys.dev === false) {
+                                    wm.snack(`Enable Developer Mode to make or edit files here.`);
+                                    return;
+                                }
+                            }
                             resolve(selectedPath + inp.value);
                             ui.dest(win.win);
                         }
@@ -1002,31 +1046,119 @@ var app = {
             });
         }
     },
+    webcomm: {
+        runs: true,
+        name: "WebComm",
+        init: async function () {
+            const win = tk.mbw('WebComm', '280px', 'auto', true);
+            const inp = tk.c('input', win.main, 'i1');
+            inp.placeholder = "Enter a DeskID";
+            const skibidiv = tk.c('div', win.main);
+            const data = await fs.read('/user/info/contactlist.json');
+            if (data) {
+                const parsed = JSON.parse(data);
+                parsed.forEach((entry) => {
+                    if (entry.name === entry.deskid) {
+                        tk.cb('b3 b2 webcomm', entry.deskid, function () {
+                            inp.value = entry.deskid;
+                        }, skibidiv);
+                    } else {
+                        tk.cb('b3 b2 webcomm', entry.name + " - " + entry.deskid, function () {
+                            inp.value = entry.deskid;
+                        }, skibidiv);
+                    }
+                });
+            }
+            tk.cb('b1', 'WebDrop', async function () {
+                if (inp.value === sys.deskid) {
+                    wm.snack(`Type a DeskID that isn't yours.`);
+                    app.ach.unlock('So lonely...', 'So lonely, you tried calling yourself.');
+                } else {
+                    const file = await app.files.pick(undefined, 'Select file to send');
+                    const menu2 = tk.c('div', document.body, 'cm');
+                    menu2.innerHTML = `<p class="bold">Sending file</p><p>Depending on the size, this might take a bit</p>`;
+                    tk.cb('b1', 'Close (No status updates)', () => ui.dest(menu2), menu2);
+
+                    const filecont = await fs.read(file);
+                    await custf(inp.value, file.substring(file.lastIndexOf('/') + 1), filecont).then(async success => {
+                        const name = await ptp.getname(inp.value);
+                        await app.webcomm.add(inp.value, name);
+                        menu2.innerHTML = success
+                            ? `<p class="bold">WebDrop complete</p><p>The other person can accept or deny</p>`
+                            : `<p class="bold">An error occurred</p><p>Make sure the ID is correct</p>`;
+
+                        tk.cb('b1', 'Close', () => ui.dest(menu2), menu2);
+                    }, menu2);
+                }
+            }, win.main);
+            tk.cb('b1', 'Call', function () {
+                if (inp.value === sys.deskid) {
+                    wm.snack(`Type a DeskID that isn't yours.`);
+                    app.ach.unlock('So lonely...', 'So lonely, you tried calling yourself.');
+                } else {
+                    app.webcall.init(inp.value);
+                }
+            }, win.main);
+            tk.cb('b1', 'Chat', function () {
+                if (inp.value === sys.deskid) {
+                    wm.snack(`Type a DeskID that isn't yours.`);
+                    app.ach.unlock('So lonely...', 'So lonely, you tried messaging yourself.');
+                } else {
+                    const showyourself = sys.peer.connect(inp.value);
+                    showyourself.on('open', () => {
+                        showyourself.send(JSON.stringify({ type: 'request' }));
+                    });
+
+                    showyourself.on('data', (data) => {
+                        const parsedData = JSON.parse(data);
+                        app.webchat.init(inp.value, undefined, parsedData.response);
+                    });
+                }
+            }, win.main);
+        },
+        add: async function (deskid, name) {
+            try {
+                if (!name) {
+                    name = deskid;
+                }
+                const data = await fs.read('/user/info/contactlist.json');
+                if (data) {
+                    const newen = { deskid: deskid, name: name, time: Date.now() };
+                    const jsondata = JSON.parse(data);
+                    const check = jsondata.some(entry => entry.name === newen.name);
+                    const check2 = jsondata.some(entry => entry.deskid === newen.deskid);
+                    if (check !== true && check2 !== true) {
+                        jsondata.push(newen);
+                        fs.write('/user/info/contactlist.json', jsondata);
+                    }
+                } else {
+                    await fs.write('/user/info/contactlist.json', [{ deskid: deskid, name: name, time: Date.now() }]);
+                }
+            } catch (error) {
+                console.log(`<!> Couldn't add contact: `, error);
+                return null;
+            }
+        }
+    },
     webchat: {
         runs: false,
-        name: "WebChat (beta)",
-        init: async function (deskid, chat) {
+        init: async function (deskid, chat, name) {
             if (el.webchat !== undefined) {
                 wd.win(el.webchat);
                 el.currentid = deskid;
             } else {
                 el.webchat = tk.mbw('WebChat', '300px');
                 let otherid = undefined;
-                wc.dms = tk.c('div', el.webchat.main);
-                wc.messaging = tk.c('div', el.webchat.main, 'hide');
-                wc.chatting = tk.c('div', wc.messaging, 'embed nest')
-                tk.p(`Chats are not saved`, undefined, wc.dms);
-                wc.deskidin = tk.c('input', wc.dms, 'i1');
-                wc.deskidin.placeholder = "Enter DeskID of other user";
+                wc.messaging = tk.c('div', el.webchat.main);
+                wc.chatting = tk.c('div', wc.messaging, 'embed nest');
                 wc.chatting.style.overflow = "auto";
                 wc.chatting.style.height = "400px";
                 el.currentid = deskid;
 
-                tk.cb('b1', 'Message', function () {
-                    ui.sw2(wc.dms, wc.messaging);
-                    otherid = wc.deskidin.value;
-                    el.currentid = wc.deskidin.value;
-                }, wc.dms);
+                if (deskid && !chat) {
+                    otherid = deskid;
+                    el.currentid = deskid;
+                }
 
                 if (deskid) {
                     otherid = deskid;
@@ -1040,7 +1172,8 @@ var app = {
                     if (msg && otherid) {
                         custf(otherid, 'Message-WebKey', msg);
                         wc.sendmsg = tk.c('div', wc.chatting, 'full msg mesent');
-                        wc.sendmsg.innerText = `${sys.deskid}: ` + msg;
+                        wc.sendmsg.innerText = `${sys.name}: ` + msg;
+                        wc.sendmsg.style.marginBottom = "3px";
                         wc.messagein.value = '';
                     }
                 }
@@ -1055,13 +1188,16 @@ var app = {
                 custf(el.currentid, 'Message-WebKey', `End chat with ${el.currentid}`);
             });
 
+            app.webcomm.add(deskid, name);
+
             return new Promise((resolve) => {
                 let checkDeskAndChat = setInterval(() => {
                     if (typeof deskid === "string" && typeof chat === "string") {
                         clearInterval(checkDeskAndChat);
-                        ui.sw2(wc.dms, wc.messaging);
-                        const msg = tk.c('div', wc.chatting, 'msg full');
-                        msg.innerText = `${deskid}: ` + chat;
+                        const msg = tk.c('div', wc.chatting, 'flist full');
+                        msg.style.marginBottom = "3px";
+                        msg.innerText = `${name}: ` + chat;
+                        wc.chatting.scrollIntoView({ behavior: 'smooth', block: 'end' });
                         resolve();
                     }
                 }, 100);
@@ -1087,9 +1223,10 @@ var app = {
                 ok.innerHTML = `<p class="bold">Credits</p>
                 <p>All the libraries or materials that helped create WebDesk.</p>
                 <p><a href="https://peerjs.com/" target="blank">PeerJS: DeskID/online services</a></p>
-                <p><a href="https://davidshimjs.github.io/qrcodejs/" target="blank">qrcode.js: Any WebDesk QR codes</a></p>
+                <p><a href="https://davidshimjs.github.io/qrcodejs/" target="blank">qrcode.js: WebDesk QR codes</a></p>
                 <p><a href="https://jquery.com/" target="blank">jQuery: WebDesk's UI</a></p>
                 <p><a href="https://ace.c9.io/" target="blank">Ace: TextEdit's engine</a></p>
+                <p><a href="https://fengyuanchen.github.io/cropperjs/" target="blank">cropper.js: Cropping tool</a></p>
                 <p><a href="https://jscolor.com/" target="blank">jscolor: Color picker</a></p>
                 <p><a href="https://ace.c9.io/" target="blank">jszip: ZIP file handling</a></p>`;
                 tk.cb('b1', 'Close', function () {
@@ -1104,13 +1241,22 @@ var app = {
                 const color = await fs.read('/user/info/color');
                 if (setupon) {
                     const fucker = wd.timec(Number(setupon));
-                    tk.p(`<span class="bold">Set up on</span> ${fucker}`, undefined, ok);
+                    const seo = tk.p(`<span class="bold">Set up on</span> `, undefined, ok);
+                    const seos = tk.c('span', seo);
+                    seos.innerText = fucker;
+                }
+                if (sys.dev) {
+                    tk.p(`<span class="bold">Developer Mode</span> ` + sys.dev, undefined, ok);
                 }
                 if (ogver) {
-                    tk.p(`<span class="bold">Original version</span> ${ogver}`, undefined, ok);
+                    const ogv = tk.p(`<span class="bold">Original version</span> `, undefined, ok);
+                    const ogvs = tk.c('span', ogv);
+                    ogvs.innerText = ogver;
                 }
                 if (color) {
-                    tk.p(`<span class="bold">Color</span> ${color}`, undefined, ok);
+                    const col = tk.p(`<span class="bold">Color</span> `, undefined, ok);
+                    const cols = tk.c('span', col);
+                    cols.innerText = color;
                 }
                 tk.cb('b1', 'Close', function () {
                     ui.dest(ok, 200);
@@ -1186,7 +1332,9 @@ var app = {
         init: async function () {
             const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
             win.win.style.minWidth = "200px;"
-            win.win.style.maxWidth = "330px";
+            if (sys.mob === false) {
+                win.win.style.maxWidth = "330px";
+            }
             win.main.innerHTML = "Loading";
             async function refresh() {
                 const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
@@ -1196,12 +1344,19 @@ var app = {
                 skibidi.style.textAlign = "left";
                 tk.p(`${sys.city}`, 'bold', skibidi);
                 tk.p(`<span class="bold">Temperature</span> ${info.main.temp}${sys.unitsym}`, undefined, skibidi);
+                tk.p(`<span class="bold">Feels like</span> ${info.main.feels_like}${sys.unitsym}`, undefined, skibidi);
                 tk.p(`<span class="bold">Conditions</span> ${info.weather[0].description}`, undefined, skibidi);
-                tk.p(`<span class="bold">Sunset</span> ${wd.timecs(info.sys.sunset)}`, undefined, skibidi);
+                tk.p(`Weather data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap</a>, contact them about incorrect info.`, 'smtxt', skibidi);
                 tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
                 tk.cb('b1', 'Refresh', function () {
                     refresh(); wm.snack('Refreshed');
                 }, skibidi);
+                if (sys.dev === true) {
+                    tk.cb('b1', 'JSON', async function () {
+                        const ok = JSON.stringify(info);
+                        app.textedit.init(ok, undefined, true);
+                    }, skibidi);
+                }
             }
             await refresh();
         }
@@ -1267,9 +1422,9 @@ var app = {
                 } else {
                     jsondata.push(newen);
                     if (update === true) {
-                        wm.notif(`Updated: `, app.name);
+                        wm.notif(app.name + ' was updated');
                     } else {
-                        wm.notif(`Installed: `, app.name);
+                        wm.notif(app.name + ' was installed');
                     }
                     fs.write('/system/apps.json', jsondata);
                 }
@@ -1347,7 +1502,8 @@ var app = {
                     const newen = { name: name, cont: content, time: Date.now() };
                     const jsondata = JSON.parse(data);
                     const check = jsondata.some(entry => entry.name === newen.name);
-                    if (check !== true) {
+                    const check2 = jsondata.some(entry => entry.cont === newen.cont);
+                    if (check !== true && check2 !== true) {
                         wm.notif(`Achieved: ` + name, content, () => app.ach.init());
                         jsondata.push(newen);
                         fs.write('/user/info/achieve.json', jsondata);
@@ -1521,59 +1677,55 @@ var app = {
         }
     },
     webcall: {
-        runs: true,
-        name: 'WebCall',
-        init: async function () {
+        runs: false,
+        init: async function (deskid) {
             const win = tk.mbw('WebCall', '260px', 'auto', true, undefined, undefined);
             const callStatus = tk.p(`Enter DeskID of person to call`, undefined, win.main);
-            const input = tk.c('input', win.main, 'i1');
-            input.placeholder = "DeskID here";
-
-            function go() {
-                let oncall = false;
-                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                    remotePeerId = input.value;
-                    const call = sys.peer.call(remotePeerId, stream);
-                    callStatus.textContent = 'Waiting for answer...';
-                    const showyourself = sys.peer.connect(call.peer);
-                    showyourself.on('open', () => {
-                        showyourself.send(JSON.stringify({ type: 'request' }));
-                    });
-
-                    showyourself.on('data', (data) => {
-                        try {
-                            const parsedData = JSON.parse(data);
-                            if (parsedData.response) {
-                                setTimeout(() => {
-                                    if (!oncall) {
-                                        callStatus.textContent = `Other person didn't answer`;
-                                        call.close();
-                                    }
-                                }, 28000);
-
-                                call.on('stream', (remoteStream) => {
-                                    oncall = true;
-                                    ui.dest(win.tbn, 100);
-                                    ui.dest(win.win, 100);
-                                    app.webcall.answer(remoteStream, call, parsedData.response, stream);
-                                });
-
-                                call.on('error', (err) => {
-                                    callStatus.textContent = 'Call failed: ' + err.message;
-                                });
-                            }
-                        } catch (err) {
-                            console.error('Failed to parse data:', err);
-                        }
-                    });
-                }).catch((err) => {
-                    console.error(`<!> ${err}`);
+            let oncall = false;
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                remotePeerId = deskid;
+                const call = sys.peer.call(remotePeerId, stream);
+                callStatus.textContent = 'Waiting for answer...';
+                const showyourself = sys.peer.connect(call.peer);
+                showyourself.on('open', () => {
+                    showyourself.send(JSON.stringify({ type: 'request' }));
                 });
-            }
 
-            tk.cb('b1', 'Call', function () {
-                go();
-            }, win.main);
+                showyourself.on('data', (data) => {
+                    try {
+                        const parsedData = JSON.parse(data);
+                        if (parsedData.response) {
+                            app.webcomm.add(call.peer, parsedData.response);
+                            setTimeout(() => {
+                                if (!oncall) {
+                                    callStatus.textContent = `Other person didn't answer`;
+                                    call.close();
+                                }
+                            }, 28000);
+
+                            call.on('stream', (remoteStream) => {
+                                oncall = true;
+                                ui.dest(win.tbn, 100);
+                                ui.dest(win.win, 100);
+                                app.webcall.answer(remoteStream, call, parsedData.response, stream);
+                            });
+
+                            call.on('error', (err) => {
+                                callStatus.textContent = 'Call failed: ' + err.message;
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Failed to parse data:', err);
+                    }
+                });
+
+                const selfkill = win.closebtn.addEventListener('mousedown', function () {
+                    call.close();
+                    selfkill.removeEventListener();
+                });
+            }).catch((err) => {
+                console.error(`<!> ${err}`);
+            });
         },
         answer: async function (remoteStream, call, name, fein) {
             const win = tk.mbw('WebCall', '250px', 'auto', true, undefined, undefined);
@@ -1584,7 +1736,7 @@ var app = {
             audioElement.controls = true;
 
             let isMuted = false;
-            const remoteAudioTrack = remoteStream.getAudioTracks()[0];
+            const remoteAudioTrack = fein.getAudioTracks()[0];
 
             const muteButton = tk.cb('b1', 'Mute', function () {
                 if (remoteAudioTrack) {
@@ -1619,8 +1771,9 @@ var app = {
 
             tk.cb('b1', 'End', () => crashout(), win.main);
 
-            win.closebtn.addEventListener('mousedown', function () {
+            const selfkill = win.closebtn.addEventListener('mousedown', function () {
                 crashout();
+                selfkill.removeEventListener();
             });
         }
     },

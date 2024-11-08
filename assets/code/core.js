@@ -1,5 +1,8 @@
 // WebDesk 0.1.4
 // Based on Rebuild 7 (wtf)
+console.log(`<!> You've unlocked the REAL developer mode!`);
+console.log(`<!> For the love of all that is holy, DO NOT, and I mean DO NOT, PASTE ANY CODE IN HERE.`);
+console.log(`<!> If you were told to paste here, you're probably getting scammed.`);
 
 function gen(length) {
     if (length <= 0) {
@@ -184,7 +187,7 @@ var wd = {
             }
         }
         if (waitopt === "wait") {
-            setTimeout(function () { desktopgo(); }, 300);
+            setTimeout(function () { desktopgo(); }, 360);
         } else {
             desktopgo();
         }
@@ -360,7 +363,7 @@ var wd = {
     download: function (file, fileName) {
         let downloadLink = document.createElement('a');
         let url;
-    
+
         if (typeof file === 'string' && file.startsWith('data:')) {
             url = file;
         } else if (file instanceof File || file instanceof Blob) {
@@ -372,7 +375,7 @@ var wd = {
             const blob = new Blob([JSON.stringify(file)], { type: 'application/json' });
             url = URL.createObjectURL(blob);
         }
-    
+
         downloadLink.href = url;
         downloadLink.download = fileName || file.name || 'download';
         downloadLink.style.display = 'none';
@@ -382,7 +385,7 @@ var wd = {
         if (file instanceof Blob || file instanceof File || url.startsWith('blob:')) {
             setTimeout(() => URL.revokeObjectURL(url), 100);
         }
-    },     
+    },
     smft: function () {
         ui.cv('fz4', '10px');
         ui.cv('fz3', '11px');
@@ -466,31 +469,106 @@ var wd = {
             ui.crtheme('#694700');
             wd.dark();
             wm.notif(`Happy Halloween!`, `To those who celebrate it. If you don't like the color, you can use the default.`, function () {
-                ui.crtheme('#7A7AFF');
-                wd.light();
+                wd.defaultcolor();
             }, 'Set defaults');
         } else if (today.getMonth() === 11 && today.getDate() === 25) {
+            ui.crtheme('#00412A');
+            wd.dark();
             wm.notif(`Merry Christmas!`, `To those who celebrate it. If you don't like the color, you can use the default.`, function () {
-                ui.crtheme('#00412A');
-                wd.dark();
+                wd.defaultcolor();
             }, 'Set defaults');
         } else {
             ui.crtheme('#7A7AFF');
         }
     },
-    savecity: async function () {
-        const ipinfoResponse = await fetch('https://ipinfo.io/json');
-        const ipinfoData = await ipinfoResponse.json();
-        const city = ipinfoData.city;
-        const region = ipinfoData.region;
-        const country = ipinfoData.country;
-        const unit = (country === 'US') ? 'Imperial' : 'Metric';
+    savecity: async function (city2) {
+        if (!city2) {
+            const ipinfoResponse = await fetch('https://ipinfo.io/json');
+            const ipinfoData = await ipinfoResponse.json();
+            const city = ipinfoData.city;
+            const region = ipinfoData.region;
+            const country = ipinfoData.country;
+            const unit = (country === 'US') ? 'Imperial' : 'Metric';
 
-        return {
-            location: `${city}, ${region}, ${country}`,
-            unit: unit
+            return {
+                location: `${city}, ${region}, ${country}`,
+                unit: unit,
+            }
+        } else {
+            const unit = (city2.endsWith('US') || city2.endsWith('USA') || city2.endsWith('America')) ? 'Imperial' : 'Metric';
+            return {
+                location: `${city2}`,
+                unit: unit,
+            }
         }
-    }
+    },
+    defaultcolor: function () {
+        ui.crtheme('#7A7AFF');
+        wd.light();
+    },
+    wetter: function () {
+        const main = tk.c('div', document.body, 'cm');
+        tk.img('./assets/img/setup/location.svg', 'setupi', main);
+        const menu = tk.c('div', main);
+        const info = tk.c('div', main, 'hide');
+        tk.p('Allow WebDesk to access your city for weather processing?', 'bold', menu);
+        tk.p('Your data is processed by OpenWeatherMap & IPInfo, and is only visible to you. This can be changed in Settings later.', undefined, menu);
+        tk.p('If you deny, your location will be set to Paris, France.', undefined, menu);
+        tk.cb('b1', 'Deny', async function () {
+            await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+            wd.reboot();
+        }, menu);
+        tk.cb('b1', 'More Info', async function () {
+            ui.sw2(menu, info);
+        }, menu);
+        tk.cb('b1', 'Allow', async function () {
+            try {
+                const data = await wd.savecity();
+                await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
+                wd.reboot();
+            } catch (error) {
+                const skibidi = tk.c('div', main, 'hide');
+                ui.sw2(menu, skibidi);
+                tk.p(`An error occured`, 'bold', skibidi);
+                tk.p(`This is probably due to extensions like uBlock origin. You probably can't bother disabling them, so enter your city manually.`, undefined, skibidi);
+                const inp = tk.c('input', skibidi, 'i1');
+                inp.placeholder = "Enter city & country here";
+                tk.cb('b1', 'Deny', async function () {
+                    await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+                    wd.reboot();
+                }, skibidi);
+                tk.cb('b1', 'Set City', async function () {
+                    const data = await wd.savecity(inp.value);
+                    await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
+                    wd.reboot();
+                }, skibidi);
+            }
+        }, menu);
+        tk.p('How this works', 'bold', info);
+        tk.p(`IPInfo finds your city via your IP address. After this, your city is fed into OpenWeatherMap for weather details.`, undefined, info);
+        tk.p('None of your data is viewable or visible to anyone else but you. ', undefined, info);
+        tk.cb('b1 b2', `OpenWeatherMap's website`, async function () {
+            window.open('https://openweathermap.org', '_blank');
+        }, info);
+        tk.cb('b1 b2', `IPInfo's website`, async function () {
+            window.open('https://ipinfo.io', '_blank');
+        }, info);
+        tk.cb('b1', 'Back', async function () {
+            ui.sw2(info, menu);
+        }, info);
+    },
+    hawktuah: async function () {
+        const hawk = await fs.read('/system/info/currentver');
+        if (hawk !== abt.ver) {
+            await fs.write('/system/info/currentver', abt.ver);
+            const win = tk.mbw('Changelog', '300px', undefined, true);
+            const div = tk.c('div', win.main, 'embed nest');
+            const response = await fetch('./assets/other/changelog.html');
+            const tuah = await response.text();
+            div.style.height = "300px";
+            div.innerHTML = tuah;
+        }
+    }    
 }
 
 document.addEventListener('visibilitychange', function () {

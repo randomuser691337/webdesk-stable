@@ -108,7 +108,7 @@ var ptp = {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.response) {
-                            wm.notif(`Call from ${parsedData.response}`, function () {
+                            wm.notif(`Call from ${parsedData.response}`, undefined, function () {
                                 navigator.mediaDevices.getUserMedia({ audio: true })
                                     .then((stream) => {
                                         call.answer(stream);
@@ -139,9 +139,25 @@ var ptp = {
 
         attemptConnection();
     },
+    getname: async function (id) {
+        return new Promise(async (resolve, reject) => {
+            const showyourself = sys.peer.connect(id);
+            showyourself.on('open', () => {
+                showyourself.send(JSON.stringify({ type: 'request' }));
+            });
+
+            showyourself.on('data', (data) => {
+                const parsedData = JSON.parse(data);
+                resolve(parsedData.response);
+            });
+        })
+    }
 };
 
 async function handleData(conn, data) {
+    if (sys.dev === true) {
+        console.log(data);
+    }
     if (sys.webdrop === true) {
         if (data.name === "MigrationPackDeskFuck") {
             if (sys.setupd === false) {
@@ -196,32 +212,32 @@ async function handleData(conn, data) {
             fesw('caller3', 'caller1');
             snack('Your call was declined.');
         } else if (data.name === "Message-WebKey") {
+            if (data.file === `End chat with ${sys.deskid}`) {
+                ui.dest(el.webchat.win, 100);
+                ui.dest(el.webchat.tbn, 100);
+                el.webchat = undefined;
+                el.currentid = undefined;
+                wm.snack(`Other user ended the chat`, 10000);
+                return;
+            }
             if (el.currentid !== data.id) {
-                wm.notif(`Message from ${data.id}`, data.file, async function () {
+                wm.notif(`Message from ${data.uname}`, data.file, async function () {
                     if (el.currentid !== undefined) {
-                        wm.notif(`Warning`, `Opening this message will end & delete your current DM.`, async function () {
+                        wm.notif(`Warning`, `Opening this message will delete your current chat.`, async function () {
                             ui.dest(el.webchat.win, 100);
                             ui.dest(el.webchat.tbn, 100);
                             el.webchat = undefined;
                             el.currentid = data.id;
                             custf(data.id, 'Message-WebKey', `End chat with ${data.id}`);
-                            await app.webchat.init(`${data.id}`, `${data.file}`);
+                            await app.webchat.init(`${data.id}`, `${data.file}`, `${data.uname}`);
                         });
                     } else {
-                        if (data.file === `End chat with ${sys.deskid}`) {
-                            ui.dest(el.webchat.win, 100);
-                            ui.dest(el.webchat.tbn, 100);
-                            el.webchat = undefined;
-                            el.currentid = undefined;
-                            wm.snack(`Other user ended the chat`, 10000);
-                            return;
-                        }
                         el.currentid = data.id;
-                        await app.webchat.init(`${data.id}`, `${data.file}`);
+                        await app.webchat.init(`${data.id}`, `${data.file}`, `${data.uname}`);
                     }
                 }, 'Open');
             } else {
-                await app.webchat.init(`${data.id}`, `${data.file}`);
+                await app.webchat.init(`${data.id}`, `${data.file}`, `${data.uname}`);
             }
         } else if (data === "Name and FUCKING address please") {
             conn.send(sys.user);

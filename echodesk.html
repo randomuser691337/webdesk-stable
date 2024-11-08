@@ -2,9 +2,10 @@
 <html lang="en">
 
 <head>
-    <link rel="stylesheet" href="./assets/style.css">
+    <link rel="stylesheet" href="./assets/style.css" />
+    <link rel="stylesheet" href="./assets/lib/crop/cropper.css" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="shortcut icon" href="./assets/img/favicon.png">
     <link rel="apple-touch-icon" href="./assets/img/noround.png">
@@ -12,8 +13,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 4, 2024",
-        ver: "0.1.7",
+        lastmod: "Nov 7, 2024",
+        ver: "0.1.8",
     }
 
     var sys = {
@@ -88,6 +89,7 @@
 <script src="./assets/code/ui.js"></script>
 <script src="./assets/code/echofs.js"></script>
 <script src="./assets/code/apps.js"></script>
+<script src="./assets/lib/crop/cropper.js"></script>
 <script>
     async function strap() {
         const url = window.location.href;
@@ -98,7 +100,7 @@
             sys.echoid = id;
             await ptp.go(id2);
         } else {
-            ui.hide(document.getElementById('death'), 200);
+            ui.hide(document.getElementById('death'), 180);
             wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to the URL to boot.`);
         }
     }
@@ -106,7 +108,7 @@
         let boot = false;
         setTimeout(function () {
             if (boot === false) {
-                ui.hide(document.getElementById('death'), 200);
+                ui.hide(document.getElementById('death'), 180);
                 wm.wal(`<p class="bold">EchoDesk failed to boot</p><p>Click "Try Again" if you want, otherwise check the other WebDesk, make sure your connection is OK, and disable your VPN if it's on.</p>`, () => reboot(), 'Try Again', 'noclose');
             }
         }, 8000);
@@ -114,13 +116,25 @@
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck && boot === false) {
             boot = true;
-            const darkpref = await fs.read('/user/info/lightdarkpref');
-            const lightdark = await fs.read('/user/info/lightdark');
-            const color = await fs.read('/user/info/color');
-            const font = await fs.read('/user/info/font');
-            const dev = await fs.read('/system/info/devmode');
-            const mob = await fs.read('/user/info/mobile');
-            const city = await fs.read('/user/info/location.json');
+            const [
+                darkpref, lightdark, color, font, dev, mob, city, clocksec
+            ] = await Promise.all([
+                fs.read('/user/info/lightdarkpref'),
+                fs.read('/user/info/lightdark'),
+                fs.read('/user/info/color'),
+                fs.read('/user/info/font'),
+                fs.read('/system/info/devmode'),
+                fs.read('/user/info/mobile'),
+                fs.read('/user/info/location.json'),
+                fs.read('/user/info/clocksec')
+            ]);
+
+            if (clocksec === "true") {
+                sys.seconds = true;
+            } else {
+                sys.seconds = false;
+            }
+
             if (city) {
                 const ok = JSON.parse(city)[0];
                 sys.city = ok.city;
@@ -136,38 +150,8 @@
                     sys.defaultloc = false;
                 }
             } else {
-                const main = tk.c('div', document.body, 'cm');
-                tk.img('./assets/img/setup/location.svg', 'setupi', main);
-                const menu = tk.c('div', main);
-                const info = tk.c('div', main, 'hide');
-                tk.p('Allow WebDesk to access your city for weather processing?', 'bold', menu);
-                tk.p('Your data is processed by OpenWeatherMap & IPInfo, and is only visible to you. This can be changed in Settings later.', undefined, menu);
-                tk.p('If you deny, your location will be set to Paris, France.', undefined, menu);
-                tk.cb('b1', 'Deny', async function () {
-                    await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
-                    wd.reboot();
-                }, menu);
-                tk.cb('b1', 'More Info', async function () {
-                    ui.sw2(menu, info);
-                }, menu);
-                tk.cb('b1', 'Allow', async function () {
-                    const data = await wd.savecity();
-                    await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
-                    wd.reboot();
-                }, menu);
-                tk.p('How this works', 'bold', info);
-                tk.p(`IPInfo finds your city via your IP address. After this, your city is fed into OpenWeatherMap for weather details.`, undefined, info);
-                tk.p('None of your data is viewable or visible to anyone else but you. ', undefined, info);
-                tk.cb('b1 b2', `OpenWeatherMap's website`, async function () {
-                    window.open('https://openweathermap.org', '_blank');
-                }, info);
-                tk.cb('b1 b2', `IPInfo's website`, async function () {
-                    window.open('https://ipinfo.io', '_blank');
-                }, info);
-                tk.cb('b1', 'Back', async function () {
-                    ui.sw2(info, menu);
-                }, info);
-            } 
+                wd.wetter();
+            }
             if (dev === "true") {
                 sys.dev = true;
                 wm.notif(`Developer Mode is enabled.`);
@@ -247,7 +231,7 @@
         }
 
         wd.perfmon();
-        ui.hide(document.getElementById('death'), 200);
+        ui.hide(document.getElementById('death'), 180);
         wm.notif('Welcome to EchoDesk', `Your current DeskID is temporary, and some features are disabled.`);
         app.ach.unlock(`EchoDesk`, `Better than remote desktop in some cases?`);
         const dropZone = document.body;
