@@ -51,7 +51,7 @@ var app = {
                                 const devs = tk.c('span', dev);
                                 devs.innerText = entry.dev;
                             }
-                            const ver = tk.p(`<span class="bold">Version</span>`, undefined, ok2);
+                            const ver = tk.p(`<span class="bold">Version</span> `, undefined, ok2);
                             const vers = tk.c('span', ver);
                             vers.innerText = entry.ver;
                             tk.cb('b1', 'Close', function () {
@@ -204,6 +204,10 @@ var app = {
                 const inp = tk.c('input', ok.main, 'i1');
                 inp.placeholder = "New name here";
                 tk.cb('b1', 'Change name', async function () {
+                    if (inp.value.length > 14) {
+                        wm.snack(`Set a name under 14 characters`, 3200);
+                        return;
+                    }
                     await fs.write('/user/info/name', inp.value);
                     ok.main.innerHTML = `<p>Reboot WebDesk to finish changing your username.</p><p>All unsaved data will be lost.</p>`;
                     tk.cb('b1', 'Reboot', () => wd.reboot(), ok.main);
@@ -997,7 +1001,7 @@ var app = {
                                         ui.dest(menu);
                                     }, menu);
                                     tk.cb('b1', 'Choose', function () {
-                                        ui.dest(menu);
+                                        ui.dest(menu); ui.dest(win.win);
                                         if (thing.path.includes('/system') || thing.path.includes('/user/info')) {
                                             if (sys.dev === false) {
                                                 wm.snack(`Enable Developer Mode to make or edit files here.`);
@@ -1050,26 +1054,12 @@ var app = {
         runs: true,
         name: "WebComm",
         init: async function () {
-            const win = tk.mbw('WebComm', '280px', 'auto', true);
+            const win = tk.mbw('WebComm', '320px', 'auto', true);
             const inp = tk.c('input', win.main, 'i1');
             inp.placeholder = "Enter a DeskID";
             const skibidiv = tk.c('div', win.main);
-            const data = await fs.read('/user/info/contactlist.json');
-            if (data) {
-                const parsed = JSON.parse(data);
-                parsed.forEach((entry) => {
-                    if (entry.name === entry.deskid) {
-                        tk.cb('b3 b2 webcomm', entry.deskid, function () {
-                            inp.value = entry.deskid;
-                        }, skibidiv);
-                    } else {
-                        tk.cb('b3 b2 webcomm', entry.name + " - " + entry.deskid, function () {
-                            inp.value = entry.deskid;
-                        }, skibidiv);
-                    }
-                });
-            }
-            tk.cb('b1', 'WebDrop', async function () {
+            let extraid = undefined;
+            const dropbtn = tk.cb('b1', 'WebDrop', async function () {
                 if (inp.value === sys.deskid) {
                     wm.snack(`Type a DeskID that isn't yours.`);
                     app.ach.unlock('So lonely...', 'So lonely, you tried calling yourself.');
@@ -1081,40 +1071,128 @@ var app = {
 
                     const filecont = await fs.read(file);
                     await custf(inp.value, file.substring(file.lastIndexOf('/') + 1), filecont).then(async success => {
-                        const name = await ptp.getname(inp.value);
-                        await app.webcomm.add(inp.value, name);
-                        menu2.innerHTML = success
-                            ? `<p class="bold">WebDrop complete</p><p>The other person can accept or deny</p>`
-                            : `<p class="bold">An error occurred</p><p>Make sure the ID is correct</p>`;
+                        await ptp.getname(inp.value)
+                            .then(name => {
+                                app.webcomm.add(inp.value, name);
+                                menu2.innerHTML = success
+                                    ? `<p class="bold">WebDrop complete</p><p>The other person can accept or deny</p>`
+                                    : `<p class="bold">An error occurred</p><p>Make sure the ID is correct</p>`;
 
-                        tk.cb('b1', 'Close', () => ui.dest(menu2), menu2);
+                                tk.cb('b1', 'Close', () => ui.dest(menu2), menu2);
+                            })
+                            .catch(error => {
+                                if (extraid) {
+                                    wm.snack(`First ID failed, trying their second ID...`);
+                                    inp.value = extraid;
+                                    dropbtn.click();
+                                    extraid = undefined;
+                                } else {
+                                    console.log(error);
+                                    wm.snack(`User isn't online or your Internet isn't working`);
+                                    inp.value = "";
+                                }
+                            });
                     }, menu2);
                 }
             }, win.main);
-            tk.cb('b1', 'Call', function () {
+            const callbtn = tk.cb('b1', 'Call', async function () {
                 if (inp.value === sys.deskid) {
                     wm.snack(`Type a DeskID that isn't yours.`);
                     app.ach.unlock('So lonely...', 'So lonely, you tried calling yourself.');
                 } else {
-                    app.webcall.init(inp.value);
+                    await ptp.getname(inp.value)
+                        .then(name => {
+                            app.webcall.init(inp.value, name);
+                        })
+                        .catch(error => {
+                            if (extraid) {
+                                wm.snack(`First ID failed, trying their second ID...`);
+                                inp.value = extraid;
+                                callbtn.click();
+                                extraid = undefined;
+                            } else {
+                                console.log(error);
+                                wm.snack(`User isn't online or your Internet isn't working`);
+                                inp.value = "";
+                            }
+                        });
                 }
             }, win.main);
-            tk.cb('b1', 'Chat', function () {
+            const chatbtn = tk.cb('b1', 'Chat', async function () {
                 if (inp.value === sys.deskid) {
                     wm.snack(`Type a DeskID that isn't yours.`);
                     app.ach.unlock('So lonely...', 'So lonely, you tried messaging yourself.');
                 } else {
-                    const showyourself = sys.peer.connect(inp.value);
-                    showyourself.on('open', () => {
-                        showyourself.send(JSON.stringify({ type: 'request' }));
-                    });
-
-                    showyourself.on('data', (data) => {
-                        const parsedData = JSON.parse(data);
-                        app.webchat.init(inp.value, undefined, parsedData.response);
-                    });
+                    await ptp.getname(inp.value)
+                        .then(name => {
+                            app.webchat.init(inp.value, undefined, name);
+                        })
+                        .catch(error => {
+                            if (extraid) {
+                                wm.snack(`First ID failed, trying their second ID...`);
+                                inp.value = extraid;
+                                chatbtn.click();
+                                extraid = undefined;
+                            } else {
+                                console.log(error);
+                                wm.snack(`User isn't online or your Internet isn't working`);
+                                inp.value = "";
+                            }
+                        });
                 }
             }, win.main);
+            async function ok() {
+                const data = await fs.read('/user/info/contactlist.json');
+                skibidiv.innerHTML = "";
+                tk.cb('b3 b2 webcomm dash', 'Manage or edit contacts', () => app.contacts.init(), skibidiv);
+
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    const buttons = [];
+
+                    for (const entry of parsed) {
+                        let btn;
+                        if (entry.name === entry.deskid) {
+                            btn = tk.cb('b3 b2 webcomm', entry.deskid, function () {
+                                inp.value = entry.deskid;
+                                if (entry.deskid2) extraid = entry.deskid2;
+                            }, skibidiv);
+                        } else {
+                            btn = tk.cb('b3 b2 webcomm', entry.name + " - " + entry.deskid + " | Loading", function () {
+                                inp.value = entry.deskid;
+                                if (entry.deskid2) extraid = entry.deskid2;
+                            }, skibidiv);
+                        }
+
+                        buttons.push({ btn, deskid: entry.deskid, deskid2: entry.deskid2 });
+                    }
+
+                    await Promise.all(
+                        buttons.map(async ({ btn, deskid, deskid2 }) => {
+                            try {
+                                await ptp.getname(deskid);
+                                btn.innerText = btn.innerText.slice(0, -9) + " | Online";
+                            } catch (error) {
+                                if (deskid2 !== undefined) {
+                                    try {
+                                        await ptp.getname(deskid);
+                                        btn.innerText = btn.innerText.slice(0, -9) + " | Online";
+                                    } catch (error) {
+                                        btn.innerText = btn.innerText.slice(0, -10) + " | Offline";
+                                    }
+                                } else {
+                                    btn.innerText = btn.innerText.slice(0, -10) + " | Offline";
+                                }
+                            }
+                        })
+                    );
+                }
+            }
+            const yeah = setInterval(() => ok(), 20000);
+            await ok();
+            win.closebtn.addEventListener('mousedown', function () {
+                clearInterval(yeah);
+            });
         },
         add: async function (deskid, name) {
             try {
@@ -1125,9 +1203,8 @@ var app = {
                 if (data) {
                     const newen = { deskid: deskid, name: name, time: Date.now() };
                     const jsondata = JSON.parse(data);
-                    const check = jsondata.some(entry => entry.name === newen.name);
-                    const check2 = jsondata.some(entry => entry.deskid === newen.deskid);
-                    if (check !== true && check2 !== true) {
+                    const check = jsondata.some(entry => entry.deskid === newen.deskid);
+                    if (check !== true) {
                         jsondata.push(newen);
                         fs.write('/user/info/contactlist.json', jsondata);
                     }
@@ -1147,13 +1224,14 @@ var app = {
                 wd.win(el.webchat);
                 el.currentid = deskid;
             } else {
-                el.webchat = tk.mbw('WebChat', '300px');
+                el.webchat = tk.mbw('WebChat', '300px', 'auto', true);
                 let otherid = undefined;
                 wc.messaging = tk.c('div', el.webchat.main);
                 wc.chatting = tk.c('div', wc.messaging, 'embed nest');
                 wc.chatting.style.overflow = "auto";
                 wc.chatting.style.height = "400px";
                 el.currentid = deskid;
+                tk.ps(`Talking with ${name} - ${deskid}`, 'smtxt', wc.chatting);
 
                 if (deskid && !chat) {
                     otherid = deskid;
@@ -1171,10 +1249,11 @@ var app = {
                     const msg = wc.messagein.value;
                     if (msg && otherid) {
                         custf(otherid, 'Message-WebKey', msg);
-                        wc.sendmsg = tk.c('div', wc.chatting, 'full msg mesent');
+                        wc.sendmsg = tk.c('div', wc.chatting, 'msg mesent');
                         wc.sendmsg.innerText = `${sys.name}: ` + msg;
                         wc.sendmsg.style.marginBottom = "3px";
                         wc.messagein.value = '';
+                        wc.chatting.scrollTop = wc.chatting.scrollHeight;
                     }
                 }
 
@@ -1194,10 +1273,10 @@ var app = {
                 let checkDeskAndChat = setInterval(() => {
                     if (typeof deskid === "string" && typeof chat === "string") {
                         clearInterval(checkDeskAndChat);
-                        const msg = tk.c('div', wc.chatting, 'flist full');
+                        const msg = tk.c('div', wc.chatting, 'flist othersent');
                         msg.style.marginBottom = "3px";
                         msg.innerText = `${name}: ` + chat;
-                        wc.chatting.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        wc.chatting.scrollTop = wc.chatting.scrollHeight;
                         resolve();
                     }
                 }, 100);
@@ -1214,11 +1293,9 @@ var app = {
             const side = tk.c('div', main, 'abtlogo');
             const info = tk.c('div', main, 'abtinfo');
             const logo = tk.img('./assets/img/favicon.png', 'abtimg', side);
-            tk.p('WebDesk', 'h2', info);
-            tk.p(`<span class="bold">Updated</span> ${abt.lastmod}`, undefined, info);
-            tk.p(`<span class="bold">DeskID</span> ${sys.deskid}`, undefined, info);
-            tk.p(`<span class="bold">Version</span> ${abt.ver}`, undefined, info);
-            tk.cb('b4', 'Creds', function () {
+            tk.cb('b4 b2', 'Changes', () => wd.hawktuah(true), side);
+            tk.cb('b4 b2', 'Discord', () => window.open('https://discord.gg/pCbG6hAxFe', '_blank'), side);
+            tk.cb('b4 b2', 'Creds', function () {
                 const ok = tk.c('div', document.body, 'cm');
                 ok.innerHTML = `<p class="bold">Credits</p>
                 <p>All the libraries or materials that helped create WebDesk.</p>
@@ -1232,36 +1309,32 @@ var app = {
                 tk.cb('b1', 'Close', function () {
                     ui.dest(ok, 200);
                 }, ok);
-            }, info);
-            tk.cb('b4', 'Discord', () => window.open('https://discord.gg/pCbG6hAxFe', '_blank'), info);
-            tk.cb('b4', 'More info', async function () {
-                const ok = tk.c('div', document.body, 'cm');
-                const setupon = await fs.read('/system/info/setuptime');
-                const ogver = await fs.read('/system/info/setupver');
-                const color = await fs.read('/user/info/color');
-                if (setupon) {
-                    const fucker = wd.timec(Number(setupon));
-                    const seo = tk.p(`<span class="bold">Set up on</span> `, undefined, ok);
-                    const seos = tk.c('span', seo);
-                    seos.innerText = fucker;
-                }
-                if (sys.dev) {
-                    tk.p(`<span class="bold">Developer Mode</span> ` + sys.dev, undefined, ok);
-                }
-                if (ogver) {
-                    const ogv = tk.p(`<span class="bold">Original version</span> `, undefined, ok);
-                    const ogvs = tk.c('span', ogv);
-                    ogvs.innerText = ogver;
-                }
-                if (color) {
-                    const col = tk.p(`<span class="bold">Color</span> `, undefined, ok);
-                    const cols = tk.c('span', col);
-                    cols.innerText = color;
-                }
-                tk.cb('b1', 'Close', function () {
-                    ui.dest(ok, 200);
-                }, ok);
-            }, info);
+            }, side);
+            const setupon = await fs.read('/system/info/setuptime');
+            const ogver = await fs.read('/system/info/setupver');
+            const color = await fs.read('/user/info/color');
+            tk.p(`WebDesk ${abt.ver}`, 'h2', info);
+            tk.p(`<span class="bold">Updated</span> ${abt.lastmod}`, undefined, info);
+            tk.p(`<span class="bold">DeskID</span> ${sys.deskid}`, undefined, info);
+            if (ogver) {
+                const ogv = tk.p(`<span class="bold">Set up with </span> `, undefined, info);
+                const ogvs = tk.c('span', ogv);
+                ogvs.innerText = ogver;
+            }
+            if (setupon) {
+                const fucker = wd.timec(Number(setupon));
+                const seo = tk.p(`<span class="bold">Creation </span> `, undefined, info);
+                const seos = tk.c('span', seo);
+                seos.innerText = fucker;
+            }
+            if (sys.dev) {
+                tk.p(`<span class="bold">Dev Mode</span> ` + sys.dev, undefined, info);
+            }
+            if (color) {
+                const col = tk.p(`<span class="bold">Color</span> `, undefined, info);
+                const cols = tk.c('span', col);
+                cols.innerText = color;
+            }
             win.win.style.resize = "none";
         }
     },
@@ -1294,6 +1367,21 @@ var app = {
                 ui.show(el.lock, 400);
                 const img = tk.img(`https://openweathermap.org/img/wn/10d@2x.png`, 'locki', clock);
                 const p = tk.p('--:--', 'time h2', clock);
+                clock.style.maxWidth = "200px";
+                let ok = false;
+                if (sys.setupd === "eepy") {
+                    const selfdest = tk.p('Click anywhere to keep DeskID active and recieve notifications', undefined, clock);
+                    function yeah(e) {
+                        document.body.removeEventListener('mousedown', yeah);
+                        e.preventDefault();
+                        ui.dest(selfdest);
+                        ok = true;
+                    }
+
+                    document.body.addEventListener('mousedown', yeah);
+                } else {
+                    ok = true;
+                }
                 const weather = tk.p('Loading', 'smtxt', clock);
                 p.style.color = weather.style.color = "#fff";
                 const updateweather = async () => {
@@ -1309,20 +1397,46 @@ var app = {
 
                 await updateweather();
                 const interval = setInterval(updateweather, 300000);
-                el.lock.addEventListener('mousedown', async () => {
-                    const { innerHeight: windowHeight } = window;
-                    el.lock.style.transition = 'transform 0.4s ease';
-                    el.lock.style.transform = `translateY(-${windowHeight}px)`;
-                    await new Promise(resolve => {
-                        el.lock.addEventListener('transitionend', function onTransitionEnd() {
-                            el.lock.removeEventListener('transitionend', onTransitionEnd);
-                            clearInterval(interval);
-                            el.lock.remove();
-                            el.lock = undefined;
-                            resolve();
+                let menuo = false;
+                if (sys.setupd === "eepy") {
+                    el.lock.addEventListener('mousedown', async () => {
+                        if (menuo === false && ok === true) {
+                            const menu = tk.c('div', el.lock, 'cm');
+                            el.lock.style.cursor = "default";
+                            menu.style.width = "130px";
+                            menuo = true;
+                            tk.p('Exit Deep Sleep', 'bold', menu);
+                            tk.cb('b1', 'Yes', async function () {
+                                await fs.del('/system/eepysleepy');
+                                sys.resume();
+                                clearInterval(interval);
+                                el.lock.remove();
+                                el.lock = undefined;
+                                ui.show(tk.g('contain'), 0);
+                            }, menu);
+                            tk.cb('b1', 'No', async function () {
+                                ui.dest(menu);
+                                el.lock.style.cursor = "none";
+                                menuo = false;
+                            }, menu);
+                        }
+                    });
+                } else {
+                    el.lock.addEventListener('mousedown', async () => {
+                        const { innerHeight: windowHeight } = window;
+                        el.lock.style.transition = 'transform 0.4s ease';
+                        el.lock.style.transform = `translateY(-${windowHeight}px)`;
+                        await new Promise(resolve => {
+                            el.lock.addEventListener('transitionend', function onTransitionEnd() {
+                                el.lock.removeEventListener('transitionend', onTransitionEnd);
+                                clearInterval(interval);
+                                el.lock.remove();
+                                el.lock = undefined;
+                                resolve();
+                            });
                         });
                     });
-                });
+                }
             }
         }
     },
@@ -1387,6 +1501,10 @@ var app = {
             }, win.main);
         }
     },
+    // who made that mess
+    // YOU DID KING
+    // 🐦
+    // i made the mess!
     appmark: {
         runs: true,
         name: 'App Market',
@@ -1412,7 +1530,7 @@ var app = {
             console.log(`<i> Installing ${apploc}`);
             const apps = await fs.read('/system/apps.json');
             if (apps) {
-                const ok = await execute(`https://appmarket.meower.xyz` + apploc);
+                const ok = await execute(sys.appurl + apploc);
                 const newen = { name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' };
                 await fs.write('/system/apps/' + app.appid + '.js', ok);
                 const jsondata = JSON.parse(apps);
@@ -1429,7 +1547,7 @@ var app = {
                     fs.write('/system/apps.json', jsondata);
                 }
             } else {
-                const ok = await execute(`https://appmarket.meower.xyz` + apploc);
+                const ok = await execute(sys.appurl + apploc);
                 await fs.write('/system/apps.json', [{ name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' }]);
                 await fs.write('/system/apps/' + app.appid + '.js', ok);
                 wm.notif(`Installed: `, app.name);
@@ -1441,7 +1559,7 @@ var app = {
             const appinfo = tk.c('div', win.main, 'hide');
             async function loadapps() {
                 try {
-                    const response = await fetch(`https://appmarket.meower.xyz/refresh`);
+                    const response = await fetch(sys.appurl);
                     const apps = await response.json();
                     apps.forEach(function (app2) {
                         const notif = tk.c('div', win.main, 'notif2');
@@ -1455,6 +1573,70 @@ var app = {
             }
             tk.p('Welcome to the App Market!', undefined, apps);
             tk.p(`Look for things you might want, all apps have <span class="bold">full access</span> to this WebDesk/it's files. Anything in this store is safe.`, undefined, apps);
+            if (sys.dev === true) {
+                tk.cb('b1 b2', 'Sideload', function () {
+                    const menu = tk.c('div', document.body, 'cm');
+                    let path2 = undefined;
+                    tk.p('Sideload', 'bold', menu);
+                    tk.p('Only sideload things you made.', undefined, menu);
+                    const name = tk.c('input', menu, 'i1');
+                    name.placeholder = "App name";
+                    const dev = tk.c('input', menu, 'i1');
+                    dev.placeholder = "App developer";
+                    const pathbtn = tk.cb('b1 b2 dash', `Choose JS file`, async function () {
+                        const path = await app.files.pick();
+                        pathbtn.innerText = path;
+                        path2 = path;
+                    }, menu);
+                    tk.cb('b1', `Cancel`, function () {
+                        ui.dest(menu);
+                    }, menu);
+                    tk.cb('b1', `Install`, async function () {
+                        if (name.value !== "" && dev.value !== "" && path2 !== undefined) {
+                            const newen = { name: name.value, ver: 1.0, installedon: Date.now(), dev: dev.value, appid: gen(12), exec: path2 };
+                            const apps = await fs.read('/system/apps.json');
+                            const jsondata = JSON.parse(apps);
+                            jsondata.push(newen);
+                            fs.write('/system/apps.json', jsondata);
+                            ui.dest(menu);
+                            wm.snack('Installed ' + name.value);
+                        } else {
+                            wm.snack('Fill out all inputs');
+                        }
+                    }, menu);
+                }, apps);
+                tk.cb('b1 b2', 'Settings', async function () {
+                    const menu = tk.c('div', document.body, 'cm');
+                    let path2 = undefined;
+                    tk.p('Settings', 'bold', menu);
+                    tk.p('Only type URLs you trust.', undefined, menu);
+                    const check = await fs.read('/system/appurl');
+                    const name = tk.c('input', menu, 'i1');
+                    name.placeholder = "Custom App Store repo";
+                    if (check) {
+                        name.value = check;
+                    }
+                    tk.cb('b1', `Cancel`, function () {
+                        ui.dest(menu);
+                    }, menu);
+                    tk.cb('b1', `Reset`, function () {
+                        sys.appurl = `https://appmarket.meower.xyz/refresh`;
+                        fs.del('/system/appurl');
+                        ui.dest(menu);
+                        wm.snack('Reset repo to defaults');
+                    }, menu);
+                    tk.cb('b1', `Save`, async function () {
+                        if (name.value !== "") {
+                            fs.write('/system/appurl', name.value);
+                            sys.appurl = name.value;
+                            wm.snack('Saved');
+                        } else {
+                            wm.snack('Fill out inputs');
+                        }
+                        ui.dest(menu);
+                    }, menu);
+                }, apps);
+            }
             await loadapps();
         },
     },
@@ -1517,6 +1699,104 @@ var app = {
                 return null;
             }
         }
+    },
+    contacts: {
+        runs: false,
+        name: 'Contacts',
+        init: async function () {
+            let ok;
+            function reload() {
+                ui.dest(win.win, 20);
+                ui.dest(win.tbn, 0);
+                app.contacts.init();
+            }
+            async function load() {
+                try {
+                    const data = await fs.read('/user/info/contactlist.json');
+                    if (data) {
+                        ok = JSON.parse(data);
+                        let yeah = 0;
+                        ok.forEach((entry) => {
+                            const notif = tk.c('div', win.main, 'notif2');
+                            tk.ps(entry.name, 'bold', notif);
+                            if (entry.deskid2) {
+                                tk.ps(`DeskID: ${entry.deskid} | DeskID 2: ${entry.deskid2}`, undefined, notif);
+                            } else {
+                                tk.ps(`DeskID: ${entry.deskid} | DeskID 2: Not set`, undefined, notif);
+                            }
+                            tk.cb('b4', 'Remove', async function () {
+                                const update = ok.filter(item => item.time !== entry.time);
+                                const updated = JSON.stringify(update);
+                                await fs.write('/user/info/contactlist.json', updated);
+                                reload();
+                            }, notif);
+                            tk.cb('b4', 'Edit', async function () {
+                                const update = ok.find(item => item.time === entry.time);
+                                const menu = tk.c('div', document.body, 'cm');
+                                tk.p(`Edit Contact`, 'bold', menu);
+                                const name = tk.c('input', menu, 'i1');
+                                name.placeholder = "User's username";
+                                if (update && update.name) name.value = update.name;
+                                const deskid = tk.c('input', menu, 'i1');
+                                deskid.placeholder = "User's default/main DeskID";
+                                if (update && update.deskid) deskid.value = update.deskid;
+                                const deskid2 = tk.c('input', menu, 'i1');
+                                deskid2.placeholder = "Second ID if first is offline";
+                                if (update && update.deskid2) deskid2.value = update.deskid2;
+                                tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                tk.cb('b1', 'Save', async function () {
+                                    const updatedData = ok.filter(item => item.time !== entry.time);
+                                    const newEntry = {
+                                        deskid: deskid.value,
+                                        name: name.value,
+                                        time: Date.now()
+                                    };
+                                    if (deskid2.value) newEntry.deskid2 = deskid2.value;
+                                    updatedData.push(newEntry);
+                                    await fs.write('/user/info/contactlist.json', updatedData);
+                                    ui.dest(menu);
+                                    reload();
+                                }, menu);
+                            }, notif);
+                        });
+                    }
+                } catch (error) {
+                    console.log('<!> Contacts shat itself: ', error);
+                    return null;
+                }
+            }
+
+            const win = tk.mbw('Contacts', '300px', 'auto', true, undefined, undefined);
+            tk.cb('b1 b2', 'Add Contact', function () {
+                const menu = tk.c('div', document.body, 'cm');
+                const name = tk.c('input', menu, 'i1');
+                name.placeholder = "User's name";
+                const deskid = tk.c('input', menu, 'i1');
+                deskid.placeholder = "User's default DeskID";
+                const deskid2 = tk.c('input', menu, 'i1');
+                deskid2.placeholder = "User's second DeskID";
+                tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                tk.cb('b1', 'Save', async function () {
+                    const newEntry = {
+                        deskid: deskid.value,
+                        name: name.value,
+                        time: Date.now()
+                    };
+                    const update = ok.find(item => item.deskid === newEntry.deskid);
+                    console.log(update);
+                    if (update !== undefined) {
+                        wm.snack('Already saved that person');
+                    } else {
+                        if (deskid2.value) newEntry.deskid2 = deskid2.value;
+                        ok.push(newEntry);
+                        await fs.write('/user/info/contactlist.json', ok);
+                        ui.dest(menu);
+                        reload();
+                    }
+                }, menu);
+            }, win.main);
+            await load();
+        },
     },
     browser: {
         runs: true,
@@ -1678,53 +1958,37 @@ var app = {
     },
     webcall: {
         runs: false,
-        init: async function (deskid) {
+        init: async function (deskid, name) {
             const win = tk.mbw('WebCall', '260px', 'auto', true, undefined, undefined);
-            const callStatus = tk.p(`Enter DeskID of person to call`, undefined, win.main);
+            const callStatus = tk.p(`Connecting...`, undefined, win.main);
             let oncall = false;
             navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
                 remotePeerId = deskid;
                 const call = sys.peer.call(remotePeerId, stream);
                 callStatus.textContent = 'Waiting for answer...';
-                const showyourself = sys.peer.connect(call.peer);
-                showyourself.on('open', () => {
-                    showyourself.send(JSON.stringify({ type: 'request' }));
-                });
-
-                showyourself.on('data', (data) => {
-                    try {
-                        const parsedData = JSON.parse(data);
-                        if (parsedData.response) {
-                            app.webcomm.add(call.peer, parsedData.response);
-                            setTimeout(() => {
-                                if (!oncall) {
-                                    callStatus.textContent = `Other person didn't answer`;
-                                    call.close();
-                                }
-                            }, 28000);
-
-                            call.on('stream', (remoteStream) => {
-                                oncall = true;
-                                ui.dest(win.tbn, 100);
-                                ui.dest(win.win, 100);
-                                app.webcall.answer(remoteStream, call, parsedData.response, stream);
-                            });
-
-                            call.on('error', (err) => {
-                                callStatus.textContent = 'Call failed: ' + err.message;
-                            });
-                        }
-                    } catch (err) {
-                        console.error('Failed to parse data:', err);
+                app.webcomm.add(call.peer, name);
+                setTimeout(() => {
+                    if (!oncall) {
+                        callStatus.textContent = `Other person didn't answer`;
+                        call.close();
                     }
+                }, 28000);
+
+                call.on('stream', (remoteStream) => {
+                    oncall = true;
+                    ui.dest(win.tbn, 100);
+                    ui.dest(win.win, 100);
+                    app.webcall.answer(remoteStream, call, name, stream);
                 });
 
-                const selfkill = win.closebtn.addEventListener('mousedown', function () {
-                    call.close();
-                    selfkill.removeEventListener();
+                call.on('error', (err) => {
+                    callStatus.textContent = 'Call failed: ' + err.message;
                 });
-            }).catch((err) => {
-                console.error(`<!> ${err}`);
+            });
+            const selfkill = win.closebtn.addEventListener('mousedown', function () {
+                call.close();
+                stream.getTracks().forEach(track => track.stop());
+                selfkill.removeEventListener();
             });
         },
         answer: async function (remoteStream, call, name, fein) {

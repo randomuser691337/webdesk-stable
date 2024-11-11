@@ -31,11 +31,11 @@ var ptp = {
             });
 
             sys.peer.on('error', async (err) => {
-                console.log(`<!> whoops: ${err}`);
                 if (err.message.includes('Could not connect to')) {
                     return;
                 }
-
+                
+                console.log(`<!> whoops: ${err}`);
                 if (err.message.includes('Lost connection to server')) {
                     if (!notify) {
                         wm.notif('Connection Error', `Your connection was interrupted. WebDesk is trying to restore the connection.`);
@@ -141,6 +141,12 @@ var ptp = {
     },
     getname: async function (id) {
         return new Promise(async (resolve, reject) => {
+            let resolved = false;
+            const check = setTimeout(function () {
+                if (resolved === false) {
+                    reject('Offline');
+                }
+            }, 3000);
             const showyourself = sys.peer.connect(id);
             showyourself.on('open', () => {
                 showyourself.send(JSON.stringify({ type: 'request' }));
@@ -148,7 +154,14 @@ var ptp = {
 
             showyourself.on('data', (data) => {
                 const parsedData = JSON.parse(data);
+                resolved = true;
+                clearTimeout(check);
                 resolve(parsedData.response);
+            });
+
+            showyourself.on('error', () => {
+                clearTimeout(check);
+                reject('Failed');
             });
         })
     }

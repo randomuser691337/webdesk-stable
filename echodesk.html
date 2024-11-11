@@ -13,8 +13,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 7, 2024",
-        ver: "0.1.8",
+        lastmod: "Nov 10, 2024",
+        ver: "0.1.9",
     }
 
     var sys = {
@@ -41,6 +41,8 @@
         defaultloc: true,
         unitsym: "°C",
         seconds: false,
+        echodesk: true,
+        appurl: `https://appmarket.meower.xyz/refresh`,
     }
     var el = {
         taskbar: undefined,
@@ -117,7 +119,7 @@
         if (sd && !migcheck && boot === false) {
             boot = true;
             const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec
+                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo
             ] = await Promise.all([
                 fs.read('/user/info/lightdarkpref'),
                 fs.read('/user/info/lightdark'),
@@ -126,13 +128,18 @@
                 fs.read('/system/info/devmode'),
                 fs.read('/user/info/mobile'),
                 fs.read('/user/info/location.json'),
-                fs.read('/user/info/clocksec')
+                fs.read('/user/info/clocksec'),
+                fs.read('/system/appurl')
             ]);
 
             if (clocksec === "true") {
                 sys.seconds = true;
             } else {
                 sys.seconds = false;
+            }
+
+            if (apprepo) {
+                sys.appurl = apprepo;
             }
 
             if (city) {
@@ -189,6 +196,7 @@
             } else {
                 wd.seasonal();
             }
+            await wd.desktop(sd, sys.deskid, 'wait');
             const data = await fs.read('/system/apps.json');
             if (data) {
                 const apps = JSON.parse(data);
@@ -216,7 +224,6 @@
                     }
                 }
             }
-            await wd.desktop(sd, sys.deskid, 'wait');
         } else if (migcheck) {
             ui.crtheme('#010101', true);
             wd.dark('nosave');

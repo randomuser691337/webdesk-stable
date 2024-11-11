@@ -142,6 +142,18 @@ var wd = {
                 tk.cb('b3 b2', 'Sleep', function () {
                     app.lockscreen.init();
                 }, ok);
+                if (sys.guest === false && sys.echodesk === false) {
+                    tk.cb('b3 b2', 'Deep Sleep', function () {
+                        const menu = tk.c('div', document.body, 'cm');
+                        // tk.img('./assets/img/icons/sleep.svg', 'setupi', menu);
+                        tk.p('Deep Sleep', 'bold', menu);
+                        tk.p(`Your DeskID will work as normal, and WebDesk will use little resources. Save your work before entering.`, undefined, menu);
+                        tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Enter', async function () {
+                            await fs.write('/system/eepysleepy', 'true');
+                            await wd.reboot();
+                        }, menu);
+                    }, ok);
+                }
                 tk.cb('b3 b2', 'Reboot/Reload', function () {
                     wd.reboot();
                 }, ok);
@@ -183,7 +195,7 @@ var wd = {
             el.tr = tk.c('div', lefttb);
             tk.cb('b1 time', '--:--', () => controlcenter(), titletb);
             if (sys.mob === true) {
-                el.tb.style.boxShadow = "none";
+                el.taskbar.style.boxShadow = "none";
             }
         }
         if (waitopt === "wait") {
@@ -557,9 +569,9 @@ var wd = {
             ui.sw2(info, menu);
         }, info);
     },
-    hawktuah: async function () {
+    hawktuah: async function (skibidi) {
         const hawk = await fs.read('/system/info/currentver');
-        if (hawk !== abt.ver) {
+        if (hawk !== abt.ver || skibidi === true) {
             await fs.write('/system/info/currentver', abt.ver);
             const win = tk.mbw('Changelog', '300px', undefined, true);
             const div = tk.c('div', win.main, 'embed nest');
@@ -568,7 +580,13 @@ var wd = {
             div.style.height = "300px";
             div.innerHTML = tuah;
         }
-    }    
+    },
+    chokehold: function () {
+        return new Promise(resolve => {
+            sys.resume = resolve;
+        });
+    }
+
 }
 
 document.addEventListener('visibilitychange', function () {
@@ -576,5 +594,23 @@ document.addEventListener('visibilitychange', function () {
         app.lockscreen.init();
     }
 });
+
+let wakelocked = false;
+document.addEventListener('mousedown', async function () {
+    wakelockgo();
+});
+
+async function wakelockgo() {
+    if (wakelocked === false) {
+        wakelocked = true;
+        let wakeLock = null;
+        try {
+            wakeLock = await navigator.wakeLock.request("screen");
+            console.log('<i> WakeLock started');
+        } catch (err) {
+            wm.notif(`WebDesk wasn't able to wake-lock`, 'Your DeskID might disconnect if WebDesk is left inactive.');
+        }
+    }
+}
 
 setInterval(wd.clock, 1000);

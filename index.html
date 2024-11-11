@@ -13,8 +13,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 7, 2024",
-        ver: "0.1.8",
+        lastmod: "Nov 10, 2024",
+        ver: "0.1.9",
     }
 
     var sys = {
@@ -41,6 +41,9 @@
         defaultloc: true,
         unitsym: "°C",
         seconds: false,
+        echodesk: false,
+        resume: undefined,
+        appurl: `https://appmarket.meower.xyz/refresh`,
     }
 
     var el = {
@@ -61,9 +64,11 @@
 </script>
 
 <body>
-    <div id="background"></div>
-    <div class="circle"></div>
-    <div class="circle2"></div>
+    <div id="contain">
+        <div id="background"></div>
+        <div class="circle"></div>
+        <div class="circle2"></div>
+    </div>
     <div id="setuparea">
     </div>
     <div id="notif"></div>
@@ -95,6 +100,7 @@
                 app.recovery.init();
             }
         }, 7000);
+        const eepysleepy = await fs.read('/system/eepysleepy');
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
@@ -109,6 +115,7 @@
                 wd.dark('nosave');
                 app.migrate.init('skibidi');
                 ui.hide(document.getElementById('death'), 180);
+                boot = true;
                 return;
             }
             const deskid = await fs.read('/system/deskid');
@@ -122,7 +129,7 @@
                 window.location.reload();
             }
             const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec
+                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo
             ] = await Promise.all([
                 fs.read('/user/info/lightdarkpref'),
                 fs.read('/user/info/lightdark'),
@@ -131,13 +138,18 @@
                 fs.read('/system/info/devmode'),
                 fs.read('/user/info/mobile'),
                 fs.read('/user/info/location.json'),
-                fs.read('/user/info/clocksec')
+                fs.read('/user/info/clocksec'),
+                fs.read('/system/appurl')
             ]);
 
             if (clocksec === "true") {
                 sys.seconds = true;
             } else {
                 sys.seconds = false;
+            }
+
+            if (apprepo) {
+                sys.appurl = apprepo;
             }
 
             if (city) {
@@ -158,6 +170,20 @@
             } else {
                 wd.wetter();
             }
+
+            await ptp.go(deskid);
+
+            if (eepysleepy === "true") {
+                ui.hide(tk.g('contain'), 0);
+                sys.setupd = "eepy";
+                boot = true;
+                wd.dark('nosave');
+                ui.crtheme('#999999', true);
+                app.lockscreen.init();
+                await wd.chokehold();
+                wakelockgo();
+            }
+
             if (dev === "true") {
                 sys.dev = true;
                 wm.notif(`Developer Mode is enabled.`);
@@ -178,7 +204,6 @@
             if (!placehold) {
                 fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
             }
-            await ptp.go(deskid);
             sys.setupd = true;
             sys.name = sd;
             if (darkpref === "auto") {
@@ -202,6 +227,7 @@
             } else {
                 wd.seasonal();
             }
+            await wd.desktop(sd, deskid, 'wait');
             const data = await fs.read('/system/apps.json');
             if (data) {
                 const apps = JSON.parse(data);
@@ -229,7 +255,6 @@
                     }
                 }
             }
-            await wd.desktop(sd, deskid, 'wait');
         } else if (migcheck === "down") {
             const id = gen(7);
             await ptp.go(id);
@@ -286,6 +311,7 @@
                 const reader = new FileReader();
                 reader.onload = async function (e) {
                     const contents = e.target.result;
+                    console.log(file.name);
                     await fs.write(`/user/files/${file.name}`, contents);
                     app.files.init('/user/files/');
                 };

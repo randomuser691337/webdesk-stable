@@ -29,6 +29,11 @@ self.onmessage = function (event) {
 };
 
 function idbop(operation, params, opt, requestId) {
+    if ((typeof params === 'string' && params.includes('//'))) {
+        self.postMessage({ type: 'error', data: `FS request contains //, which screws things up. Your request has been cancelled.`, requestId });
+        console.log(params);
+        return;
+    }
     switch (operation) {
         case 'unlock':
             pin = params;
