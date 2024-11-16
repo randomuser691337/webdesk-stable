@@ -75,6 +75,41 @@ var wm = {
             }
         }
     },
+    min: async function (wid, btn) {
+        if (wid) {
+            const $animatedDiv = $(wid);
+            const $button = $(btn);
+            const isMinimized = wid.classList.toggle('minimized');
+            if (isMinimized) {
+                $animatedDiv.data('originalPOS', {
+                    top: $animatedDiv.offset().top,
+                    left: $animatedDiv.offset().left,
+                });
+                const yeah = await ughfine(wid);
+                const mousedownevent = new MouseEvent('mousedown');
+                if (yeah) {
+                    yeah.dispatchEvent(mousedownevent);
+                }
+                const endOffset = $button.offset();
+                $animatedDiv.addClass("windowanim");
+                $animatedDiv.animate({
+                    top: endOffset.top,
+                    left: endOffset.left,
+                    opacity: 0,
+                }, 220, function () {
+                    $animatedDiv.hide();
+                });
+            } else {
+                const original = $animatedDiv.data('originalPOS');
+                $animatedDiv.removeClass("windowanim");
+                $animatedDiv.show().animate({
+                    top: original.top,
+                    left: original.left,
+                    opacity: 1,
+                }, 220);
+            }
+        }
+    },
     mini: function (window) {
         hidef(window, 120);
     },

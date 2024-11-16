@@ -1,5 +1,22 @@
-// WebDesk 0.1.4
+// WebDesk 0.2.0
 // Based on Rebuild 7 (wtf)
+(function() {
+    const minimumVersions = { Chrome: 100, Firefox: 100, Safari: 15, Edge: 100, "Internet Explorer": 11 };
+    const ua = navigator.userAgent;
+
+    const browser = 
+        /Chrome\/(\d+)/.exec(ua) ? { name: "Chrome", version: +RegExp.$1 } :
+        /Firefox\/(\d+)/.exec(ua) ? { name: "Firefox", version: +RegExp.$1 } :
+        /Safari\/(\d+)/.exec(ua) && !/Chrome/.test(ua) ? { name: "Safari", version: +RegExp.$1 } :
+        /Edg\/(\d+)/.exec(ua) ? { name: "Edge", version: +RegExp.$1 } :
+        /MSIE (\d+)|rv:(\d+)/.exec(ua) ? { name: "Internet Explorer", version: +(RegExp.$1 || RegExp.$2) } :
+        { name: "Unknown", version: 0 };
+
+    if (minimumVersions[browser.name] && browser.version < minimumVersions[browser.name]) {
+        alert(`Your browser (${browser.name} ${browser.version}) is outdated. Update it, or else WebDesk might experience faults.`);
+    }
+})();
+
 console.log(`<!> You've unlocked the REAL developer mode!`);
 console.log(`<!> For the love of all that is holy, DO NOT, and I mean DO NOT, PASTE ANY CODE IN HERE.`);
 console.log(`<!> If you were told to paste here, you're probably getting scammed.`);
@@ -32,9 +49,67 @@ async function gens(length) {
     return result.slice(0, length);
 }
 
+var focused = {
+    closebtn: undefined,
+    window: undefined,
+    minbtn: undefined,
+}
+
+function ughfine(targetElement) {
+    const targetZIndex = parseInt(window.getComputedStyle(targetElement).zIndex, 10);
+    if (isNaN(targetZIndex)) return null;
+
+    const elements = document.querySelectorAll(`.window`);
+    let closestElement = null, closestDifference = Infinity;
+
+    elements.forEach((element) => {
+        if (element === targetElement || element.classList.contains('windowanim')) return;
+        const elementZIndex = parseInt(window.getComputedStyle(element).zIndex, 10);
+        if (isNaN(elementZIndex)) return;
+        const difference = Math.abs(targetZIndex - elementZIndex);
+        if (difference < closestDifference) {
+            closestDifference = difference;
+            closestElement = element;
+        }
+    });
+
+    return closestElement;
+}
+
+document.addEventListener('keydown', async function (event) {
+    if (event.altKey && event.key.toLowerCase() === 'q' && focused.closebtn !== undefined) {
+        event.preventDefault();
+        const yeah = await ughfine(focused.window);
+        const mousedownevent = new MouseEvent('mousedown');
+        focused.closebtn.dispatchEvent(mousedownevent);
+        if (yeah) {
+            yeah.dispatchEvent(mousedownevent);
+        }
+    }
+});
+
+document.addEventListener('keydown', async function (event) {
+    if (event.altKey && event.key.toLowerCase() === 'm' && focused.minbtn !== undefined) {
+        event.preventDefault();
+        const yeah = await ughfine(focused.window);
+        const mousedownevent = new MouseEvent('mousedown');
+        focused.minbtn.dispatchEvent(mousedownevent);
+        if (yeah) {
+            yeah.dispatchEvent(mousedownevent);
+        }
+    }
+});
+
 var wd = {
-    win: function (winfocus) {
+    win: function (winfocus, closebtn, minbtn) {
         if (winfocus) {
+            if (closebtn) {
+                focused.closebtn = closebtn;
+                focused.window = winfocus;
+            }
+            if (minbtn) {
+                focused.minbtn = minbtn;
+            }
             var $winfocus = $(winfocus);
             if ($winfocus.length) {
                 var windows = $('.window');
@@ -103,6 +178,10 @@ var wd = {
         ui.dest(tk.g('setuparea'));
         function startmenu() {
             if (el.sm == undefined) {
+                if (el.cc) {
+                    ui.dest(el.cc, 150);
+                    el.cc = undefined;
+                }
                 el.sm = tk.c('div', document.body, 'tbmenu');
                 el.sm.style.width = "200px";
                 el.sm.style.left = "5px";
@@ -131,6 +210,10 @@ var wd = {
         }
         function controlcenter() {
             if (el.cc == undefined) {
+                if (el.sm) {
+                    ui.dest(el.sm, 150);
+                    el.sm = undefined;
+                }
                 el.cc = tk.c('div', document.body, 'tbmenu');
                 el.cc.style.width = "200px";
                 el.cc.style.right = "5px";
@@ -139,29 +222,7 @@ var wd = {
                 tk.p(`Controls`, 'h2', el.cc);
                 tk.p(`Your DeskID is ${sys.deskid}`, undefined, el.cc);
                 const ok = tk.c('div', el.cc, 'embed nest');
-                tk.cb('b3 b2', 'Sleep', function () {
-                    app.lockscreen.init();
-                }, ok);
-                if (sys.guest === false && sys.echodesk === false) {
-                    tk.cb('b3 b2', 'Deep Sleep', function () {
-                        const menu = tk.c('div', document.body, 'cm');
-                        // tk.img('./assets/img/icons/sleep.svg', 'setupi', menu);
-                        tk.p('Deep Sleep', 'bold', menu);
-                        tk.p(`Your DeskID will work as normal, and WebDesk will use little resources. Save your work before entering.`, undefined, menu);
-                        tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Enter', async function () {
-                            await fs.write('/system/eepysleepy', 'true');
-                            await wd.reboot();
-                        }, menu);
-                    }, ok);
-                }
-                tk.cb('b3 b2', 'Reboot/Reload', function () {
-                    wd.reboot();
-                }, ok);
-                tk.cb('b3 b2', 'Toggle Fullscreen', function () {
-                    wd.fullscreen();
-                    controlcenter();
-                }, ok);
-                tk.cb('b3 b2', 'Add File', function () {
+                const addicon = tk.cb('conticon', '', function () {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.style.display = 'none';
@@ -182,6 +243,40 @@ var wd = {
                     input.click();
                     controlcenter();
                 }, ok);
+                tk.img('/assets/img/icons/plus.svg', 'contimg', addicon, false);
+                ui.tooltip(addicon, 'Add file to WebDesk');
+                const sleepicon = tk.cb('conticon', '', function () {
+                    app.lockscreen.init();
+                    controlcenter();
+                }, ok);
+                ui.tooltip(sleepicon, 'Puts WebDesk to sleep; apps keep running');
+                tk.img('/assets/img/icons/moon.svg', 'contimg', sleepicon, false);
+                const screenicon = tk.cb('conticon', '', function () {
+                    wd.fullscreen();
+                }, ok);
+                ui.tooltip(screenicon, 'Fullscreen toggle');
+                tk.img('/assets/img/icons/fs.svg', 'contimg', screenicon, false);
+                const setticon = tk.cb('conticon', '', function () {
+                    app.settings.init();
+                    controlcenter();
+                }, ok);
+                ui.tooltip(setticon, 'Opens Settings app');
+                tk.img('/assets/img/icons/settings.svg', 'contimg', setticon, false);
+                if (sys.guest === false && sys.echodesk === false) {
+                    const yeah = tk.cb('b3 b2', 'Deep Sleep', function () {
+                        const menu = tk.c('div', document.body, 'cm');
+                        tk.p('Deep Sleep', 'bold', menu);
+                        tk.p(`Your DeskID will work as normal, and WebDesk will use little resources. Save your work before entering.`, undefined, menu);
+                        tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Enter', async function () {
+                            await fs.write('/system/eepysleepy', 'true');
+                            await wd.reboot();
+                        }, menu);
+                    }, ok);
+                    yeah.style.marginTop = "2px";
+                }
+                tk.cb('b3 b2', 'Reboot/Reload', function () {
+                    wd.reboot();
+                }, ok);
             } else {
                 ui.dest(el.cc, 150);
                 el.cc = undefined;
@@ -193,7 +288,8 @@ var wd = {
             const titletb = tk.c('div', el.taskbar, 'title');
             const start = tk.cb('b1', 'Apps', () => startmenu(), lefttb);
             el.tr = tk.c('div', lefttb);
-            tk.cb('b1 time', '--:--', () => controlcenter(), titletb);
+            const contbtn = tk.cb('b1t time', '--:--', () => controlcenter(), titletb);
+            ui.tooltip(contbtn, 'Controls/Control Center');
             if (sys.mob === true) {
                 el.taskbar.style.boxShadow = "none";
             }
@@ -239,6 +335,7 @@ var wd = {
         ui.cv('ui3', '#2b2b2b');
         ui.cv('bc', 'rgb(60, 60, 60, 0.4)');
         ui.cv('font', '#fff');
+        ui.cv('inv', '1.0');
         if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'dark');
         }
@@ -250,6 +347,7 @@ var wd = {
         ui.cv('ui3', '#ededed');
         ui.cv('bc', 'rgb(220, 220, 220, 0.4)');
         ui.cv('font', '#000');
+        ui.cv('inv', '0');
         if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'light');
         }
@@ -261,6 +359,7 @@ var wd = {
         ui.cv('ui3', 'rgba(var(--accent) 0.2)');
         ui.cv('bc', 'rgb(255, 255, 255, 0)');
         ui.cv('font', '#000');
+        ui.cv('inv', '0');
         if (fucker !== "nosave") {
             fs.write('/user/info/lightdark', 'clear');
         }
@@ -290,7 +389,6 @@ var wd = {
 
         const formatter = new Intl.DateTimeFormat('en-US', options);
         const formattedParts = formatter.formatToParts(date);
-
         const month = formattedParts.find(part => part.type === 'month').value;
         const day = formattedParts.find(part => part.type === 'day').value;
         const year = formattedParts.find(part => part.type === 'year').value;
@@ -299,6 +397,29 @@ var wd = {
         const ampm = formattedParts.find(part => part.type === 'dayPeriod').value;
 
         return `${month} ${day}, ${year}, ${hour}:${minute}${ampm}`;
+    },
+    timed: function (id) {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const date = new Date(id);
+
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: timeZone
+        };
+
+        const formatter = new Intl.DateTimeFormat('en-US', options);
+        const formattedParts = formatter.formatToParts(date);
+
+        const month = formattedParts.find(part => part.type === 'month').value;
+        const day = formattedParts.find(part => part.type === 'day').value;
+        const year = formattedParts.find(part => part.type === 'year').value;
+
+        return `${month} ${day}, ${year}`;
     },
     timecs: function (id) {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -577,7 +698,7 @@ var wd = {
             const div = tk.c('div', win.main, 'embed nest');
             const response = await fetch('./assets/other/changelog.html');
             const tuah = await response.text();
-            div.style.height = "300px";
+            div.style.height = "350px";
             div.innerHTML = tuah;
         }
     },

@@ -34,7 +34,7 @@ var ptp = {
                 if (err.message.includes('Could not connect to')) {
                     return;
                 }
-                
+
                 console.log(`<!> whoops: ${err}`);
                 if (err.message.includes('Lost connection to server')) {
                     if (!notify) {
@@ -81,8 +81,9 @@ var ptp = {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.type === 'request') {
-                            const response = { response: sys.name };
+                            const response = { response: sys.name, deskid: sys.deskid };
                             dataConnection.send(JSON.stringify(response));
+                            dataConnection.close();
                         }
                     } catch (err) {
                         handleData(dataConnection, data);
@@ -108,7 +109,7 @@ var ptp = {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.response) {
-                            wm.notif(`Call from ${parsedData.response}`, undefined, function () {
+                            wm.notif(`Call from ${parsedData.response}`, `Their DeskID is ${parsedData.deskid}`, function () {
                                 navigator.mediaDevices.getUserMedia({ audio: true })
                                     .then((stream) => {
                                         call.answer(stream);
@@ -146,7 +147,8 @@ var ptp = {
                 if (resolved === false) {
                     reject('Offline');
                 }
-            }, 3000);
+            }, 3400);
+
             const showyourself = sys.peer.connect(id);
             showyourself.on('open', () => {
                 showyourself.send(JSON.stringify({ type: 'request' }));
@@ -157,13 +159,15 @@ var ptp = {
                 resolved = true;
                 clearTimeout(check);
                 resolve(parsedData.response);
+                showyourself.close();
             });
 
             showyourself.on('error', () => {
                 clearTimeout(check);
                 reject('Failed');
+                showyourself.close();
             });
-        })
+        });
     }
 };
 
@@ -384,4 +388,65 @@ async function custf(id, fname2, fblob2) {
             reject(new Error('Error while sending the file'));
         }
     });
+}
+
+// Buggy, do NOT run unless you're testing
+sys.deskidnotif = true;
+async function refreshfriends() {
+    if (sys.deskidnotif === true) {
+        let data;
+        let parsed;
+        let ids = [];
+        const notifiedDeskIds = {};
+
+        data = await fs.read('/user/info/contactlist.json');
+        parsed = JSON.parse(data);
+
+        const refint = setInterval(async function () {
+            if (sys.deskidnotif !== true) {
+                clearInterval(refint);
+                return;
+            }
+            data = await fs.read('/user/info/contactlist.json');
+            parsed = JSON.parse(data);
+        }, 20000);
+
+        const int = setInterval(async function () {
+            console.log('Int ran');
+            if (sys.deskidnotif !== true) {
+                clearInterval(int);
+                return;
+            } else if (sys.deskid === "disabled") {
+                return;
+            }
+            for (const entry of parsed) {
+                ids.push({ deskid: entry.deskid, deskid2: entry.deskid2 });
+
+                await Promise.all(
+                    ids.map(async ({ deskid, deskid2 }) => {
+                        try {
+                            const name = await ptp.getname(deskid);
+                            wm.notif(`${name} is online`);
+                            const currentStatus = 'online';
+                            if (notifiedDeskIds[deskid] !== currentStatus) {
+                                notifiedDeskIds[deskid] = currentStatus;
+                            }
+                        } catch (error) {
+                            const currentStatus = 'offline';
+                            if (notifiedDeskIds[deskid] !== currentStatus) {
+                                notifiedDeskIds[deskid] = currentStatus;
+
+                                if (deskid2 !== undefined) {
+                                    await ptp.getname(deskid2)
+                                        .then(name => {
+                                            wm.notif(`${name} is online`);
+                                        });
+                                }
+                            }
+                        }
+                    })
+                );
+            }
+        }, 10000);
+    }
 }

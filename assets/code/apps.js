@@ -231,6 +231,19 @@ var app = {
                 wd.smft();
                 fs.write('/user/info/font', 'small');
             }, p2);
+            const p3 = tk.c('div', accPane, 'list');
+            const ok3 = tk.c('span', p3);
+            ok3.innerHTML = `SFW mode (Filters text before it's seen to help stop things like <a href="https://www.gaggle.net/" target="_blank">this</a>) `;
+            tk.cb('b3', 'On', async function () {
+                sys.filter = true;
+                fs.write('/user/info/filter', 'true');
+                wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that isn't text. Already shown text won't be filtered.`);
+            }, p3);
+            tk.cb('b3', 'Off', function () {
+                sys.filter = false;
+                fs.del('/user/info/filter');
+                wm.snack('SFW mode turned off');
+            }, p3);
             tk.cb('b1', 'Back', () => ui.sw2(accPane, mainPane), accPane);
             // App pane
             tk.cb('b1', 'Remove All', () => wm.wal(`<p>Warning: Removing all App Market apps will cause a reboot and delete them, but their data will remain.</p>`, async function () {
@@ -255,6 +268,9 @@ var app = {
             const locp = tk.p(`<span class="bold">Location</span> `, undefined, ok.main);
             const locps = tk.c('span', locp);
             locps.innerText = sys.city;
+            const upp = tk.p(`<span class="bold">Updated </span> `, undefined, ok.main);
+            const upps = tk.c('span', upp);
+            upps.innerText = wd.timec(sys.loclast);
             const degp = tk.p(`<span class="bold">Measurement</span> `, undefined, ok.main);
             const degps = tk.c('span', degp);
             degps.innerText = `${sys.unit} (${sys.unitsym})`;
@@ -635,10 +651,11 @@ var app = {
                 }
             }
             tk.css('./assets/lib/browse.css');
-            const win = tk.mbw(`TextEdit`, '500px', '340px', true);
-            ui.dest(win.title, 0);
-            const tabs = tk.c('div', win.main, 'tabbar d');
-            const btnnest = tk.c('div', tabs, 'tnav');
+            const win = tk.mbw('TextEdit', '500px', '340px');
+            const tabs = tk.c('div', win.main, 'd');
+            tabs.style.flex = "0 0 auto";
+            tabs.appendChild(win.title);
+            win.closebtn.style.marginLeft = "2px";
             const editdiv = tk.c('div', win.main, 'browsertab');
             editdiv.style.display = "block";
             editdiv.style.borderRadius = "0px";
@@ -646,19 +663,6 @@ var app = {
             const genit = gen(8);
             editdiv.id = genit;
             const editor = ace.edit(`${genit}`);
-            const fucker = tk.cb('winb red', '', function () {
-                editor.destroy();
-                ui.dest(win.win, 150);
-                ui.dest(win.tbn, 150);
-                clearInterval(colorch);
-            }, btnnest);
-            fucker.style.marginLeft = "6px";
-            tk.cb('winb yel', '', function () {
-                ui.hide(win.win, 150);
-            }, btnnest);
-            tk.cb('winb gre', '', function () {
-                wm.max(win.win);
-            }, btnnest);
             editor.setOptions({
                 fontFamily: "MonoS",
                 fontSize: "var(--fz3)",
@@ -684,22 +688,22 @@ var app = {
             if (readonly !== true) {
                 tk.cb('b4 browserbutton', 'Save', async function () {
                     await save();
-                }, btnnest);
+                }, win.winbtns);
             } else {
                 tk.cb('b4 browserbutton', 'Save As', async function () {
                     const path = await app.files.pick('new', 'Save in new file');
                     const newContents = editor.getValue();
                     fs.write(path, newContents);
                     wm.snack('Saved');
-                }, btnnest);
+                }, win.winbtns);
                 editor.setReadOnly(true);
             }
             tk.cb('b4 browserbutton', 'Menu', async function () {
                 const menu = tk.c('div', document.body, 'cm');
                 if (readonly !== true) {
-                    tk.p('Editing ' + path, undefined, menu);
+                    tk.p('Editing ' + path, 'bold', menu);
                 } else {
-                    tk.p('Read-only text');
+                    tk.p('Read-only text', 'bold', menu);
                 }
                 tk.cb('b1 b2', 'Select All', function () {
                     editor.selectAll();
@@ -726,7 +730,7 @@ var app = {
                         editor.execCommand('redo');
                     }, menu);
                 }
-            }, btnnest);
+            }, win.winbtns);
             tk.cb('b4 browserbutton', 'Run', async function () {
                 const menu = tk.c('div', document.body, 'cm');
                 if (sys.dev === true) {
@@ -742,7 +746,7 @@ var app = {
                 tk.cb('b1', 'Close', function () {
                     ui.dest(menu, 120);
                 }, menu);
-            }, btnnest);
+            }, win.winbtns);
             wd.win();
             if (readonly !== true) {
                 editor.container.addEventListener('keydown', async function (event) {
@@ -1171,17 +1175,17 @@ var app = {
                         buttons.map(async ({ btn, deskid, deskid2 }) => {
                             try {
                                 await ptp.getname(deskid);
-                                btn.innerText = btn.innerText.slice(0, -9) + " | Online";
+                                btn.innerText = ui.filter(btn.innerText.slice(0, -9) + " | Online");
                             } catch (error) {
                                 if (deskid2 !== undefined) {
                                     try {
                                         await ptp.getname(deskid);
-                                        btn.innerText = btn.innerText.slice(0, -9) + " | Online";
+                                        btn.innerText = ui.filter(btn.innerText.slice(0, -9) + " | Online");
                                     } catch (error) {
-                                        btn.innerText = btn.innerText.slice(0, -10) + " | Offline";
+                                        btn.innerText = ui.filter(btn.innerText.slice(0, -10) + " | Offline");
                                     }
                                 } else {
-                                    btn.innerText = btn.innerText.slice(0, -10) + " | Offline";
+                                    btn.innerText = ui.filter(btn.innerText.slice(0, -10) + " | Offline");
                                 }
                             }
                         })
@@ -1250,7 +1254,7 @@ var app = {
                     if (msg && otherid) {
                         custf(otherid, 'Message-WebKey', msg);
                         wc.sendmsg = tk.c('div', wc.chatting, 'msg mesent');
-                        wc.sendmsg.innerText = `${sys.name}: ` + msg;
+                        wc.sendmsg.innerText = ui.filter(`${sys.name}: ` + msg);
                         wc.sendmsg.style.marginBottom = "3px";
                         wc.messagein.value = '';
                         wc.chatting.scrollTop = wc.chatting.scrollHeight;
@@ -1275,7 +1279,7 @@ var app = {
                         clearInterval(checkDeskAndChat);
                         const msg = tk.c('div', wc.chatting, 'flist othersent');
                         msg.style.marginBottom = "3px";
-                        msg.innerText = `${name}: ` + chat;
+                        msg.innerText = ui.filter(`${name}: ` + chat);
                         wc.chatting.scrollTop = wc.chatting.scrollHeight;
                         resolve();
                     }
@@ -1315,17 +1319,17 @@ var app = {
             const color = await fs.read('/user/info/color');
             tk.p(`WebDesk ${abt.ver}`, 'h2', info);
             tk.p(`<span class="bold">Updated</span> ${abt.lastmod}`, undefined, info);
+            if (setupon) {
+                const fucker = wd.timed(Number(setupon));
+                const seo = tk.p(`<span class="bold">Set up on</span> `, undefined, info);
+                const seos = tk.c('span', seo);
+                seos.innerText = fucker;
+            }
             tk.p(`<span class="bold">DeskID</span> ${sys.deskid}`, undefined, info);
             if (ogver) {
                 const ogv = tk.p(`<span class="bold">Set up with </span> `, undefined, info);
                 const ogvs = tk.c('span', ogv);
                 ogvs.innerText = ogver;
-            }
-            if (setupon) {
-                const fucker = wd.timec(Number(setupon));
-                const seo = tk.p(`<span class="bold">Creation </span> `, undefined, info);
-                const seos = tk.c('span', seo);
-                seos.innerText = fucker;
             }
             if (sys.dev) {
                 tk.p(`<span class="bold">Dev Mode</span> ` + sys.dev, undefined, info);
@@ -1364,7 +1368,7 @@ var app = {
             if (!el.lock) {
                 el.lock = tk.c('div', document.body, 'lockscreen');
                 const clock = tk.c('div', el.lock, 'center');
-                ui.show(el.lock, 400);
+                ui.show(el.lock, 300);
                 const img = tk.img(`https://openweathermap.org/img/wn/10d@2x.png`, 'locki', clock);
                 const p = tk.p('--:--', 'time h2', clock);
                 clock.style.maxWidth = "200px";
@@ -1424,7 +1428,7 @@ var app = {
                 } else {
                     el.lock.addEventListener('mousedown', async () => {
                         const { innerHeight: windowHeight } = window;
-                        el.lock.style.transition = 'transform 0.4s ease';
+                        el.lock.style.transition = 'transform 0.3s ease';
                         el.lock.style.transform = `translateY(-${windowHeight}px)`;
                         await new Promise(resolve => {
                             el.lock.addEventListener('transitionend', function onTransitionEnd() {
@@ -1446,6 +1450,13 @@ var app = {
         init: async function () {
             const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
             win.win.style.minWidth = "200px;"
+            /* const canvas = tk.c('canvas', document.body);
+            canvases.snow(canvas);
+            canvas.style.width = "100%";
+            canvas.style.display = "block";
+            win.closebtn.addEventListener('mousedown', function () {
+                ui.dest(canvas);
+            }); */
             if (sys.mob === false) {
                 win.win.style.maxWidth = "330px";
             }
@@ -1459,6 +1470,7 @@ var app = {
                 tk.p(`${sys.city}`, 'bold', skibidi);
                 tk.p(`<span class="bold">Temperature</span> ${info.main.temp}${sys.unitsym}`, undefined, skibidi);
                 tk.p(`<span class="bold">Feels like</span> ${info.main.feels_like}${sys.unitsym}`, undefined, skibidi);
+                tk.p(`<span class="bold">Humidity</span> ${info.main.humidity}%`, undefined, skibidi);
                 tk.p(`<span class="bold">Conditions</span> ${info.weather[0].description}`, undefined, skibidi);
                 tk.p(`Weather data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap</a>, contact them about incorrect info.`, 'smtxt', skibidi);
                 tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
@@ -1472,6 +1484,7 @@ var app = {
                     }, skibidi);
                 }
             }
+
             await refresh();
         }
     },
@@ -1502,7 +1515,7 @@ var app = {
         }
     },
     // who made that mess
-    // YOU DID KING
+    // YOU DID KING!
     // 🐦
     // i made the mess!
     appmark: {
@@ -1529,28 +1542,21 @@ var app = {
 
             console.log(`<i> Installing ${apploc}`);
             const apps = await fs.read('/system/apps.json');
-            if (apps) {
-                const ok = await execute(sys.appurl + apploc);
-                const newen = { name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' };
-                await fs.write('/system/apps/' + app.appid + '.js', ok);
-                const jsondata = JSON.parse(apps);
-                const check = jsondata.some(entry => entry.appid === newen.appid);
-                if (check === true) {
-                    wm.snack('Already installed');
-                } else {
-                    jsondata.push(newen);
-                    if (update === true) {
-                        wm.notif(app.name + ' was updated');
-                    } else {
-                        wm.notif(app.name + ' was installed');
-                    }
-                    fs.write('/system/apps.json', jsondata);
-                }
+            const ok = await execute(sys.appurl + apploc);
+            const newen = { name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' };
+            await fs.write('/system/apps/' + app.appid + '.js', ok);
+            const jsondata = JSON.parse(apps);
+            const check = jsondata.some(entry => entry.appid === newen.appid);
+            if (check === true) {
+                wm.snack('Already installed');
             } else {
-                const ok = await execute(sys.appurl + apploc);
-                await fs.write('/system/apps.json', [{ name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' }]);
-                await fs.write('/system/apps/' + app.appid + '.js', ok);
-                wm.notif(`Installed: `, app.name);
+                jsondata.push(newen);
+                if (update === true) {
+                    wm.notif(app.name + ' was updated');
+                } else {
+                    wm.notif(app.name + ' was installed');
+                }
+                fs.write('/system/apps.json', jsondata);
             }
         },
         init: async function () {
@@ -1574,7 +1580,7 @@ var app = {
             tk.p('Welcome to the App Market!', undefined, apps);
             tk.p(`Look for things you might want, all apps have <span class="bold">full access</span> to this WebDesk/it's files. Anything in this store is safe.`, undefined, apps);
             if (sys.dev === true) {
-                tk.cb('b1 b2', 'Sideload', function () {
+                tk.cb('b1', 'Sideload', function () {
                     const menu = tk.c('div', document.body, 'cm');
                     let path2 = undefined;
                     tk.p('Sideload', 'bold', menu);
@@ -1605,7 +1611,7 @@ var app = {
                         }
                     }, menu);
                 }, apps);
-                tk.cb('b1 b2', 'Settings', async function () {
+                tk.cb('b1', 'Settings', async function () {
                     const menu = tk.c('div', document.body, 'cm');
                     let path2 = undefined;
                     tk.p('Settings', 'bold', menu);
@@ -1672,9 +1678,10 @@ var app = {
             }
 
             const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined);
+            win.win.style.maxHeight = "60%";
             tk.p(`WebDesk Achievements`, 'h2', win.main);
             tk.p(`Remember: These are jokes and don't actually do anything`, undefined, win.main);
-            tk.p(`Unlocked <span class="b achcount"></span> achievements`, undefined, win.main);
+            tk.p(`Unlocked <span class="bold achcount"></span> achievements`, undefined, win.main);
             await load();
         },
         unlock: async function (name, content) {
@@ -1759,6 +1766,9 @@ var app = {
                                 }, menu);
                             }, notif);
                         });
+                    } else {
+                        await fs.write('/user/info/contactlist.json', '[]');
+                        await load();
                     }
                 } catch (error) {
                     console.log('<!> Contacts shat itself: ', error);
@@ -1803,16 +1813,15 @@ var app = {
         name: 'Browser (beta)',
         init: async function (path2) {
             tk.css('./assets/lib/browse.css');
-            const win = tk.mbw('Browser', '80vw', '82vh', true);
-            ui.dest(win.title, 0);
-
+            const win = tk.mbw('Browser', '70vw', '74vh');
             const tabs = tk.c('div', win.main, 'tabbar d');
             const btnnest = tk.c('div', tabs, 'tnav');
             const okiedokie = tk.c('div', tabs, 'browsertitle');
             const searchbtns = tk.c('div', okiedokie, 'tnav');
-            const searchnest = tk.c('div', tabs, 'title');
+            btnnest.appendChild(win.winbtns);
+            win.closebtn.style.marginLeft = "4px";
+            win.title.remove();
             let thing = [];
-
             let currentTab = tk.c('div', win.main, 'hide');
             let currentBtn = tk.c('div', win.main, 'hide');
             let currentName = tk.c('div', win.main, 'hide');
@@ -1836,7 +1845,7 @@ var app = {
                     currentTab = tab;
                     currentBtn = tabTitle;
                     thing = [...urls];
-                }, btnnest);
+                }, win.winbtns);
                 const tabTitle = tk.c('span', tabBtn);
                 if (ok) {
                     tabTitle.innerText = ok;
@@ -1863,17 +1872,6 @@ var app = {
             }
 
             tk.cb('b4 browserbutton', '+', () => addtab(), searchbtns);
-            const fucker = tk.cb('winb red', '', function () {
-                ui.dest(win.win, 150);
-                ui.dest(win.tbn, 150);
-            }, btnnest);
-            fucker.style.marginLeft = "6px";
-            tk.cb('winb yel', '', function () {
-                ui.hide(win.win, 150);
-            }, btnnest);
-            tk.cb('winb gre', '', function () {
-                wm.max(win.win);
-            }, btnnest);
             tk.cb('b4 browserbutton', '⟳', function () {
                 currentTab.src = currentTab.src;
             }, searchbtns);

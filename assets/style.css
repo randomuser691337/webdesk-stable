@@ -11,7 +11,7 @@
     --bc: rgb(220, 220, 220, 0.4);
     --font: #000;
     --bl1: 10px;
-    --bl2: 7px;
+    --bl2: 6px;
     --rad1: 16px;
     --rad2: 12px;
     --rad3: 10px;
@@ -63,6 +63,7 @@ body {
     font-family: 'Poppins', Arial;
     text-align: center;
     font-size: var(--fz1);
+    overflow: hidden;
 }
 
 .bold {
@@ -120,7 +121,6 @@ p {
     margin: 3px;
     font-family: 'Poppins', Arial;
     font-size: var(--fz1);
-    filter: invert(var(--inv));
 }
 
 @media (max-width:400px) {
@@ -181,7 +181,7 @@ p {
 .window {
     position: absolute;
     border-radius: var(--rad1);
-    box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 150px 30px;
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 150px 30px;
     border: 1px solid var(--bc);
     width: auto;
     height: auto;
@@ -191,13 +191,26 @@ p {
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
     resize: both;
-    animation: winanim 0.3s ease;
+    animation: winanim 0.25s ease;
     min-width: 80px;
     min-height: 50px;
 }
 
+.winf {
+    box-shadow: rgba(0, 0, 0, 0.32) 0px 0px 150px 30px;
+}
+
 .content {
-    padding: 10px;
+    padding: 11px;
+}
+
+@keyframes scalething {
+    0% { transform: scale(1); }
+    100% { transform: scale(0); }
+}
+
+.windowanim {
+    animation: scalething 0.45s;
 }
 
 .tb {
@@ -246,6 +259,31 @@ p {
 
 .winb:active {
     opacity: 50%;
+}
+
+.conticon {
+    width: 36px;
+    height: 36px;
+    margin: 2px;
+    border-radius: var(--rad3);
+    background-color: rgba(var(--acc), 0.4);
+    border: none;
+    padding: 6px;
+    transition: 0.08s;
+}
+
+.conticon:hover {
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 20px 4px;
+    background-color: rgba(var(--acc), 0.6);
+}
+
+.conticon:active {
+    background-color: rgba(var(--acc), 0.45);
+    transform: scale(0.9);
+}
+
+.contimg {
+    filter: invert(var(--inv));
 }
 
 .red {
@@ -334,6 +372,29 @@ p {
     background-color: rgba(var(--acc), 0.5);
 }
 
+.b1t {
+    background-color: transparent;
+    border-radius: var(--rad2);
+    font-size: var(--fz1);
+    padding: 4px 7px;
+    margin: 1px;
+    transition: 0.06s ease-in-out;
+    cursor: pointer;
+    border: 2px solid transparent;
+    color: var(--font);
+}
+
+.b1t:hover {
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 20px 4px;
+    border: 2px solid rgba(var(--acc), 0.2);
+    background-color: rgba(var(--acc), 0.15);
+}
+
+.b1t:active {
+    transform: scale(0.9);
+    background-color: rgba(var(--acc), 0.25);
+}
+
 .b3 {
     padding: 2px 4px;
     border-radius: 8px;
@@ -394,6 +455,7 @@ p {
 }
 
 @media (max-width:1030px) {
+
     .circle,
     .circle2 {
         width: 35vw !important;
@@ -657,7 +719,7 @@ p {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid var(--bordercolor);
-    padding: 7px;
+    padding: 8px;
     border-radius: var(--rad2);
     margin-bottom: 2px;
     margin-top: 2px;
@@ -666,13 +728,13 @@ p {
 }
 
 .list {
-    padding: 7px;
+    padding: 8px;
     background-color: var(--ui2);
     border-radius: var(--rad2);
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 5px;
-    margin: 1px;
+    margin-bottom: 3px;
+    margin-top: 3px;
 }
 
 .rb {
@@ -742,6 +804,20 @@ p {
     overflow: auto !important;
 }
 
+.tooltip {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    padding: 8px 12px;
+    border-radius: var(--rad1);
+    background-color: var(--ui2);
+    border: 1px solid var(--bc);
+    transform: translate(-50%, -50%);
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
+    z-index: 9998;
+    max-width: 85%;
+}
+
 .tbmenu {
     position: fixed;
     border-radius: var(--rad1);
@@ -755,7 +831,7 @@ p {
     max-width: 360px;
     max-height: 70%;
     z-index: 9998;
-    animation: tb2 0.2s ease-out;
+    animation: tb2 0.2s ease;
     overflow-y: auto !important;
 }
 
@@ -835,8 +911,9 @@ p {
 .nest {
     background-color: var(--ui2);
     resize: none !important;
-    padding: 6px;
+    padding: 7px;
     overflow: auto !important;
+    border: 1px solid var(--bc);
 }
 
 .warn {
@@ -954,7 +1031,7 @@ a:active {
 
 .lockscreen {
     position: fixed;
-    left: 0px; 
+    left: 0px;
     right: 0px;
     top: 0px;
     bottom: 0px;
@@ -982,7 +1059,8 @@ a:active {
 }
 
 .uul {
-    text-align: left !important; margin: 0px;
+    text-align: left !important;
+    margin: 0px;
 }
 
 .dash {
