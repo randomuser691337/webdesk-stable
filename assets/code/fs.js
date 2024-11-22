@@ -36,6 +36,9 @@ var fs = {
             }
         });
     },
+    date: function (path) {
+        return this.askwfs('date', path);
+    },
     read: function (path) {
         return this.askwfs('read', path);
     },

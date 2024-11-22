@@ -5,7 +5,7 @@
     --bg2: #aaccff;
     --accent: 0, 60, 255;
     --acc: var(--accent);
-    --ui1: rgb(255, 255, 255, 0.6);
+    --ui1: rgb(255, 255, 255, 0.4);
     --ui2: #ffffff;
     --ui3: #ededed;
     --bc: rgb(220, 220, 220, 0.4);
@@ -36,42 +36,22 @@
     transition: 0.02s;
 }
 
-@font-face {
-    font-family: 'Poppins';
-    src: url(./fonts/Poppins-Regular.ttf);
-}
-
-@font-face {
-    font-family: 'PoppinsB';
-    src: url(./fonts/Poppins-Bold.ttf);
-}
-
-@font-face {
-    font-family: 'PoppinsM';
-    src: url(./fonts/Poppins-Medium.ttf);
-}
-
-@font-face {
-    font-family: 'MonoS';
-    src: url(./fonts/mono.ttf);
-}
-
 body {
     background-color: #000;
     animation: fade 0.7s;
     color: var(--font);
-    font-family: 'Poppins', Arial;
+    font-family: 'Font', Arial;
     text-align: center;
     font-size: var(--fz1);
     overflow: hidden;
 }
 
 .bold {
-    font-family: "PoppinsB";
+    font-family: "FontB";
 }
 
 .med {
-    font-family: "PoppinsM";
+    font-family: "FontM";
 }
 
 .smtxt {
@@ -85,7 +65,7 @@ body {
 
 button {
     cursor: pointer;
-    font-family: 'PoppinsM', Arial;
+    font-family: 'FontM', Arial;
     color: var(--font);
 }
 
@@ -119,7 +99,7 @@ button {
 p {
     padding: 0px;
     margin: 3px;
-    font-family: 'Poppins', Arial;
+    font-family: 'Font', Arial;
     font-size: var(--fz1);
 }
 
@@ -201,7 +181,7 @@ p {
 }
 
 .content {
-    padding: 11px;
+    padding: 12px;
 }
 
 @keyframes scalething {
@@ -229,6 +209,7 @@ p {
     border-bottom: 1px solid var(--bc);
     transition: 0.05s;
     z-index: 9999;
+    cursor: default !important;
 }
 
 .tnav {
@@ -246,8 +227,8 @@ p {
 }
 
 .winb {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     padding: 0px !important;
     border: none;
     margin-right: 7px;
@@ -288,14 +269,17 @@ p {
 
 .red {
     background-color: rgb(255, 59, 48);
+    border: 1px solid rgba(204, 47, 38, 0.4);
 }
 
 .yel {
     background-color: rgb(255, 204, 0);
+    border: 1px solid rgba(204, 163, 0, 0.4);
 }
 
 .gre {
     background-color: rgb(52, 199, 89);
+     border: 1px solid rgba(41, 159, 71, 0.4);
 }
 
 .setupbar {
@@ -340,7 +324,7 @@ p {
 
 .h2 {
     font-size: 20px;
-    font-family: 'PoppinsM', Arial;
+    font-family: 'FontM', Arial;
 }
 
 .b2 {
@@ -398,7 +382,7 @@ p {
 .b3 {
     padding: 2px 4px;
     border-radius: 8px;
-    background-color: rgba(var(--accent), 0.35);
+    background-color: rgba(var(--accent), 0.38);
     font-size: var(--fz2);
     border: 2px solid transparent;
     cursor: pointer;
@@ -417,6 +401,11 @@ p {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
+.b6 {
+    padding: 2px 8px !important;
+    font-size: var(--fz1) !important;
+}
+
 .b5 {
     padding: 2px;
     border-radius: 8px;
@@ -431,7 +420,7 @@ p {
 .b4 {
     padding: 1px 3px;
     border-radius: 8px;
-    background-color: rgba(var(--accent), 0.25);
+    background-color: rgba(var(--accent), 0.28);
     font-size: var(--fz4);
     border: 1px solid transparent;
     cursor: pointer;
@@ -440,7 +429,7 @@ p {
 }
 
 .b4:hover {
-    border: 1px solid rgba(var(--accent), 0.35);
+    border: 1px solid rgba(var(--accent), 0.38);
 }
 
 .b4:active {
@@ -639,13 +628,13 @@ p {
     max-width: 100%;
     min-width: 100%;
     box-sizing: border-box;
-    font-family: 'PoppinsM', Arial;
+    font-family: 'FontM', Arial;
     margin-bottom: 2px;
     outline: none;
 }
 
 .i1 {
-    padding: 5px 7px;
+    padding: 4px 5px;
     border-radius: var(--rad2);
     border: 2px solid rgba(var(--accent), 0.5);
     background-color: rgba(var(--acc), 0.4);
@@ -653,7 +642,7 @@ p {
     color: var(--fontc);
     width: 100%;
     box-sizing: border-box;
-    font-family: 'PoppinsM', Arial;
+    font-family: 'FontM', Arial;
     margin-bottom: 2px;
     transition: 0.05s;
     outline: none;
@@ -761,10 +750,11 @@ p {
     animation: tb 0.6s ease;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
-    z-index: 3;
+    z-index: 1000;
     overflow-x: auto !important;
     white-space: nowrap;
     border-top: 1px solid var(--bc);
+    transition: 0.05s;
 }
 
 .taskbar button {
@@ -857,7 +847,7 @@ p {
     padding: 4px;
     border: none;
     border-radius: var(--rad2);
-    font-family: 'PoppinsB', Arial;
+    font-family: 'FontB', Arial;
 }
 
 .flist:hover {
@@ -870,7 +860,7 @@ p {
     padding: 4px;
     border: none;
     border-radius: 9px;
-    font-family: 'PoppinsB', Arial;
+    font-family: 'FontB', Arial;
 }
 
 .mesent {
@@ -884,16 +874,16 @@ p {
 .width {
     width: 100%;
     box-sizing: border-box;
-    font-family: 'Poppins', Arial !important;
+    font-family: 'Font', Arial !important;
 }
 
 .flists {
     background-color: transparent;
     font: var(--font);
-    padding: 1px;
+    padding: 2px;
     border: none;
     border-radius: 9px;
-    font-family: 'PoppinsB', Arial;
+    font-family: 'FontB', Arial;
 }
 
 .embed {
@@ -945,7 +935,7 @@ p {
     border-radius: var(--rad1);
     background-color: var(--ui2);
     z-index: 9999;
-    animation: snack 0.5s ease-in-out;
+    animation: snack 0.4s ease-in-out;
     box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 75px 15px;
 }
 
@@ -1016,7 +1006,7 @@ a:active {
     transition: 0.3s all ease !important;
     width: 100% !important;
     height: 100% !important;
-    z-index: 10;
+    z-index: 1800 !important;
     border-radius: 0px;
 }
 
@@ -1048,7 +1038,7 @@ a:active {
     margin: 0px;
     padding: 0px;
     border-radius: 14px;
-    background-color: #1f1f1f;
+    background-color: #1d1d1d;
     box-shadow: #191919 0px 0px 400px 80px;
 }
 

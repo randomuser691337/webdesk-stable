@@ -30,7 +30,7 @@ var app = {
                     parsed.forEach((entry) => {
                         const notif = tk.c('div', shitStain, 'notif2');
                         tk.p(entry.name, 'bold', notif);
-                        tk.p(entry.appid, undefined, notif);
+                        tk.ps(`${entry.dev} - Ver ${entry.ver}`, undefined, notif);
                         tk.cb('b3', 'App info', async function () {
                             const ok = tk.c('div', document.body, 'cm');
                             tk.p('App Info', 'h2', ok);
@@ -62,11 +62,12 @@ var app = {
                             const updatedApps = parsed.filter(item => item.appid !== entry.appid);
                             const updatedData = JSON.stringify(updatedApps);
                             await fs.write('/system/apps.json', updatedData);
-                            delete app[entry.appid];
+                            await fs.del(entry.exec);
                             ui.dest(notif);
                             wm.notif('Removed ' + entry.name, `It's been removed, but a reboot is needed to clear it completely.`, function () {
                                 wd.reboot();
                             }, 'Reboot');
+                            delete app[entry.appid];
                         }, notif);
                     });
                 }
@@ -75,23 +76,30 @@ var app = {
             // General pane
             tk.p('General', undefined, generalPane);
             tk.cb('b1 b2 red', 'Erase This WebDesk', () => app.eraseassist.init(), generalPane);
-            tk.cb('b1 b2 red', 'Request Persistence (Stops browser from erasing WebDesk)', async function () {
+            /* tk.cb('b1 b2 red', 'Request Persistence (Stops browser from erasing WebDesk)', async function () {
                 const fucker = await fs.persist();
                 if (fucker === true) {
                     app.ach.unlock('The Keeper', `Won't save your data from the death of the universe, though!`);
-                    wm.notif('Persistence turned on');
+                    wm.snack('Persistence turned on');
                 } else {
-                    wm.notif(`Couldn't turn on persistence`);
+                    wm.snack(`Couldn't turn on persistence`);
                 }
-            }, generalPane);
-            tk.cb('b1 b2 red', 'Toggle mobile UI', async function () {
-                if (sys.mob === true) {
-                    await fs.write('/user/info/mobile', 'false');
-                } else {
-                    await fs.del('/user/info/mobile');
-                }
-                wm.notif('Reboot to apply changes', undefined, () => wd.reboot(), 'Reboot');
-            }, generalPane);
+            }, generalPane); */
+            if (sys.mob === true) {
+                tk.cb('b1 b2 red', 'Toggle mobile UI', async function () {
+                    if (sys.mobui === true) {
+                        await fs.write('/user/info/mobile', 'false');
+                    } else {
+                        await fs.del('/user/info/mobile');
+                    }
+                    wm.notif('Reboot to apply changes', undefined, () => wd.reboot(), 'Reboot');
+                }, generalPane);
+            }
+            if (window.navigator.standalone === true) {
+                tk.cb('b1 b2 red', 'Recalibrate App Bar', function () {
+                    wd.tbcal();
+                }, generalPane);
+            }
             tk.cb('b1 b2 red', 'Enter Recovery Mode', function () {
                 fs.write('/system/migval', 'rec');
                 wd.reboot();
@@ -234,13 +242,21 @@ var app = {
             const p3 = tk.c('div', accPane, 'list');
             const ok3 = tk.c('span', p3);
             ok3.innerHTML = `SFW mode (Filters text before it's seen to help stop things like <a href="https://www.gaggle.net/" target="_blank">this</a>) `;
-            tk.cb('b3', 'On', async function () {
+            tk.cb('b3', 'No chances', async function () {
                 sys.filter = true;
+                sys.nc = true;
+                fs.write('/user/info/filter', 'nc');
+                wm.notif('No chances mode on!', `Text with filtered items simply won't be shown. WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`);
+            }, p3);
+            tk.cb('b3', 'Filter', async function () {
+                sys.filter = true;
+                sys.nc = false;
                 fs.write('/user/info/filter', 'true');
-                wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that isn't text. Already shown text won't be filtered.`);
+                wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`);
             }, p3);
             tk.cb('b3', 'Off', function () {
                 sys.filter = false;
+                sys.nc = false;
                 fs.del('/user/info/filter');
                 wm.snack('SFW mode turned off');
             }, p3);
@@ -313,7 +329,7 @@ var app = {
             const first = tk.c('div', main, 'setb');
             tk.img('./assets/img/setup/first.svg', 'setupi', first);
             tk.p('In EchoDesk Mode', 'h2', first);
-            tk.p(`Use the ID below/scan the QR code to start your WebDesk on another WebDesk. The other person will have full access to your files.`, undefined, first);
+            tk.p(`Use the ID below/scan the QR code to start your WebDesk on another WebDesk. The other WebDesk will have full access to your files.`, undefined, first);
             const split = tk.c('div', first, 'split');
             const id = tk.c('div', split, 'splititem');
             tk.p('--------', 'h2 deskid', id);
@@ -443,13 +459,28 @@ var app = {
             tk.img('./assets/img/noround.png', 'setupi', warn);
             tk.p(`WebDesk Online services`, 'h2', warn);
             tk.p('WebDesk makes a DeskID for you. Others can use this ID to send you files or call you.', undefined, warn);
-            tk.p('To recieve from others, WebDesk needs to be open. When not in use, WebDesk uses less resources.', undefined, warn);
-            tk.p(`Keep your WebDesk open when possible. <span class="bold">When WebDesk isn't open, anyone's able to take your DeskID.</span>`, undefined, warn);
+            tk.p(`Keep your WebDesk open when possible. <span class="bold">When WebDesk isn't open, anyone's able to take your DeskID and you can't receive things.</span> You are your own server.`, undefined, warn);
             tk.cb('b1', `What's my DeskID?`, function () {
                 const box = wm.cm();
                 tk.p(`Your DeskID is <span class="med">${sys.deskid}</span>. You'll need to finish setup to use it.`, undefined, box);
                 tk.cb('b1', 'Got it', undefined, box);
-            }, warn); tk.cb('b1', 'Got it', function () { ui.sw2(warn, user) }, warn);
+            }, warn); tk.cb('b1', 'Got it', function () {
+                const ua = navigator.userAgent;
+                const ios = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+                const safari = ua.includes('Safari') && !ua.includes('CriOS') && !ua.includes('FxiOS') && !ua.includes('EdgiOS');
+                if (ios && safari && window.navigator.standalone !== false) {
+                    const supportmsg = tk.c('div', document.body, 'cm');
+                    tk.p('Install WebDesk as a web app?', 'bold', supportmsg);
+                    tk.p('To install, tap the Share icon, scroll, hit "Add To Home Screen", and open the WebDesk app.', undefined, supportmsg);
+                    tk.p('Installing WebDesk as one gives you more screen space, and a better experience.', undefined, supportmsg);
+                    tk.cb('b1', 'No thanks', async function () {
+                        await fs.write('/system/info/standalone', 'false');
+                        ui.sw2(warn, user);
+                    }, supportmsg)
+                } else {
+                    ui.sw2(warn, user);
+                }
+            }, warn);
             // user menu
             const user = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/user.svg', 'setupi', user);
@@ -686,11 +717,11 @@ var app = {
                 wm.snack('Saved');
             }
             if (readonly !== true) {
-                tk.cb('b4 browserbutton', 'Save', async function () {
+                tk.cb('b4 b6', 'Save', async function () {
                     await save();
                 }, win.winbtns);
             } else {
-                tk.cb('b4 browserbutton', 'Save As', async function () {
+                tk.cb('b4 b6', 'Save', async function () {
                     const path = await app.files.pick('new', 'Save in new file');
                     const newContents = editor.getValue();
                     fs.write(path, newContents);
@@ -698,7 +729,7 @@ var app = {
                 }, win.winbtns);
                 editor.setReadOnly(true);
             }
-            tk.cb('b4 browserbutton', 'Menu', async function () {
+            tk.cb('b4 b6', 'Menu', async function () {
                 const menu = tk.c('div', document.body, 'cm');
                 if (readonly !== true) {
                     tk.p('Editing ' + path, 'bold', menu);
@@ -731,7 +762,7 @@ var app = {
                     }, menu);
                 }
             }, win.winbtns);
-            tk.cb('b4 browserbutton', 'Run', async function () {
+            function runc() {
                 const menu = tk.c('div', document.body, 'cm');
                 if (sys.dev === true) {
                     tk.p(`WAIT!!!`, 'h2', menu);
@@ -746,6 +777,9 @@ var app = {
                 tk.cb('b1', 'Close', function () {
                     ui.dest(menu, 120);
                 }, menu);
+            }
+            tk.cb('b4 b6', 'Run', async function () {
+                runc();
             }, win.winbtns);
             wd.win();
             if (readonly !== true) {
@@ -753,6 +787,12 @@ var app = {
                     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
                         event.preventDefault();
                         await save();
+                    }
+                });
+                editor.container.addEventListener('keydown', async function (event) {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+                        event.preventDefault();
+                        await runc();
                     }
                 });
             }
@@ -766,17 +806,56 @@ var app = {
         name: 'Files',
         init: async function () {
             const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined);
-            const breadcrumbs = tk.c('div', win.main);
+            const search = tk.c('input', win.main, 'i1');
+            win.name.innerHTML = "";
+            const breadcrumbs = tk.c('div', win.name);
+            search.style.marginBottom = "5px";
             const items = tk.c('div', win.main);
-            if (sys.mob === true) {
+            if (sys.mobui === true) {
                 items.style.maxHeight = screen.height - 180 + "px";
             } else {
-                items.style.maxHeight = "400px";
+                items.style.maxHeight = "370px";
             }
             items.style.overflow = "auto";
             items.style.borderRadius = "12px";
             items.style.padding = "6px";
+            items.style.paddingTop = "0px";
             win.main.style.padding = "8px";
+            let items2;
+            search.placeholder = "Search for a file...";
+            search.addEventListener('input', function (event) {
+                const searchText = search.value.toLowerCase();
+                items2.forEach(item => {
+                    const itemText = item.textContent.toLowerCase();
+                    if (itemText.includes(searchText)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            function clr() {
+                items2.forEach(item => {
+                    item.style.display = 'block';
+                });
+                search.value = "";
+            }
+            search.addEventListener('blur', () => {
+                clr();
+            });
+            search.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    clr();
+                }
+            });
+            search.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    const visible = Array.from(items2).filter(item => item.style.display !== 'none');
+                    if (visible.length === 1) {
+                        visible[0].click();
+                    }
+                }
+            });
             var currentPath = undefined;
             let dragoverListener = null;
             let dropListener = null;
@@ -787,11 +866,11 @@ var app = {
                 let crumbs = path.split('/').filter(Boolean);
                 let tempPath = '/';
 
-                tk.cb('flist', 'Root', () => navto('/'), breadcrumbs);
+                tk.cb('flist flists', 'Root', () => navto('/'), breadcrumbs);
                 crumbs.forEach((crumb, index) => {
                     tempPath += crumb + '/';
                     tk.cb('flists', '/', undefined, breadcrumbs);
-                    tk.cb('flist', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
+                    tk.cb('flist flists', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
                 });
 
                 currentPath = tempPath;
@@ -820,12 +899,14 @@ var app = {
                         let timer;
 
                         function openmenu() {
-                            if (item.path.includes('/system') || item.path.includes('/user/info') && sys.dev === false) {
-                                wm.snack('Enable Developer Mode to modify this folder.', 6000)
+                            if ((item.path.includes('/system') || item.path.includes('/user/info')) && sys.dev === false) {
+                                wm.snack('Enable Developer Mode to modify this folder.', 6000);
                                 return;
                             }
+
                             const menu = tk.c('div', document.body, 'cm');
                             tk.p(item.path, 'bold', menu);
+
                             if (item.path.includes('/system') || item.path.includes('/user/info')) {
                                 tk.p('This is an important folder, modifying it will likely cause damage.', 'warn', menu);
                             }
@@ -857,7 +938,6 @@ var app = {
                             e.preventDefault();
                             openmenu();
                         });
-
                     } else {
                         if (item.name === "") return;
 
@@ -952,8 +1032,18 @@ var app = {
                             e.dataTransfer.setData('text/plain', item.path);
                         });
                         fileItem.draggable = true;
+                        fileItem.addEventListener('contextmenu', async function (e) {
+                            e.preventDefault();
+                            const menu2 = tk.c('div', document.body, 'cm');
+                            const date = await fs.date(item.path);
+                            tk.p(`<span class="bold">Created</span> ${wd.timec(date.created)}`, undefined, menu2);
+                            tk.p(`<span class="bold">Edited</span> ${wd.timec(date.edit)}`, undefined, menu2);
+                            tk.p(`<span class="bold">Read</span> ${wd.timec(date.read)}`, undefined, menu2);
+                            tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                        })
                     }
                 });
+                items2 = items.querySelectorAll('.flist');
             }
 
             navto('/user/files/');
@@ -1031,7 +1121,7 @@ var app = {
                 }, win.win);
 
                 if (type === "new") {
-                    tk.cb('b1', 'Generate name', function () {
+                    tk.cb('b1', 'Random name', function () {
                         inp.value = gen(8);
                     }, win.win);
                     tk.cb('b1', 'New file', function () {
@@ -1236,6 +1326,9 @@ var app = {
                 wc.chatting.style.height = "400px";
                 el.currentid = deskid;
                 tk.ps(`Talking with ${name} - ${deskid}`, 'smtxt', wc.chatting);
+                if (sys.filter === true) {
+                    tk.ps(`PLEASE NOTE: Some filters can detect things YOU send, as they monitor your typing.`, 'smtxt', wc.chatting);
+                }
 
                 if (deskid && !chat) {
                     otherid = deskid;
@@ -1398,8 +1491,6 @@ var app = {
                         weather.innerText = "Error";
                     }
                 };
-
-                await updateweather();
                 const interval = setInterval(updateweather, 300000);
                 let menuo = false;
                 if (sys.setupd === "eepy") {
@@ -1441,6 +1532,7 @@ var app = {
                         });
                     });
                 }
+                await updateweather();
             }
         }
     },
@@ -1457,7 +1549,7 @@ var app = {
             win.closebtn.addEventListener('mousedown', function () {
                 ui.dest(canvas);
             }); */
-            if (sys.mob === false) {
+            if (sys.mobui === false) {
                 win.win.style.maxWidth = "330px";
             }
             win.main.innerHTML = "Loading";
@@ -1678,7 +1770,9 @@ var app = {
             }
 
             const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined);
-            win.win.style.maxHeight = "60%";
+            if (sys.mobui === false) {
+                win.win.style.maxHeight = "60%";
+            }
             tk.p(`WebDesk Achievements`, 'h2', win.main);
             tk.p(`Remember: These are jokes and don't actually do anything`, undefined, win.main);
             tk.p(`Unlocked <span class="bold achcount"></span> achievements`, undefined, win.main);
@@ -1820,13 +1914,14 @@ var app = {
             const searchbtns = tk.c('div', okiedokie, 'tnav');
             btnnest.appendChild(win.winbtns);
             win.closebtn.style.marginLeft = "4px";
+            win.winbtns.style.marginBottom = "3px";
             win.title.remove();
             let thing = [];
             let currentTab = tk.c('div', win.main, 'hide');
             let currentBtn = tk.c('div', win.main, 'hide');
             let currentName = tk.c('div', win.main, 'hide');
             win.main.classList = "browsercont";
-            const searchInput = tk.c('input', okiedokie, 'i1 browserbutton');
+            const searchInput = tk.c('input', okiedokie, 'i1 b6');
             function addtab(ok) {
                 const tab = tk.c('embed', win.main, 'browsertab');
                 if (ok) {
@@ -1871,11 +1966,11 @@ var app = {
                 }, 200);
             }
 
-            tk.cb('b4 browserbutton', '+', () => addtab(), searchbtns);
-            tk.cb('b4 browserbutton', '⟳', function () {
+            tk.cb('b4 b6', '+', () => addtab(), searchbtns);
+            tk.cb('b4 b6', '⟳', function () {
                 currentTab.src = currentTab.src;
             }, searchbtns);
-            tk.cb('b4 browserbutton', '<', function () {
+            tk.cb('b4 b6', '<', function () {
                 if (thing.length > 1) {
                     const currentIndex = thing.indexOf(currentTab.src);
                     if (currentIndex > 0) {
@@ -1886,7 +1981,7 @@ var app = {
                     }
                 }
             }, searchbtns);
-            tk.cb('b4 browserbutton', '>', function () {
+            tk.cb('b4 b6', '>', function () {
                 if (thing.length > 1) {
                     const currentIndex = thing.indexOf(currentTab.src);
                     if (currentIndex < thing.length - 1) {
@@ -1898,7 +1993,7 @@ var app = {
                 }
             }, searchbtns);
             searchInput.placeholder = "Enter URL";
-            tk.cb('b4 browserbutton', 'Go!', function () {
+            tk.cb('b4 b6', 'Go!', function () {
                 if (searchInput.value.includes('https://')) {
                     currentTab.src = searchInput.value;
                 } else {
@@ -1940,7 +2035,7 @@ var app = {
             tk.cb('winb gre', '', function () {
                 wm.max(win.win);
             }, btnnest);
-            tk.cb('b4 browserbutton', '⟳', function () {
+            tk.cb('b4 b6', '⟳', function () {
                 tab.src = tab.src;
             }, btnnest);
             setTimeout(function () {

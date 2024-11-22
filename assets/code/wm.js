@@ -107,6 +107,7 @@ var wm = {
                     left: original.left,
                     opacity: 1,
                 }, 220);
+                wd.win(wid);
             }
         }
     },

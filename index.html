@@ -3,18 +3,19 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#5a5a5a">
     <link rel="stylesheet" href="./assets/style.css" />
     <link rel="stylesheet" href="./assets/lib/crop/cropper.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-    <meta name="mobile-web-app-capable" content="yes">
     <link rel="shortcut icon" href="./assets/img/favicon.png">
     <link rel="apple-touch-icon" href="./assets/img/noround.png">
     <title>WebDesk</title>
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 15, 2024",
-        ver: "0.2.0",
+        lastmod: "Nov 22, 2024",
+        ver: "0.2.1",
     }
 
     var sys = {
@@ -36,6 +37,7 @@
         clip: undefined,
         dev: false,
         mob: false,
+        mobui: false,
         city: "Paris, France",
         unit: "Metric",
         defaultloc: true,
@@ -45,6 +47,7 @@
         resume: undefined,
         appurl: `https://appmarket.meower.xyz/refresh`,
         filter: false,
+        nc: false,
         loclast: Date.now(),
     }
 
@@ -96,6 +99,7 @@
 <script src="./assets/code/apps.js"></script>
 <script src="./assets/lib/crop/cropper.js"></script>
 <script>
+    wd.fontsw('./assets/fonts/Poppins-Regular.ttf', './assets/fonts/Poppins-Medium.ttf', './assets/fonts/Poppins-Bold.ttf', './assets/fonts/mono.ttf');
     async function boot() {
         let boot = false;
         setTimeout(function () {
@@ -171,7 +175,6 @@
                     sys.defaultloc = false;
                 }
                 sys.loclast = ok.lastupdate;
-                await wd.hawktuah();
             } else {
                 wd.wetter();
             }
@@ -189,14 +192,18 @@
                 wakelockgo();
             }
 
-            if (mob !== "false") {
-                if (/Mobi|Android/i.test(navigator.userAgent) || mob === "true") {
-                    sys.mob = true;
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                sys.mob = true;
+                if (mob !== "false") {
+                    sys.mobui = true;
                 }
             }
 
             if (filtering === "true") {
                 sys.filter = true;
+            } else if (filtering === "nc") {
+                sys.filter = true;
+                sys.nc = true;
             }
 
             if (dev === "true") {
@@ -265,7 +272,34 @@
                         }
                     }
                 }
-            } else { 
+                if (city) {
+                    setTimeout(async function () {
+                        if (window.navigator.standalone === true) {
+                            const ok = await fs.read('/system/standalonepx');
+                            let px = 0;
+                            if (!ok) {
+                                wd.tbcal();
+                            } else {
+                                if (px > 50 || px < 0) {
+                                    await fs.del('/system/standalone');
+                                    px = 0;
+                                    wd.tbcal();
+                                    return;
+                                }
+                                px = ok;
+                                if (px !== 0) {
+                                    el.taskbar.style.borderRadius = "var(--rad1)";
+                                }
+                                el.taskbar.style.bottom = px + "px";
+                                el.taskbar.style.left = px + "px";
+                                el.taskbar.style.right = px + "px";
+                            }
+                        } else {
+                            setTimeout(wd.hawktuah, 200);
+                        }
+                    }, 300);
+                }
+            } else {
                 await fs.write('/system/apps.json', '[]');
             }
         } else if (migcheck === "down") {

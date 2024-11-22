@@ -1,19 +1,19 @@
 // WebDesk 0.2.0
 // Based on Rebuild 7 (wtf)
-(function() {
+(function () {
     const minimumVersions = { Chrome: 100, Firefox: 100, Safari: 15, Edge: 100, "Internet Explorer": 11 };
     const ua = navigator.userAgent;
 
-    const browser = 
+    const browser =
         /Chrome\/(\d+)/.exec(ua) ? { name: "Chrome", version: +RegExp.$1 } :
-        /Firefox\/(\d+)/.exec(ua) ? { name: "Firefox", version: +RegExp.$1 } :
-        /Safari\/(\d+)/.exec(ua) && !/Chrome/.test(ua) ? { name: "Safari", version: +RegExp.$1 } :
-        /Edg\/(\d+)/.exec(ua) ? { name: "Edge", version: +RegExp.$1 } :
-        /MSIE (\d+)|rv:(\d+)/.exec(ua) ? { name: "Internet Explorer", version: +(RegExp.$1 || RegExp.$2) } :
-        { name: "Unknown", version: 0 };
+            /Firefox\/(\d+)/.exec(ua) ? { name: "Firefox", version: +RegExp.$1 } :
+                /Safari\/(\d+)/.exec(ua) && !/Chrome/.test(ua) ? { name: "Safari", version: +RegExp.$1 } :
+                    /Edg\/(\d+)/.exec(ua) ? { name: "Edge", version: +RegExp.$1 } :
+                        /MSIE (\d+)|rv:(\d+)/.exec(ua) ? { name: "Internet Explorer", version: +(RegExp.$1 || RegExp.$2) } :
+                            { name: "Unknown", version: 0 };
 
     if (minimumVersions[browser.name] && browser.version < minimumVersions[browser.name]) {
-        alert(`Your browser (${browser.name} ${browser.version}) is outdated. Update it, or else WebDesk might experience faults.`);
+        alert(`Your browser (${browser.name} ${browser.version}) is outdated. Update it, or else WebDesk might not work right.`);
     }
 })();
 
@@ -86,9 +86,6 @@ document.addEventListener('keydown', async function (event) {
             yeah.dispatchEvent(mousedownevent);
         }
     }
-});
-
-document.addEventListener('keydown', async function (event) {
     if (event.altKey && event.key.toLowerCase() === 'm' && focused.minbtn !== undefined) {
         event.preventDefault();
         const yeah = await ughfine(focused.window);
@@ -97,6 +94,25 @@ document.addEventListener('keydown', async function (event) {
         if (yeah) {
             yeah.dispatchEvent(mousedownevent);
         }
+    }
+    if (event.altKey && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        app.lockscreen.init();
+    }
+    if (event.altKey && event.key.toLowerCase() === 'r' && focused.window !== undefined) {
+        event.preventDefault();
+        ui.center(focused.window);
+    }
+    if (event.altKey && event.key.toLowerCase() === '/') {
+        event.preventDefault();
+        const keys = tk.c('div', document.body, 'cm');
+        tk.p('Keybinds', 'bold', keys);
+        tk.p('<span class="bold">Alt+R</span> Center focused window', undefined, keys);
+        tk.p('<span class="bold">Alt+Q</span> Closes focused window', undefined, keys);
+        tk.p('<span class="bold">Alt+M</span> Hides focused window', undefined, keys);
+        tk.p('<span class="bold">Alt+L</span> Locks/sleeps WebDesk', undefined, keys);
+        tk.p('<span class="bold">Alt+/</span> View keybinds', undefined, keys);
+        tk.cb('b1', 'Close', () => ui.dest(keys), keys);
     }
 });
 
@@ -126,7 +142,7 @@ var wd = {
 
         $('.d').not('.dragged').on('mousedown touchstart', function (event) {
             var $window = $(this).closest('.window');
-            if (!$window.hasClass('max') && sys.mob !== true) {
+            if (!$window.hasClass('max') && sys.mobui !== true) {
                 var offsetX, offsetY;
                 var windows = $('.window');
                 var highestZIndex = Math.max.apply(null, windows.map(function () {
@@ -289,8 +305,7 @@ var wd = {
             const start = tk.cb('b1', 'Apps', () => startmenu(), lefttb);
             el.tr = tk.c('div', lefttb);
             const contbtn = tk.cb('b1t time', '--:--', () => controlcenter(), titletb);
-            ui.tooltip(contbtn, 'Controls/Control Center');
-            if (sys.mob === true) {
+            if (sys.mobui === true) {
                 el.taskbar.style.boxShadow = "none";
             }
         }
@@ -330,10 +345,10 @@ var wd = {
         }, 200);
     },
     dark: function (fucker) {
-        ui.cv('ui1', 'rgb(45, 45, 45, 0.6)');
+        ui.cv('ui1', 'rgb(40, 40, 40, 0.5)');
         ui.cv('ui2', '#1b1b1b');
         ui.cv('ui3', '#2b2b2b');
-        ui.cv('bc', 'rgb(60, 60, 60, 0.4)');
+        ui.cv('bc', 'rgb(52, 52, 52, 0.4)');
         ui.cv('font', '#fff');
         ui.cv('inv', '1.0');
         if (fucker !== "nosave") {
@@ -342,7 +357,7 @@ var wd = {
         ui.light = false;
     },
     light: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
+        ui.cv('ui1', 'rgb(255, 255, 255, 0.5)');
         ui.cv('ui2', '#ffffff');
         ui.cv('ui3', '#ededed');
         ui.cv('bc', 'rgb(220, 220, 220, 0.4)');
@@ -374,78 +389,90 @@ var wd = {
         ui.light = false;
     },
     timec: function (id) {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const date = new Date(id);
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const date = new Date(id);
 
-        const options = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timeZone
-        };
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: timeZone
+            };
 
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        const formattedParts = formatter.formatToParts(date);
-        const month = formattedParts.find(part => part.type === 'month').value;
-        const day = formattedParts.find(part => part.type === 'day').value;
-        const year = formattedParts.find(part => part.type === 'year').value;
-        const hour = formattedParts.find(part => part.type === 'hour').value;
-        const minute = formattedParts.find(part => part.type === 'minute').value;
-        const ampm = formattedParts.find(part => part.type === 'dayPeriod').value;
+            const formatter = new Intl.DateTimeFormat('en-US', options);
+            const formattedParts = formatter.formatToParts(date);
+            const month = formattedParts.find(part => part.type === 'month').value;
+            const day = formattedParts.find(part => part.type === 'day').value;
+            const year = formattedParts.find(part => part.type === 'year').value;
+            const hour = formattedParts.find(part => part.type === 'hour').value;
+            const minute = formattedParts.find(part => part.type === 'minute').value;
+            const ampm = formattedParts.find(part => part.type === 'dayPeriod').value;
 
-        return `${month} ${day}, ${year}, ${hour}:${minute}${ampm}`;
+            return `${month} ${day}, ${year}, ${hour}:${minute}${ampm}`;
+        } catch (error) {
+            return "Unknown";
+        }
     },
     timed: function (id) {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const date = new Date(id);
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const date = new Date(id);
 
-        const options = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timeZone
-        };
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: timeZone
+            };
 
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        const formattedParts = formatter.formatToParts(date);
+            const formatter = new Intl.DateTimeFormat('en-US', options);
+            const formattedParts = formatter.formatToParts(date);
 
-        const month = formattedParts.find(part => part.type === 'month').value;
-        const day = formattedParts.find(part => part.type === 'day').value;
-        const year = formattedParts.find(part => part.type === 'year').value;
+            const month = formattedParts.find(part => part.type === 'month').value;
+            const day = formattedParts.find(part => part.type === 'day').value;
+            const year = formattedParts.find(part => part.type === 'year').value;
 
-        return `${month} ${day}, ${year}`;
+            return `${month} ${day}, ${year}`;
+        } catch (error) {
+            return "Unknown";
+        }
     },
     timecs: function (id) {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const date = new Date(id);
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const date = new Date(id);
 
-        const options = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timeZone
-        };
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: timeZone
+            };
 
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        const formattedParts = formatter.formatToParts(date);
+            const formatter = new Intl.DateTimeFormat('en-US', options);
+            const formattedParts = formatter.formatToParts(date);
 
-        const month = formattedParts.find(part => part.type === 'month').value;
-        const day = formattedParts.find(part => part.type === 'day').value;
-        const year = formattedParts.find(part => part.type === 'year').value;
-        const hour = formattedParts.find(part => part.type === 'hour').value;
-        const minute = formattedParts.find(part => part.type === 'minute').value;
-        const ampm = formattedParts.find(part => part.type === 'dayPeriod').value;
+            const month = formattedParts.find(part => part.type === 'month').value;
+            const day = formattedParts.find(part => part.type === 'day').value;
+            const year = formattedParts.find(part => part.type === 'year').value;
+            const hour = formattedParts.find(part => part.type === 'hour').value;
+            const minute = formattedParts.find(part => part.type === 'minute').value;
+            const ampm = formattedParts.find(part => part.type === 'dayPeriod').value;
 
-        return `${hour}:${minute}${ampm}`;
+            return `${hour}:${minute}${ampm}`;
+        } catch (error) {
+            return "Unknown";
+        }
     },
     reorg: function (element) {
         const buttons = Array.from(element.querySelectorAll('button'));
@@ -706,8 +733,78 @@ var wd = {
         return new Promise(resolve => {
             sys.resume = resolve;
         });
-    }
+    },
+    fontsw: function (normal, medium, bold, mono) {
+        const existingStyle = document.getElementById('dynamic-font');
+        if (existingStyle) {
+            existingStyle.remove();
+        }
 
+        const style = document.createElement('style');
+        style.id = 'dynamic-font';
+        style.innerHTML = `
+        @font-face {
+            font-family: 'Font';
+            src: url(${normal});
+        }
+        
+        @font-face {
+            font-family: 'FontB';
+            src: url(${bold});
+        }
+        
+        @font-face {
+            font-family: 'FontM';
+            src: url(${medium});
+        }
+        
+        @font-face {
+            font-family: 'MonoS';
+            src: url(${mono});
+        }`;
+        document.head.appendChild(style);
+    },
+    tbcal: async function () {
+        let px = 0;
+        const ok = await fs.read('/system/standalonepx');
+        if (ok) {
+            px = ok;
+            el.taskbar.style.bottom = px + "px";
+            el.taskbar.style.left = px + "px";
+            el.taskbar.style.right = px + "px";
+        }
+        const div = tk.c('div', document.body, 'cm');
+        tk.p('Calibrate app bar', 'bold', div);
+        tk.p('Some devices have rounded corners that cut off the app bar.', undefined, div);
+        tk.p('This tool lets you adjust the positioning of the app bar.', undefined, div);
+        tk.p('Tap the Increase or Decrease buttons to move the app bar.', undefined, div);
+        tk.cb('b1 b2', 'Done', async function () {
+            ui.dest(div);
+            if (ui.px !== 0) {
+                el.taskbar.style.borderRadius = "var(--rad1)";
+            }
+        }, div);
+        tk.cb('b1', 'Increase', async function () {
+            if (px === 50) return;
+            px += 2;
+            el.taskbar.style.bottom = px + "px";
+            el.taskbar.style.left = px + "px";
+            el.taskbar.style.right = px + "px";
+            el.taskbar.style.borderRadius = "var(--rad1)";
+            await fs.write('/system/standalonepx', px);
+        }, div);
+        tk.cb('b1', 'Decrease', async function () {
+            if (px !== 0) {
+                if (px === 0) return;
+                px -= 2;
+                el.taskbar.style.bottom = px + "px";
+                el.taskbar.style.left = px + "px";
+                el.taskbar.style.right = px + "px";
+                el.taskbar.style.borderRadius = "var(--rad1)";
+                await fs.write('/system/standalonepx', px);
+            }
+        }, div);
+    }
 }
 
 document.addEventListener('visibilitychange', function () {

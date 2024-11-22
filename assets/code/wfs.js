@@ -33,10 +33,23 @@ function idbop(operation, params, opt, requestId) {
         self.postMessage({ type: 'error', data: `FS request contains //, which screws things up. Your request has been cancelled.`, requestId });
         console.log(params);
         return;
+    } else if ((typeof params === 'string' && params.includes('/webdeskmetadata'))) {
+        self.postMessage({ type: 'error', data: `FS request contains //, which screws things up. Your request has been cancelled.`, requestId });
+        console.log(params);
+        return;
     }
     switch (operation) {
         case 'unlock':
             pin = params;
+            break;
+        case 'date':
+            fs2.date(params)
+                .then(data => {
+                    self.postMessage({ type: 'result', data, requestId });
+                })
+                .catch(error => {
+                    self.postMessage({ type: 'error', data: error, requestId });
+                });
             break;
         case 'read':
             fs2.read(params)
@@ -106,19 +119,23 @@ var fs2 = {
             const transaction = db.transaction(['main'], 'readonly');
             const objectStore = transaction.objectStore('main');
             const request = objectStore.get(path);
-
+            fs2.dwrite(path, false, false, true, false);
             request.onsuccess = function (event) {
                 const item = event.target.result;
-
                 if (item && item.data) {
-                    if (typeof item.data === 'string') {
+                    try {
+                        if (typeof item.data === 'string') {
+                            resolve(item.data);
+                        } else {
+                            const reader = new FileReader();
+                            reader.onload = function () {
+                                resolve(reader.result);
+                            };
+                            reader.readAsText(item.data);
+                        }
+                    } catch (error) {
+                        console.log(`<!> File isn't readable, returning raw contents: ` + error);
                         resolve(item.data);
-                    } else {
-                        const reader = new FileReader();
-                        reader.onload = function () {
-                            resolve(reader.result);
-                        };
-                        reader.readAsText(item.data);
                     }
                 } else {
                     resolve(null);
@@ -130,7 +147,48 @@ var fs2 = {
             };
         });
     },
+    dwrite: function (path, created, edited, viewed, remove) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['main'], 'readwrite');
+            const objectStore = transaction.objectStore('main');
+            let request1, request2, request3;
+
+            if (remove === true) {
+                request1 = objectStore.delete("/webdeskmetadata/created" + path);
+                request2 = objectStore.delete("/webdeskmetadata/edit" + path);
+                request3 = objectStore.delete("/webdeskmetadata/read" + path);
+                request3.onsuccess = function () {
+                    resolve();
+                };
+            }
+
+            if (created === true) {
+                const item = { path: "/webdeskmetadata/created" + path, data: Date.now() };
+                request1 = objectStore.put(item);
+            }
+
+            if (edited === true) {
+                const item = { path: "/webdeskmetadata/edit" + path, data: Date.now() };
+                request2 = objectStore.put(item);
+            }
+
+            if (viewed === true) {
+                const item = { path: "/webdeskmetadata/read" + path, data: Date.now() };
+                request3 = objectStore.put(item);
+            }
+
+            request.onsuccess = function () {
+                resolve();
+            };
+            request.onerror = function (event) {
+                reject(event.target.error);
+            };
+        });
+    },
     write: function (path, data) {
+        if (path.includes('/webdeskmetadata')) {
+            reject('Forbidden');
+        }
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['main'], 'readwrite');
             const objectStore = transaction.objectStore('main');
@@ -146,7 +204,12 @@ var fs2 = {
 
             const item = { path: path, data: content };
             const request = objectStore.put(item);
-
+            const yeah = fs2.date(path);
+            if (!yeah.created) {
+                fs2.dwrite(path, true, true);
+            } else {
+                fs2.dwrite(path, false, true);
+            }
             request.onsuccess = function () {
                 resolve();
             };
@@ -160,10 +223,61 @@ var fs2 = {
             const transaction = db.transaction(['main'], 'readwrite');
             const objectStore = transaction.objectStore('main');
             const request = objectStore.delete(path);
+            fs2.dwrite(path, false, false, false, true)
             request.onsuccess = function (event) {
                 resolve();
             };
             request.onerror = function (event) {
+                reject(event.target.error);
+            };
+        });
+    },
+    date: function (path) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['main'], 'readonly');
+            const objectStore = transaction.objectStore('main');
+            const request = objectStore.get("/webdeskmetadata/created" + path);
+            const request2 = objectStore.get("/webdeskmetadata/read" + path);
+            const request3 = objectStore.get("/webdeskmetadata/edit" + path);
+            let created = undefined;
+            let read = undefined;
+            let edit = undefined;
+            let completed = 0;
+
+            const check = () => {
+                completed++;
+                if (completed === 3) {
+                    resolve({ created, read, edit });
+                }
+            };
+
+            request.onsuccess = function (event) {
+                const item = event.target.result;
+                created = item && item.data ? item.data : null;
+                check();
+            };
+
+            request2.onsuccess = function (event) {
+                const item = event.target.result;
+                read = item && item.data ? item.data : null;
+                check();
+            };
+
+            request3.onsuccess = function (event) {
+                const item = event.target.result;
+                edit = item && item.data ? item.data : null;
+                check();
+            };
+
+            request.onerror = function (event) {
+                reject(event.target.error);
+            };
+
+            request2.onerror = function (event) {
+                reject(event.target.error);
+            };
+
+            request3.onerror = function (event) {
                 reject(event.target.error);
             };
         });
@@ -213,7 +327,9 @@ var fs2 = {
                         const parts = relativePath.split('/');
 
                         if (parts.length > 1) {
-                            items.set(parts[0], { path: path + parts[0], name: parts[0], type: 'folder' });
+                            if (path + parts[0] !== "/webdeskmetadata") {
+                                items.set(parts[0], { path: path + parts[0], name: parts[0], type: 'folder' });
+                            }
                         } else {
                             items.set(relativePath, { path: cursor.key, name: relativePath, type: 'file' });
                         }
@@ -269,10 +385,8 @@ var fs2 = {
                     const request = objectStore.get(key);
                     request.onsuccess = function (event) {
                         const item = event.target.result;
-                        if (item) {
+                        if (item && !item.path.includes('/webdeskmetadata')) {
                             fileContentsPromises.push(cursor.key);
-                        } else {
-                            fileContentsPromises.push(null);
                         }
                         request.onerror = function (event) {
                             reject(event.target.error);
