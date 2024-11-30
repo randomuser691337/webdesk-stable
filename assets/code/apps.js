@@ -13,15 +13,19 @@ var app = {
             const shitStain = tk.c('div', appPane);
             const mainPane = tk.c('div', main.main);
             // Main pane
-            tk.p('Settings', undefined, mainPane);
             if (sys.guest !== true) {
+                const userl = tk.c('div', mainPane, 'list flexthing');
+                const tnav = tk.c('div', userl, 'tnav med');
+                const title = tk.c('div', userl, 'title');
+                tnav.style.marginLeft = "4px";
+                tnav.innerText = ui.filter(sys.name);
+                tk.cb('b3', 'Manage data', () => ui.sw2(mainPane, userPane), title);
                 tk.cb('b1 b2', 'General', () => ui.sw2(mainPane, generalPane), mainPane);
-                tk.cb('b1 b2', 'WebDesk User', () => ui.sw2(mainPane, userPane), mainPane);
             } else {
                 tk.p(`Some options are disabled, because you're in Guest mode.`, undefined, mainPane);
             }
             tk.cb('b1 b2', 'Accessibility', () => ui.sw2(mainPane, accPane), mainPane);
-            tk.cb('b1 b2', 'Manage Apps', async function () {
+            tk.cb('b1 b2', 'Manage apps', async function () {
                 ui.sw2(mainPane, appPane);
                 shitStain.innerHTML = "";
                 const data = await fs.read('/system/apps.json');
@@ -66,13 +70,13 @@ var app = {
                             ui.dest(notif);
                             wm.notif('Removed ' + entry.name, `It's been removed, but a reboot is needed to clear it completely.`, function () {
                                 wd.reboot();
-                            }, 'Reboot');
+                            }, 'Reboot', true);
                             delete app[entry.appid];
                         }, notif);
                     });
                 }
             }, mainPane);
-            tk.cb('b1 b2', 'Appearance', () => ui.sw2(mainPane, appearPane), mainPane);
+            tk.cb('b1 b2', 'Personalize', () => ui.sw2(mainPane, appearPane), mainPane);
             // General pane
             tk.p('General', undefined, generalPane);
             tk.cb('b1 b2 red', 'Erase This WebDesk', () => app.eraseassist.init(), generalPane);
@@ -92,7 +96,7 @@ var app = {
                     } else {
                         await fs.del('/user/info/mobile');
                     }
-                    wm.notif('Reboot to apply changes', undefined, () => wd.reboot(), 'Reboot');
+                    wm.notif('Reboot to apply changes', undefined, () => wd.reboot(), 'Reboot', true);
                 }, generalPane);
             }
             if (window.navigator.standalone === true) {
@@ -109,7 +113,7 @@ var app = {
                 const opt = await fs.read('/system/info/devmode');
                 const pane = tk.c('div', win);
                 if (opt !== "true") {
-                    tk.p(`WARNING: Developer Mode lets you install third-party apps, and enables debug buttons, but removes security protections.`, undefined, pane);
+                    tk.p(`WARNING: Developer Mode lets you install third-party apps, and enables dev tools, but removes security protections.`, undefined, pane);
                     tk.p(`Use caution, there's no support for issues relating to Developer Mode. Disabling Developer Mode will erase WebDesk, but will keep your files.`, undefined, pane);
                     tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
                     tk.cb(`b1`, 'Enable (reboot)', async function () {
@@ -142,41 +146,77 @@ var app = {
             }, p);
             tk.cb('b1', 'Back', () => ui.sw2(generalPane, mainPane), generalPane);
             // Appearance pane
-            tk.p('Appearance', undefined, appearPane);
+            tk.p('Personalize', undefined, appearPane);
             const bg1 = tk.c('input', appearPane, 'i1');
             bg1.setAttribute("data-jscolor", "{}");
             bg1.addEventListener('input', function () {
                 ui.crtheme(event.target.value);
             });
+            bg1.value = await fs.read('/user/info/color');
             new JSColor(bg1, undefined);
-            bg1.style.marginBottom = '9px';
-            tk.cb('b1 b2', 'Light mode', function () {
+            const modething = tk.p('', undefined, appearPane);
+            tk.cb('b1', 'Light', function () {
                 fs.del('/user/info/lightdarkpref');
                 sys.autodarkacc = false;
                 wd.light();
-            }, appearPane);
-            tk.cb('b1 b2', 'Dark mode', function () {
+            }, modething);
+            tk.cb('b1', 'Dark', function () {
                 fs.del('/user/info/lightdarkpref');
                 sys.autodarkacc = false;
                 wd.dark();
-            }, appearPane);
-            tk.cb('b1 b2', 'Auto (based off color picker)', async function () {
+            }, modething);
+            tk.cb('b1', 'Auto', async function () {
                 fs.write('/user/info/lightdarkpref', 'auto');
                 const killyourselfapplesheep = await fs.read('/user/info/color');
                 ui.crtheme(killyourselfapplesheep);
                 sys.autodarkacc = true;
-            }, appearPane);
-            tk.cb('b1 b2', 'Clear mode (Light Text)', function () {
+            }, modething);
+            tk.cb('b1', 'Clear (light)', function () {
                 fs.del('/user/info/lightdarkpref');
                 sys.autodarkacc = false;
                 wd.clearm2();
-            }, appearPane);
-            const btn2 = tk.cb('b1 b2', 'Clear mode (Dark Text)', function () {
+            }, modething);
+            const btn2 = tk.cb('b1', 'Clear (dark)', function () {
                 fs.del('/user/info/lightdarkpref');
                 sys.autodarkacc = false;
                 wd.clearm();
-            }, appearPane);
-            btn2.style.marginBottom = '9px';
+            }, modething);
+            tk.p('Sounds', undefined, appearPane);
+            const p4 = tk.c('div', appearPane, 'list');
+            const ok4 = tk.c('span', p4);
+            ok4.innerText = "Notifications ";
+            tk.cb('b3', '1', async function () {
+                wd.notifsrc('/assets/other/notif1.ogg', true);
+            }, p4);
+            tk.cb('b3', '2', async function () {
+                wd.notifsrc('/assets/other/notif2.ogg', true);
+            }, p4);
+            tk.cb('b3', '3', async function () {
+                wd.notifsrc('/assets/other/notif3.ogg', true);
+            }, p4);
+            tk.cb('b3', '4', async function () {
+                wd.notifsrc('/assets/other/notif4.ogg', true);
+            }, p4);
+            tk.cb('b3', 'More', async function () {
+                const menu = tk.c('div', document.body, 'cm');
+                tk.p('Custom notification sound', 'bold', menu);
+                const the = tk.c('input', menu, 'i1');
+                the.placeholder = "URL of sound here";
+                const ok = await fs.read('/user/info/cnotifurl');
+                if (ok === "true") {
+                    const ok2 = await fs.read('/user/info/notifsrc');
+                    the.value = ok2;
+                }
+                tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Save', async function () {
+                    try {
+                        await wd.notifsrc(the.value, true);
+                        await fs.write('/user/info/cnotifurl', 'true');
+                    } catch (error) {
+                        wm.snack(`URL failed. Try a different one!`);
+                    }
+                }, menu);
+            }, p4);
+            p4.style.marginBottom = '6px';
             tk.cb('b1', 'Reset Colors', function () {
                 fs.del('/user/info/color');
                 fs.del('/user/info/lightdark');
@@ -246,13 +286,13 @@ var app = {
                 sys.filter = true;
                 sys.nc = true;
                 fs.write('/user/info/filter', 'nc');
-                wm.notif('No chances mode on!', `Text with filtered items simply won't be shown. WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`);
+                wm.notif('No chances mode on!', `Text with filtered items simply won't be shown. WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`, undefined, undefined, true);
             }, p3);
             tk.cb('b3', 'Filter', async function () {
                 sys.filter = true;
                 sys.nc = false;
                 fs.write('/user/info/filter', 'true');
-                wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`);
+                wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`, undefined, undefined, true);
             }, p3);
             tk.cb('b3', 'Off', function () {
                 sys.filter = false;
@@ -382,7 +422,7 @@ var app = {
             tk.cb('b1 b2', 'Delete Apps (Usually the main issue, your data will remain)', function () {
                 fs.del('/system/apps.json');
                 fs.delfold('/system/apps');
-                wm.notif(`Deleted apps`, 'All apps were deleted, their data is safe.');
+                wm.notif(`Deleted apps`, 'All apps were deleted, their data is safe.', undefined, undefined, true);
             }, first);
             tk.cb('b1 b2', 'Files (Wanna go digging or editing?)', () => app.files.init(), first);
             tk.cb('b1 b2', 'Settings (Self-explanatory)', () => app.settings.init(), first);
@@ -541,6 +581,7 @@ var app = {
                 stats.innerText = `Connecting to other WebDesk...`;
 
                 if (inp) {
+                    el.currentid = inp.value;
                     the = inp.value;
                 }
 
@@ -664,7 +705,7 @@ var app = {
                     }, div);
                 });
             } else if (contents.includes('data:application/pdf')) {
-                wm.notif(`WebDesk can't view PDFs`, 'Open PDF in a new tab?', () => window.open(contents, '_blank'));
+                wm.notif(`WebDesk can't view PDFs`, 'Open PDF in a new tab?', () => window.open(contents, '_blank'), undefined, true);
             }
         }
     },
@@ -690,6 +731,7 @@ var app = {
             const editdiv = tk.c('div', win.main, 'browsertab');
             editdiv.style.display = "block";
             editdiv.style.borderRadius = "0px";
+            win.name.innerHTML = "";
             win.main.classList = "browsercont";
             const genit = gen(8);
             editdiv.id = genit;
@@ -719,14 +761,14 @@ var app = {
             if (readonly !== true) {
                 tk.cb('b4 b6', 'Save', async function () {
                     await save();
-                }, win.winbtns);
+                }, win.name);
             } else {
                 tk.cb('b4 b6', 'Save', async function () {
                     const path = await app.files.pick('new', 'Save in new file');
                     const newContents = editor.getValue();
                     fs.write(path, newContents);
                     wm.snack('Saved');
-                }, win.winbtns);
+                }, win.name);
                 editor.setReadOnly(true);
             }
             tk.cb('b4 b6', 'Menu', async function () {
@@ -761,7 +803,7 @@ var app = {
                         editor.execCommand('redo');
                     }, menu);
                 }
-            }, win.winbtns);
+            }, win.name);
             function runc() {
                 const menu = tk.c('div', document.body, 'cm');
                 if (sys.dev === true) {
@@ -780,7 +822,7 @@ var app = {
             }
             tk.cb('b4 b6', 'Run', async function () {
                 runc();
-            }, win.winbtns);
+            }, win.name);
             wd.win();
             if (readonly !== true) {
                 editor.container.addEventListener('keydown', async function (event) {
@@ -1663,7 +1705,7 @@ var app = {
                         const notif = tk.c('div', win.main, 'notif2');
                         tk.p(`<span class="bold">${app2.name}</bold> by ${app2.pub}`, 'bold', notif);
                         tk.p(app2.info, undefined, notif);
-                        tk.cb('b3', 'App ID', () => wm.notif(`${app2.name}'s App ID:`, app2.appid, () => ui.copy(app2.appid), 'Copy'), notif); tk.cb('b3', 'Install', () => app.appmark.create(app2.path, app2), notif)
+                        tk.cb('b3', 'App ID', () => wm.notif(`${app2.name}'s App ID:`, app2.appid, () => ui.copy(app2.appid), 'Copy', true), notif); tk.cb('b3', 'Install', () => app.appmark.create(app2.path, app2), notif)
                     });
                 } catch (error) {
                     console.log(error);

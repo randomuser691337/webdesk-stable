@@ -148,7 +148,7 @@ p {
 
 @keyframes winanim {
     0% {
-        transform: scale(0.5);
+        transform: scale(0.6);
         opacity: 0%;
     }
 
@@ -171,7 +171,7 @@ p {
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
     resize: both;
-    animation: winanim 0.25s ease;
+    animation: winanim 0.28s ease;
     min-width: 80px;
     min-height: 50px;
 }
@@ -186,11 +186,20 @@ p {
 
 @keyframes scalething {
     0% { transform: scale(1); }
-    100% { transform: scale(0); }
+    100% { transform: scale(0.4); }
 }
 
 .windowanim {
-    animation: scalething 0.45s;
+    animation: scalething 0.22s ease;
+}
+
+@keyframes scalething2 {
+    0% { transform: scale(0.4); }
+    100% { transform: scale(1); }
+}
+
+.windowanim2 {
+    animation: scalething2 0.22s ease;
 }
 
 .tb {
@@ -216,6 +225,10 @@ p {
     display: flex;
     flex-grow: 1;
     align-items: center;
+}
+
+.auto {
+    overflow: auto !important;
 }
 
 .title {
@@ -294,6 +307,13 @@ p {
     text-align: left;
     margin-bottom: 12px;
     background-color: var(--ui1);
+}
+
+.flexthing {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .title {
@@ -377,6 +397,11 @@ p {
 .b1t:active {
     transform: scale(0.9);
     background-color: rgba(var(--acc), 0.25);
+}
+
+.silentbtn {
+    border: 2px solid rgba(100, 100, 100, 0.18);
+    background-color: rgba(100, 100, 100, 0.15);
 }
 
 .b3 {
@@ -717,7 +742,7 @@ p {
 }
 
 .list {
-    padding: 8px;
+    padding: 6px;
     background-color: var(--ui2);
     border-radius: var(--rad2);
     width: 100%;
@@ -847,6 +872,7 @@ p {
     padding: 4px;
     border: none;
     border-radius: var(--rad2);
+    overflow: auto !important;
     font-family: 'FontB', Arial;
 }
 
@@ -1006,7 +1032,7 @@ a:active {
     transition: 0.3s all ease !important;
     width: 100% !important;
     height: 100% !important;
-    z-index: 1800 !important;
+    z-index: 6000 !important;
     border-radius: 0px;
 }
 

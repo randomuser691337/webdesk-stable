@@ -34,7 +34,7 @@ function idbop(operation, params, opt, requestId) {
         console.log(params);
         return;
     } else if ((typeof params === 'string' && params.includes('/webdeskmetadata'))) {
-        self.postMessage({ type: 'error', data: `FS request contains //, which screws things up. Your request has been cancelled.`, requestId });
+        self.postMessage({ type: 'error', data: `FS request contains /webdeskmetadata, which is used for date-keeping. Your request has been cancelled.`, requestId });
         console.log(params);
         return;
     }

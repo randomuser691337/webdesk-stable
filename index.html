@@ -14,8 +14,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 22, 2024",
-        ver: "0.2.1",
+        lastmod: "Nov 29, 2024",
+        ver: "0.2.2",
     }
 
     var sys = {
@@ -49,6 +49,7 @@
         filter: false,
         nc: false,
         loclast: Date.now(),
+        notifsrc: "/assets/other/notif1.ogg",
     }
 
     var el = {
@@ -121,7 +122,7 @@
                 ui.crtheme('#010101', true);
                 wd.dark('nosave');
                 app.migrate.init('skibidi');
-                ui.hide(document.getElementById('death'), 180);
+                ui.hide(tk.g('death'), 190);
                 boot = true;
                 return;
             }
@@ -136,7 +137,7 @@
                 window.location.reload();
             }
             const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering
+                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent
             ] = await Promise.all([
                 fs.read('/user/info/lightdarkpref'),
                 fs.read('/user/info/lightdark'),
@@ -147,17 +148,15 @@
                 fs.read('/user/info/location.json'),
                 fs.read('/user/info/clocksec'),
                 fs.read('/system/appurl'),
-                fs.read('/user/info/filter')
+                fs.read('/user/info/filter'),
+                fs.read('/user/info/notifsrc'),
+                fs.read('/user/info/silent')
             ]);
 
             if (clocksec === "true") {
                 sys.seconds = true;
             } else {
                 sys.seconds = false;
-            }
-
-            if (apprepo) {
-                sys.appurl = apprepo;
             }
 
             if (city) {
@@ -191,6 +190,10 @@
                 await wd.chokehold();
                 wakelockgo();
             }
+
+            if (apprepo) sys.appurl = apprepo;
+            if (notifsound) sys.notifsrc = notifsound;
+            if (silent === "true") sys.nvol = 0;
 
             if (/Mobi|Android/i.test(navigator.userAgent)) {
                 sys.mob = true;
@@ -321,6 +324,7 @@
         } else if (migcheck === "rec") {
             await app.recovery.init();
         } else {
+            await fs.erase();
             wd.seasonal();
             const id = await wd.newid();
             await ptp.go(id);
@@ -330,7 +334,7 @@
         }
 
         wd.perfmon();
-        ui.hide(document.getElementById('death'), 180);
+        ui.hide(tk.g('death'), 190);
 
         const dropZone = document.body;
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

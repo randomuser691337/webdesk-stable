@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 22, 2024",
-        ver: "0.2.1",
+        lastmod: "Nov 29, 2024",
+        ver: "0.2.2",
     }
 
     var sys = {
@@ -46,6 +46,7 @@
         filter: false,
         nc: false,
         loclast: Date.now(),
+        notifsrc: "/assets/other/notif1.ogg",
     }
     var el = {
         taskbar: undefined,
@@ -107,7 +108,7 @@
             sys.echoid = id;
             await ptp.go(id2);
         } else {
-            ui.hide(document.getElementById('death'), 180);
+            ui.hide(tk.g('death'), 180);
             wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to the URL to boot.`);
         }
     }
@@ -115,16 +116,16 @@
         let boot = false;
         setTimeout(function () {
             if (boot === false) {
-                ui.hide(document.getElementById('death'), 180);
+                ui.hide(tk.g('death'), 180);
                 wm.wal(`<p class="bold">EchoDesk failed to boot</p><p>Click "Try Again" if you want, otherwise check the other WebDesk, make sure your connection is OK, and disable your VPN if it's on.</p>`, () => reboot(), 'Try Again', 'noclose');
             }
-        }, 8000);
+        }, 10000);
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck && boot === false) {
             boot = true;
             const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering
+                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent
             ] = await Promise.all([
                 fs.read('/user/info/lightdarkpref'),
                 fs.read('/user/info/lightdark'),
@@ -135,7 +136,9 @@
                 fs.read('/user/info/location.json'),
                 fs.read('/user/info/clocksec'),
                 fs.read('/system/appurl'),
-                fs.read('/user/info/filter')
+                fs.read('/user/info/filter'),
+                fs.read('/user/info/notifsrc'),
+                fs.read('/user/info/silent')
             ]);
 
             if (clocksec === "true") {
@@ -144,9 +147,8 @@
                 sys.seconds = false;
             }
 
-            if (apprepo) {
-                sys.appurl = apprepo;
-            }
+            if (apprepo) sys.appurl = apprepo;
+            if (silent === "true") sys.nvol = 0;
 
             if (city) {
                 const ok = JSON.parse(city)[0];
@@ -213,6 +215,7 @@
             } else {
                 wd.seasonal();
             }
+            if (notifsound) sys.notifsrc = notifsound;
             await wd.desktop(sd, sys.deskid, 'wait');
             const data = await fs.read('/system/apps.json');
             if (data) {
@@ -255,7 +258,7 @@
         }
 
         wd.perfmon();
-        ui.hide(document.getElementById('death'), 180);
+        ui.hide(tk.g('death'), 180);
         wm.notif('Welcome to EchoDesk', `Your current DeskID is temporary, and some features are disabled.`);
         app.ach.unlock(`EchoDesk`, `Better than remote desktop in some cases?`);
         const dropZone = document.body;

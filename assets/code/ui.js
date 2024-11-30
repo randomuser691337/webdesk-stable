@@ -209,14 +209,14 @@ var ui = {
                     'fuck', 'fucker', 'fucking', 'shit', 'bullshit', 'bitch', 'asshole', 'bastard', 'damn', 'dick', 'prick', 'cunt',
                     'nigg', 'chink', 'spic', 'cracker', 'gook', 'kike', 'wetback', 'gyppo',
                     'fag', 'faggot', 'dyke', 'tranny', 'shemale', 'homo',
-                    'kill', 'murder', 'suici', 'selfharm', 'cutting', 'worthless', 'hopeless', 'die', 'death', 'harm', 'enditall', 'end it all', 'depress', 'jump',
+                    'kill', 'murder', 'suici', 'selfharm', 'cutting', 'worthless', 'hopeless', 'die', 'death', 'harm', 'enditall', 'end it all', 'depress', 'jump', 'hang', 'hanging',
                     'rape', 'rapist', 'molest', 'molester', 'incest', 'pedophile', 'pedo', 'philia',
                     'retar', 'retard', 'idiot', 'moron', 'lunatic', 'crazy', 'psycho',
                     'worthless', 'loser', 'whore', 'slut', 'you pig', 'scum', 'filth', 'porn', 'sex',
                 ]);
 
                 const antiTerms = new Set([
-                    'like', 'sad', 'shown', 'light', 'sit', 'sitting', 'site', 'ship', 'stop', 'kind', 'smart', 'kid', 'heart', 'hope', 'set', 'cat', 'photo', 'will', 'replace', 'say', 'shy', 'moon', 'think', 'Mike', 'clink'
+                    'like', 'sad', 'shown', 'light', 'sit', 'sitting', 'site', 'ship', 'stop', 'kind', 'smart', 'kid', 'heart', 'hope', 'set', 'cat', 'photo', 'will', 'replace', 'say', 'shy', 'moon', 'think', 'Mike', 'clink', 'look', 'redo', 'hanger', 'change', 'changing', 'changes', 'due'
                 ]);
 
                 const isSimilar = (word, term) => {
@@ -443,7 +443,7 @@ var tk = {
             shortened = ui.truncater(title, 10);
         }
         const tbn = tk.cb('b1', shortened, function () {
-            wm.min(windowDiv, tbn);
+            wm.show(windowDiv, tbn);
         }, el.tr);
         if (quit === undefined) {
             closeButton.classList.add('red');

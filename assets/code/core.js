@@ -17,6 +17,40 @@
     }
 })();
 
+let clickCount = 0;
+let clickStartTime = null;
+const pageStartTime = Date.now();
+const circle = document.querySelector('.circle');
+
+const resetClicks = () => {
+    clickCount = 0;
+    clickStartTime = null;
+};
+
+circle.addEventListener('click', () => {
+    const currentTime = Date.now();
+    if (currentTime - pageStartTime > 20000) return;
+    if (clickStartTime === null) {
+        clickStartTime = currentTime;
+    }
+
+    clickCount++;
+
+    if (clickCount === 5 && currentTime - clickStartTime <= 10000) {
+        const menu = tk.c('div', tk.g('background'), 'cm');
+        tk.p('Mini recovery mode', undefined, menu);
+        tk.cb('b1 b2', 'TextEdit', () => app.textedit.init(), menu);
+        tk.cb('b1 b2', 'Settings', () => app.settings.init(), menu);
+        tk.cb('b1 b2', 'Files', () => app.files.init(), menu);
+        tk.cb('b1', 'Exit (Reboot)', () => wd.reboot(), menu);
+        resetClicks();
+    }
+
+    if (currentTime - clickStartTime > 10000) {
+        resetClicks();
+    }
+});
+
 console.log(`<!> You've unlocked the REAL developer mode!`);
 console.log(`<!> For the love of all that is holy, DO NOT, and I mean DO NOT, PASTE ANY CODE IN HERE.`);
 console.log(`<!> If you were told to paste here, you're probably getting scammed.`);
@@ -127,7 +161,7 @@ var wd = {
                 focused.minbtn = minbtn;
             }
             var $winfocus = $(winfocus);
-            if ($winfocus.length) {
+            if ($winfocus.length && !$winfocus.hasClass('max') && !$winfocus.hasClass('unmax')) {
                 var windows = $('.window');
                 var highestZIndex = Math.max.apply(null, windows.map(function () {
                     var zIndex = parseInt($(this).css('z-index')) || 0;
@@ -272,12 +306,22 @@ var wd = {
                 }, ok);
                 ui.tooltip(screenicon, 'Fullscreen toggle');
                 tk.img('/assets/img/icons/fs.svg', 'contimg', screenicon, false);
-                const setticon = tk.cb('conticon', '', function () {
-                    app.settings.init();
-                    controlcenter();
+                const notificon = tk.cb('conticon', '', async function () {
+                    if (sys.nvol === 0) {
+                        notifimg.src = "/assets/img/icons/notify.svg";
+                        sys.nvol = 1.0;
+                        ui.play(sys.notifsrc);
+                        await fs.del('/user/info/silent');
+                    } else {
+                        notifimg.src = "/assets/img/icons/silent.svg";
+                        sys.nvol = 0.0;
+                        await fs.write('/user/info/silent', 'true');
+                    }
+                    el.contb.classList.toggle('silentbtn');
                 }, ok);
-                ui.tooltip(setticon, 'Opens Settings app');
-                tk.img('/assets/img/icons/settings.svg', 'contimg', setticon, false);
+                const notifimg = tk.img('/assets/img/icons/notify.svg', 'contimg', notificon, false);
+                if (sys.nvol === 0) notifimg.src = "/assets/img/icons/silent.svg";
+                ui.tooltip(notificon, 'Silent toggle');
                 if (sys.guest === false && sys.echodesk === false) {
                     const yeah = tk.cb('b3 b2', 'Deep Sleep', function () {
                         const menu = tk.c('div', document.body, 'cm');
@@ -300,11 +344,12 @@ var wd = {
         }
         function desktopgo() {
             el.taskbar = tk.c('div', document.body, 'taskbar');
-            const lefttb = tk.c('div', el.taskbar, 'tnav');
+            const lefttb = tk.c('div', el.taskbar, 'tnav auto');
             const titletb = tk.c('div', el.taskbar, 'title');
             const start = tk.cb('b1', 'Apps', () => startmenu(), lefttb);
             el.tr = tk.c('div', lefttb);
-            const contbtn = tk.cb('b1t time', '--:--', () => controlcenter(), titletb);
+            el.contb = tk.cb('b1t time', '--:--', () => controlcenter(), titletb);
+            if (sys.nvol === 0) el.contb.classList.toggle('silentbtn');
             if (sys.mobui === true) {
                 el.taskbar.style.boxShadow = "none";
             }
@@ -335,14 +380,14 @@ var wd = {
         ui.sw2(div1, div2); ui.masschange('name', name); fs.write('/user/info/name', name); fs.write('/system/info/setuptime', Date.now()); fs.write('/system/info/setupver', abt.ver);
     },
     reboot: function () {
-        ui.show(document.getElementById('death'), 200);
+        ui.show(tk.g('death'), 190);
         setTimeout(function () {
             if (window.location.href.includes('echodesk')) {
                 window.location.reload();
             } else {
                 window.location.href = window.location.origin;
             }
-        }, 200);
+        }, 190);
     },
     dark: function (fucker) {
         ui.cv('ui1', 'rgb(40, 40, 40, 0.5)');
@@ -387,6 +432,15 @@ var wd = {
             fs.write('/user/info/lightdark', 'clear2');
         }
         ui.light = false;
+    },
+    notifsrc: async function (src, play) {
+        sys.notifsrc = src;
+        await fs.write('/user/info/notifsrc', src);
+        if (play === true) {
+            ui.play(src);
+            wm.snack('Saved', 1500);
+            await fs.del('/user/info/cnotifurl');
+        }
     },
     timec: function (id) {
         try {
@@ -735,7 +789,7 @@ var wd = {
         });
     },
     fontsw: function (normal, medium, bold, mono) {
-        const existingStyle = document.getElementById('dynamic-font');
+        const existingStyle = tk.g('dynamic-font');
         if (existingStyle) {
             existingStyle.remove();
         }
@@ -785,7 +839,7 @@ var wd = {
             }
         }, div);
         tk.cb('b1', 'Increase', async function () {
-            if (px === 50) return;
+            if (px > 50) return;
             px += 2;
             el.taskbar.style.bottom = px + "px";
             el.taskbar.style.left = px + "px";
@@ -794,15 +848,13 @@ var wd = {
             await fs.write('/system/standalonepx', px);
         }, div);
         tk.cb('b1', 'Decrease', async function () {
-            if (px !== 0) {
-                if (px === 0) return;
-                px -= 2;
-                el.taskbar.style.bottom = px + "px";
-                el.taskbar.style.left = px + "px";
-                el.taskbar.style.right = px + "px";
-                el.taskbar.style.borderRadius = "var(--rad1)";
-                await fs.write('/system/standalonepx', px);
-            }
+            if (px < 0) return;
+            px -= 2;
+            el.taskbar.style.bottom = px + "px";
+            el.taskbar.style.left = px + "px";
+            el.taskbar.style.right = px + "px";
+            el.taskbar.style.borderRadius = "var(--rad1)";
+            await fs.write('/system/standalonepx', px);
         }, div);
     }
 }
