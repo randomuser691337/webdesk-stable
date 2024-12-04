@@ -330,13 +330,14 @@ var app = {
             const degp = tk.p(`<span class="bold">Measurement</span> `, undefined, ok.main);
             const degps = tk.c('span', degp);
             degps.innerText = `${sys.unit} (${sys.unitsym})`;
+            const mousedownevent = new MouseEvent('mousedown');
             tk.cb('b1 b2', 'Disable Location', async function () {
                 await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
                 sys.city = "Paris, France";
                 sys.unit = "Metric";
                 sys.unitsym = "°C";
                 sys.defaultloc = true;
-                ok.closebtn.click();
+                ok.closebtn.dispatchEvent(mousedownevent);
                 wm.snack('Location set to Paris, France so that WebDesk has something to fall back on.');
             }, ok.main);
             tk.cb('b1 b2', 'Update Location', async function () {
@@ -350,7 +351,7 @@ var app = {
                 } else {
                     sys.unitsym = "°F";
                 }
-                ok.closebtn.click();
+                ok.closebtn.dispatchEvent(mousedownevent);
                 wm.snack(`New location: ${data.location}`);
             }, ok.main);
         }
@@ -1433,7 +1434,32 @@ var app = {
             const info = tk.c('div', main, 'abtinfo');
             const logo = tk.img('./assets/img/favicon.png', 'abtimg', side);
             tk.cb('b4 b2', 'Changes', () => wd.hawktuah(true), side);
-            tk.cb('b4 b2', 'Discord', () => window.open('https://discord.gg/pCbG6hAxFe', '_blank'), side);
+            tk.cb('b4 b2', 'Status', async function () {
+                const win = tk.mbw('Status', '300px', undefined, true);
+                try {
+                    const response = await fetch(`https://weather.meower.xyz/status`);
+                    const info = await response.json();
+                    if (info.status) {
+                        tk.ps('Weather: ' + info.status, undefined, win.main);
+                    } else {
+                        tk.ps('Weather: Offline', undefined, win.main);
+                    }
+                } catch (error) {
+                    tk.ps('Weather: Offline', undefined, win.main);
+                }
+                try {
+                    const response = await fetch(`https://appmarket.meower.xyz/status`);
+                    const info = await response.json();
+                    if (info.status) {
+                        tk.ps('App Market: ' + info.status, undefined, win.main);
+                    } else {
+                        tk.ps('App Market: Offline', undefined, win.main);
+                    }
+                } catch (error) {
+                    tk.ps('App Market: Offline', undefined, win.main);
+                }
+            }, side);
+            tk.cb('b4 b2', 'Discord', () => window.open('https://discord.gg/5Y6ycJS4gu', '_blank'), side);
             tk.cb('b4 b2', 'Creds', function () {
                 const ok = tk.c('div', document.body, 'cm');
                 ok.innerHTML = `<p class="bold">Credits</p>
@@ -1501,6 +1527,7 @@ var app = {
         name: 'Lockscreen',
         init: async function () {
             if (!el.lock) {
+                wd.clock();
                 el.lock = tk.c('div', document.body, 'lockscreen');
                 const clock = tk.c('div', el.lock, 'center');
                 ui.show(el.lock, 300);
@@ -1521,13 +1548,13 @@ var app = {
                 } else {
                     ok = true;
                 }
-                const weather = tk.p('Loading', 'smtxt', clock);
+                const weather = tk.p('Loading', 'smtxt med', clock);
                 p.style.color = weather.style.color = "#fff";
                 const updateweather = async () => {
                     try {
                         const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
                         const info = await response.json();
-                        weather.innerText = `${info.weather[0].description}, ${info.main.temp}${sys.unitsym}`;
+                        weather.innerText = `${Math.ceil(info.main.temp)}${sys.unitsym}, ${info.weather[0].description}`;
                         img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
                     } catch (error) {
                         weather.innerText = "Error";
@@ -1583,7 +1610,7 @@ var app = {
         name: 'Weather',
         init: async function () {
             const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
-            win.win.style.minWidth = "200px;"
+            win.win.style.minWidth = "210px;"
             /* const canvas = tk.c('canvas', document.body);
             canvases.snow(canvas);
             canvas.style.width = "100%";
@@ -1600,13 +1627,18 @@ var app = {
                 const info = await response.json();
                 win.main.innerHTML = "";
                 const skibidi = tk.c('div', win.main);
-                skibidi.style.textAlign = "left";
-                tk.p(`${sys.city}`, 'bold', skibidi);
-                tk.p(`<span class="bold">Temperature</span> ${info.main.temp}${sys.unitsym}`, undefined, skibidi);
-                tk.p(`<span class="bold">Feels like</span> ${info.main.feels_like}${sys.unitsym}`, undefined, skibidi);
-                tk.p(`<span class="bold">Humidity</span> ${info.main.humidity}%`, undefined, skibidi);
-                tk.p(`<span class="bold">Conditions</span> ${info.weather[0].description}`, undefined, skibidi);
-                tk.p(`Weather data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap</a>, contact them about incorrect info.`, 'smtxt', skibidi);
+                tk.p(`${sys.city}`, 'med', skibidi);
+                const userl = tk.c('div', skibidi, 'list flexthing');
+                const tnav = tk.c('div', userl, 'tnav');
+                const title = tk.c('div', userl, 'title');
+                tnav.style.marginLeft = "6px";
+                userl.style.marginBottom = "6px";
+                tnav.innerText = `${Math.ceil(info.main.temp)}${sys.unitsym}, ${info.weather[0].description}`;
+                const img = tk.img('', 'weatheri', title);
+                title.style.maxHeight = "40px";
+                img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
+                tk.p(`Humidity is ${info.main.humidity}%, and it feels like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
+                tk.p(`Weather data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap</a>`, 'smtxt', skibidi);
                 tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
                 tk.cb('b1', 'Refresh', function () {
                     refresh(); wm.snack('Refreshed');

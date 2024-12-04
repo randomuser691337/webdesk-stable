@@ -149,6 +149,9 @@ var fs2 = {
     },
     dwrite: function (path, created, edited, viewed, remove) {
         return new Promise((resolve, reject) => {
+            if (path.includes('/webdeskmetadata')) {
+                reject(`<!> Don't create a timestamp of a timestamp!`);
+            }
             const transaction = db.transaction(['main'], 'readwrite');
             const objectStore = transaction.objectStore('main');
             let request1, request2, request3;

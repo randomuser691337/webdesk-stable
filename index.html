@@ -14,8 +14,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 29, 2024",
-        ver: "0.2.2",
+        lastmod: "Dec 4, 2024",
+        ver: "0.2.3",
     }
 
     var sys = {
@@ -294,8 +294,6 @@
                                     el.taskbar.style.borderRadius = "var(--rad1)";
                                 }
                                 el.taskbar.style.bottom = px + "px";
-                                el.taskbar.style.left = px + "px";
-                                el.taskbar.style.right = px + "px";
                             }
                         } else {
                             setTimeout(wd.hawktuah, 200);
@@ -324,7 +322,6 @@
         } else if (migcheck === "rec") {
             await app.recovery.init();
         } else {
-            await fs.erase();
             wd.seasonal();
             const id = await wd.newid();
             await ptp.go(id);

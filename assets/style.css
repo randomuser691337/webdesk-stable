@@ -21,6 +21,7 @@
     --fz4: 12px;
     --inv: 0;
     --wina: 0px;
+    --menubarheight: 0px;
 }
 
 #background {
@@ -94,6 +95,14 @@ button {
     width: 50px;
     height: 50px;
     border-radius: 13px;
+}
+
+.weatheri {
+    height: 40px;
+    width: 40px;
+    border-radius: 10px;
+    padding: 0px; margin: 0px;
+    background-color: rgba(var(--acc), 0.18);
 }
 
 p {
@@ -177,7 +186,7 @@ p {
 }
 
 .winf {
-    box-shadow: rgba(0, 0, 0, 0.32) 0px 0px 150px 30px;
+    box-shadow: rgba(0, 0, 0, 0.30) 0px 0px 150px 30px;
 }
 
 .content {
@@ -185,8 +194,13 @@ p {
 }
 
 @keyframes scalething {
-    0% { transform: scale(1); }
-    100% { transform: scale(0.4); }
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(0.4);
+    }
 }
 
 .windowanim {
@@ -194,8 +208,13 @@ p {
 }
 
 @keyframes scalething2 {
-    0% { transform: scale(0.4); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(0.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .windowanim2 {
@@ -292,7 +311,7 @@ p {
 
 .gre {
     background-color: rgb(52, 199, 89);
-     border: 1px solid rgba(41, 159, 71, 0.4);
+    border: 1px solid rgba(41, 159, 71, 0.4);
 }
 
 .setupbar {
@@ -358,7 +377,7 @@ p {
     background-color: rgba(var(--acc), 0.40);
     border-radius: var(--rad2);
     font-size: var(--fz1);
-    padding: 4px 7px;
+    padding: 5px 8px;
     margin: 1px;
     transition: 0.06s ease-in-out;
     cursor: pointer;
@@ -400,13 +419,12 @@ p {
 }
 
 .silentbtn {
-    border: 2px solid rgba(100, 100, 100, 0.18);
-    background-color: rgba(100, 100, 100, 0.15);
+    background-color: rgba(170, 30, 30, 0.15) !important;
 }
 
 .b3 {
-    padding: 2px 4px;
-    border-radius: 8px;
+    padding: 3px 5px;
+    border-radius: 9px;
     background-color: rgba(var(--accent), 0.38);
     font-size: var(--fz2);
     border: 2px solid transparent;
@@ -433,7 +451,7 @@ p {
 
 .b5 {
     padding: 2px;
-    border-radius: 8px;
+    border-radius: 9px;
     background-color: rgba(var(--accent), 0.5);
     font-size: var(--fz2);
     border: none;
@@ -444,7 +462,7 @@ p {
 
 .b4 {
     padding: 1px 3px;
-    border-radius: 8px;
+    border-radius: 9px;
     background-color: rgba(var(--accent), 0.28);
     font-size: var(--fz4);
     border: 1px solid transparent;
@@ -680,17 +698,18 @@ p {
 
 #notif {
     position: fixed;
-    top: 0px;
+    top: var(--menubarheight);
     right: 0px;
-    bottom: 45px;
+    bottom: 0px;
     width: 250px;
-    padding: 10px;
+    padding: 5px;
     overflow-x: visible;
     overflow-y: auto !important;
     padding-left: 50px;
-    z-index: 9999;
+    z-index: 1000;
     pointer-events: none;
     max-width: 80%;
+    padding-bottom: 60px;
 }
 
 @keyframes notif {
@@ -759,32 +778,75 @@ p {
     background-color: rgba(255, 220, 30, 0.5);
 }
 
-.taskbar {
+.menubardiv {
     position: fixed;
+    background-color: var(--ui1);
+    top: calc(var(--menubarheight) + 5px);
+    right: 5px;
+    padding: 8px;
+    border-radius: var(--rad1);
+    backdrop-filter: blur(var(--bl2));
+    -webkit-backdrop-filter: blur(var(--bl2));
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 37.5px 7.5px;
+    z-index: 9997;
+    max-width: 200px;
+}
+
+.menubar {
+    position: fixed;
+    background-color: var(--ui1);
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    padding: 4px;
+    backdrop-filter: blur(var(--bl2));
+    -webkit-backdrop-filter: blur(var(--bl2));
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 37.5px 7.5px;
+    z-index: 1000;
+    font-size: var(--fz2);
+    border-bottom: 1px solid var(--bc);
+}
+
+.menubar button {
+    padding: 4px 7px;
+    border-radius: 8px;
+    border: none;
+    background-color: rgb(0, 0, 0, 0);
+    font-size: var(--fz2);
+}
+
+.menubar button:hover {
+    background-color: var(--ui1);
+}
+
+.tasknest {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    left: 0px;
-    bottom: 0px;
-    right: 0px;
+    white-space: nowrap;
+    overflow-x: auto !important;
+}
+
+.taskbar {
+    position: fixed;
+    bottom: 5px;
     padding: 4px;
-    border-top-left-radius: var(--rad1);
-    border-top-right-radius: var(--rad1);
+    border-radius: var(--rad1);
     background-color: var(--ui1);
-    box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 37.5px 7.5px;
     animation: tb 0.6s ease;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     z-index: 1000;
-    overflow-x: auto !important;
-    white-space: nowrap;
-    border-top: 1px solid var(--bc);
-    transition: 0.05s;
+    border: 1px solid var(--bc);
+    transition: 0.1s;
+    max-width: 90%;
 }
 
-.taskbar button {
+.tasknest button {
     padding: 3px 5px;
-    font-size: var(--fz2) !important;
+    font-size: var(--fz3) !important;
+    box-shadow: none !important;
 }
 
 @keyframes tb {
@@ -793,7 +855,7 @@ p {
     }
 
     73% {
-        bottom: 0px;
+        bottom: 5px;
         padding-bottom: 11px;
     }
 
@@ -834,26 +896,27 @@ p {
 }
 
 .tbmenu {
-    position: fixed;
-    border-radius: var(--rad1);
-    border: 1px solid var(--bc);
-    background-color: var(--ui1);
-    box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 75px 15px;
-    backdrop-filter: blur(var(--bl2));
-    -webkit-backdrop-filter: blur(var(--bl2));
-    padding: 7px;
-    max-width: 80%;
-    max-width: 360px;
-    max-height: 70%;
-    z-index: 9998;
-    animation: tb2 0.2s ease;
+    min-width: 240px;
+    margin-bottom: 4px;
+    padding: 5px;
     overflow-y: auto !important;
+    text-align: left;
+}
+
+.brick-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.brick-layout button {
+    white-space: nowrap;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
 }
 
 .tbmenu::-webkit-scrollbar {
     display: none;
 }
-
 
 @keyframes tb2 {
     0% {

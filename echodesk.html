@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Nov 29, 2024",
-        ver: "0.2.2",
+        lastmod: "Dec 4, 2024",
+        ver: "0.2.3",
     }
 
     var sys = {
@@ -57,6 +57,17 @@
         sm: undefined,
         tr: undefined,
         cc: undefined,
+        mbpos: {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+        },
+        tbpos: { ...mbpos }
     }
 
     var wc = {
@@ -76,8 +87,7 @@
         style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000;">
         <div class="center">
             <p class="bold" style="color: #fff !important;">Loading</p>
-            <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things will be slower than
-                usual.</p>
+            <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things will be slower.</p>
         </div>
     </div>
 </body>

@@ -200,6 +200,7 @@ async function handleData(conn, data) {
         } else if (data.name === "EchoGive") {
             if (sys.setupd === "echo") {
                 sys.model.innerText = data.act + ": " + data.path;
+                console.log(data.act + ": " + data.path);
                 if (data.act === "read") {
                     const fileData = await fs.read(data.path);
                     if (fileData === null) {
@@ -219,6 +220,12 @@ async function handleData(conn, data) {
                 } else if (data.act === "ls") {
                     const ok = await fs.ls(data.path);
                     conn.send(ok);
+                } else if (data.act === "date") {
+                    const ok = await fs.date(data.path);
+                    conn.send(ok);
+                } else if (data.act === "delfold") {
+                    const ok = await fs.delfold(data.path);
+                    conn.send(true);
                 }
             }
         } else if (data.name === "YesImAlive-WebKey") {

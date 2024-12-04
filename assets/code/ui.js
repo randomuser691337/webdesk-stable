@@ -9,7 +9,7 @@ var ui = {
     },
     crtheme: async function (hex, opt) {
         const a = ui.hextool(hex, 25);
-        ui.theme(ui.hextool(hex, 20), a, ui.hextool(hex, 35), ui.hextool(hex, 50), ui.hextorgb(ui.hextool(hex, 55)));
+        ui.theme(ui.hextool(hex, 12), a, ui.hextool(hex, 35), ui.hextool(hex, 50), ui.hextorgb(ui.hextool(hex, 55)));
         if (!opt === true) {
             await fs.write('/user/info/color', hex);
             if (sys.autodarkacc === true) {
@@ -413,6 +413,7 @@ var tk = {
     mbw: function (title, wid, hei, full, min, quit) {
         var windowDiv = document.createElement('div');
         windowDiv.classList.add('window');
+        windowDiv.setAttribute('wdname', title);
         var titlebarDiv = tk.c('div', undefined, 'd tb');
         if (sys.mobui !== true) {
             windowDiv.style.width = wid;
@@ -420,13 +421,14 @@ var tk = {
             windowDiv.style.maxWidth = "80vw";
             windowDiv.style.maxHeight = "90vh";
         } else {
-            windowDiv.style.top = "5px";
+            const btm2 = el.mbpos;
+            windowDiv.style.top = btm2.height + 5 + "px";
             windowDiv.style.left = "5px";
             windowDiv.style.right = "5px";
             windowDiv.style.boxShadow = "none";
             windowDiv.style.resize = "none";
-            const btm = el.taskbar.getBoundingClientRect();
-            windowDiv.style.bottom = btm.height + btm.x + 5 + "px";
+            const btm = el.tbpos;
+            windowDiv.style.bottom = btm.height + 10 + "px";
         }
         var winbtns = tk.c('div', undefined, 'tnav');
         var closeButton = document.createElement('button');

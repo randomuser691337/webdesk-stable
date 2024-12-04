@@ -52,6 +52,23 @@ const fs = {
             }
         }, 9000);
     },
+    date: async function (path) {
+        let success = false;
+        try {
+            const result = await gosend('date', path, 'EchoGive');
+            success = true;
+            return result;
+        } catch (error) {
+            wm.wal(`<p>EchoDesk is encountering issues.</p>`, () => reboot(), 'Reboot Now');
+            console.error('<!> ' + error);
+        }
+
+        setTimeout(() => {
+            if (!success) {
+                echoerr();
+            }
+        }, 9000);
+    },
     write: async function (path, data) {
         let success = false;
         try {
