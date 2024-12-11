@@ -52,18 +52,6 @@ var wm = {
         div.addEventListener('click', () => ui.dest(div));
         return div;
     },
-    close: function (id) {
-        const div = document.getElementById(id);
-        if (div) {
-            hidef(id);
-            const fuck = "btn_" + id;
-            if (document.getElementById(fuck)) {
-                dest(fuck);
-            }
-        } else {
-            log(`<!> Error closing window. Window: ${div} - Button: ${document.getElementById(fuck)}`);
-        }
-    },
     max: function (wid) {
         if (wid) {
             wid.classList.toggle('max');
@@ -78,7 +66,6 @@ var wm = {
     min: async function (wid, btn) {
         if (wid) {
             const $animatedDiv = $(wid);
-            const $button = $(btn);
             const isMinimized = wid.classList.toggle('minimized');
             if (isMinimized) {
                 $animatedDiv.data('originalPOS', {
@@ -90,13 +77,13 @@ var wm = {
                 if (yeah) {
                     yeah.dispatchEvent(mousedownevent);
                 }
-                const endOffset = $button.offset();
+                const endOffset = btn.getBoundingClientRect();
                 $animatedDiv.addClass("windowanim");
                 $animatedDiv.animate({
-                    top: endOffset.top,
-                    left: endOffset.left,
+                    top: endOffset.bottom,
+                    left: endOffset.x,
                     opacity: 0,
-                }, 220, function () {
+                }, 220, "swing", function () {
                     $animatedDiv.hide();
                     $animatedDiv.removeClass("windowanim");
                 });
@@ -114,18 +101,28 @@ var wm = {
                 top: original.top,
                 left: original.left,
                 opacity: 1,
-            }, 220, function () {
+            }, 220, "swing", function () {
                 $animatedDiv.removeClass("minimized");
             });
 
         }
         wd.win(wid);
     },
-    mini: function (window) {
-        hidef(window, 120);
+    close: async function (window) {
+        const mousedownevent = new MouseEvent('mousedown');
+        focused.closebtn.dispatchEvent(mousedownevent);
     },
-    mini: function (window) {
-        showf(window, 0);
+    minimize: async function (window, tbn) {
+        const mousedownevent = new MouseEvent('mousedown');
+        wm.min(window, tbn);
+        setTimeout(async function () {
+            const yeah = await ughfine(window);
+            if (yeah) {
+                yeah.dispatchEvent(mousedownevent);
+            } else {
+                el.menubarbtn.innerText = "Desktop";
+            }
+        }, 40);
     },
     notif: function (name, cont, mode, button, mute) {
         if (mute !== true) {

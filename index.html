@@ -14,8 +14,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Dec 4, 2024",
-        ver: "0.2.3",
+        lastmod: "Dec 10, 2024",
+        ver: "0.2.4",
     }
 
     var sys = {
@@ -50,6 +50,7 @@
         nc: false,
         loclast: Date.now(),
         notifsrc: "/assets/other/notif1.ogg",
+        lowgfx: false,
     }
 
     var el = {
@@ -137,7 +138,7 @@
                 window.location.reload();
             }
             const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent
+                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent, perf
             ] = await Promise.all([
                 fs.read('/user/info/lightdarkpref'),
                 fs.read('/user/info/lightdark'),
@@ -150,8 +151,15 @@
                 fs.read('/system/appurl'),
                 fs.read('/user/info/filter'),
                 fs.read('/user/info/notifsrc'),
-                fs.read('/user/info/silent')
+                fs.read('/user/info/silent'),
+                fs.read('/system/info/lowgfx')
             ]);
+
+            if (perf === "true") {
+                sys.lowgfx = true;
+                ui.cv('bl1', '6px');
+                ui.cv('bl2', '4px');
+            }
 
             if (clocksec === "true") {
                 sys.seconds = true;
@@ -275,31 +283,28 @@
                         }
                     }
                 }
-                if (city) {
-                    setTimeout(async function () {
-                        if (window.navigator.standalone === true) {
-                            const ok = await fs.read('/system/standalonepx');
-                            let px = 0;
-                            if (!ok) {
-                                wd.tbcal();
-                            } else {
-                                if (px > 50 || px < 0) {
-                                    await fs.del('/system/standalone');
-                                    px = 0;
-                                    wd.tbcal();
-                                    return;
-                                }
-                                px = ok;
-                                if (px !== 0) {
-                                    el.taskbar.style.borderRadius = "var(--rad1)";
-                                }
-                                el.taskbar.style.bottom = px + "px";
-                            }
+                setTimeout(async function () {
+                    if (window.navigator.standalone === true) {
+                        const ok = await fs.read('/system/standalonepx');
+                        let px = 0;
+                        if (!ok) {
+                            wd.tbcal();
                         } else {
-                            setTimeout(wd.hawktuah, 200);
+                            if (px > 50 || px < 0) {
+                                await fs.del('/system/standalone');
+                                px = 0;
+                                wd.tbcal();
+                                return;
+                            }
+                            px = ok;
+                            if (px !== 0) {
+                                el.taskbar.style.borderRadius = "var(--rad1)";
+                            }
+                            el.taskbar.style.bottom = px + "px";
                         }
-                    }, 300);
-                }
+                    }
+                }, 300);
+                setTimeout(wd.hawktuah, 300);
             } else {
                 await fs.write('/system/apps.json', '[]');
             }
@@ -322,6 +327,11 @@
         } else if (migcheck === "rec") {
             await app.recovery.init();
         } else {
+            const ok = await fs.read('/system/deskid');
+            if (ok) {
+                console.log('<!> Found pre-existing WebDesk. Erasing...');
+                await fs.erase('reboot');
+            }
             wd.seasonal();
             const id = await wd.newid();
             await ptp.go(id);

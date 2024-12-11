@@ -133,14 +133,29 @@ var app = {
                     }, pane);
                 }
             }, generalPane);
+            const pgfx = tk.c('div', generalPane, 'list');
+            const okgfx = tk.c('span', pgfx);
+            okgfx.innerText = "Performance mode ";
+            tk.cb('b7', 'On', async function () {
+                wm.notif('Performance mode on', `Reboot to apply changes.`, function () {
+                    wd.reboot();
+                }, 'Reboot', true);
+                await fs.write('/system/info/lowgfx', 'true');
+            }, pgfx);
+            tk.cb('b7', 'Off', async function () {
+                wm.notif('Performance mode off', `Reboot to apply changes.`, function () {
+                    wd.reboot();
+                }, 'Reboot', true);
+                await fs.del('/system/info/lowgfx');
+            }, pgfx);
             const p = tk.c('div', generalPane, 'list');
             const ok = tk.c('span', p);
             ok.innerText = "Clock seconds ";
-            tk.cb('b3', 'On', async function () {
+            tk.cb('b7', 'On', async function () {
                 sys.seconds = true;
                 await fs.write('/user/info/clocksec', 'true');
             }, p);
-            tk.cb('b3', 'Off', async function () {
+            tk.cb('b7', 'Off', async function () {
                 sys.seconds = false;
                 await fs.write('/user/info/clocksec', 'false');
             }, p);
@@ -185,19 +200,19 @@ var app = {
             const p4 = tk.c('div', appearPane, 'list');
             const ok4 = tk.c('span', p4);
             ok4.innerText = "Notifications ";
-            tk.cb('b3', '1', async function () {
+            tk.cb('b7', '1', async function () {
                 wd.notifsrc('/assets/other/notif1.ogg', true);
             }, p4);
-            tk.cb('b3', '2', async function () {
+            tk.cb('b7', '2', async function () {
                 wd.notifsrc('/assets/other/notif2.ogg', true);
             }, p4);
-            tk.cb('b3', '3', async function () {
+            tk.cb('b7', '3', async function () {
                 wd.notifsrc('/assets/other/notif3.ogg', true);
             }, p4);
-            tk.cb('b3', '4', async function () {
+            tk.cb('b7', '4', async function () {
                 wd.notifsrc('/assets/other/notif4.ogg', true);
             }, p4);
-            tk.cb('b3', 'More', async function () {
+            tk.cb('b7', 'More', async function () {
                 const menu = tk.c('div', document.body, 'cm');
                 tk.p('Custom notification sound', 'bold', menu);
                 const the = tk.c('input', menu, 'i1');
@@ -267,34 +282,34 @@ var app = {
             const p2 = tk.c('div', accPane, 'list');
             const ok2 = tk.c('span', p2);
             ok2.innerText = "Font size ";
-            tk.cb('b3', 'Big', async function () {
+            tk.cb('b7', 'Big', async function () {
                 wd.bgft();
                 fs.write('/user/info/font', 'big');
             }, p2);
-            tk.cb('b3', 'Normal', function () {
+            tk.cb('b7', 'Normal', function () {
                 wd.meft();
                 fs.write('/user/info/font', 'normal');
             }, p2);
-            tk.cb('b3', 'Small', function () {
+            tk.cb('b7', 'Small', function () {
                 wd.smft();
                 fs.write('/user/info/font', 'small');
             }, p2);
             const p3 = tk.c('div', accPane, 'list');
             const ok3 = tk.c('span', p3);
             ok3.innerHTML = `SFW mode (Filters text before it's seen to help stop things like <a href="https://www.gaggle.net/" target="_blank">this</a>) `;
-            tk.cb('b3', 'No chances', async function () {
+            tk.cb('b7', 'No chances', async function () {
                 sys.filter = true;
                 sys.nc = true;
                 fs.write('/user/info/filter', 'nc');
                 wm.notif('No chances mode on!', `Text with filtered items simply won't be shown. WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`, undefined, undefined, true);
             }, p3);
-            tk.cb('b3', 'Filter', async function () {
+            tk.cb('b7', 'Filter', async function () {
                 sys.filter = true;
                 sys.nc = false;
                 fs.write('/user/info/filter', 'true');
                 wm.notif('SFW mode on!', `WebDesk browser isn't filtered, along with anything that's not text. Already shown text won't be filtered.`, undefined, undefined, true);
             }, p3);
-            tk.cb('b3', 'Off', function () {
+            tk.cb('b7', 'Off', function () {
                 sys.filter = false;
                 sys.nc = false;
                 fs.del('/user/info/filter');
@@ -342,9 +357,11 @@ var app = {
             }, ok.main);
             tk.cb('b1 b2', 'Update Location', async function () {
                 const data = await wd.savecity();
-                await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
+                const hawktuah = Date.now();
+                await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: hawktuah, default: false }]);
                 sys.city = data.location;
                 sys.unit = data.unit;
+                sys.loclast = hawktuah;
                 sys.defaultloc = false;
                 if (ok.unit === "Metric") {
                     sys.unitsym = "°C";
@@ -459,6 +476,7 @@ var app = {
                 sys.guest = true;
                 sys.name = "Guest";
                 wd.desktop('Guest', gen(8));
+                fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
                 wm.notif('Welcome to WebDesk!', `You've logged in as a guest, so WebDesk will be erased on reload and some features won't be available.`);
             }, first);
             tk.cb('b1', `Let's go`, () => ui.sw2(first, transfer), first);
@@ -525,8 +543,26 @@ var app = {
             // user menu
             const user = tk.c('div', main, 'setb hide');
             tk.img('./assets/img/setup/user.svg', 'setupi', user);
-            tk.p('Create a User', 'h2', user);
+            tk.p('Create User', 'h2', user);
             tk.p(`Data is stored on your device only. WebDesk does not collect any data from you. The name you enter is visible to anyone with your DeskID.`, undefined, user);
+            const p = tk.c('div', user, 'list flexthing');
+            const ok2 = tk.c('div', p, 'tnav');
+            const p2 = tk.c('div', p, 'title');
+            ok2.innerText = "Font size";
+            ok2.style.marginLeft = "4px";
+            p.style.marginBottom = "3px";
+            tk.cb('b7', 'Big', async function () {
+                wd.bgft();
+                fs.write('/user/info/font', 'big');
+            }, p2);
+            tk.cb('b7', 'Normal', function () {
+                wd.meft();
+                fs.write('/user/info/font', 'normal');
+            }, p2);
+            tk.cb('b7', 'Small', function () {
+                wd.smft();
+                fs.write('/user/info/font', 'small');
+            }, p2);
             const input = tk.c('input', user, 'i1');
             input.placeholder = "Enter a name to use with WebDesk";
             tk.cb('b1', 'Done!', function () {
@@ -625,7 +661,7 @@ var app = {
         runs: false,
         name: 'Iris',
         init: async function (contents) {
-            const win = tk.mbw('Iris Media Viewer', '400px', 'auto', undefined, undefined, undefined);
+            const win = tk.mbw('Iris', '400px', 'auto', undefined, undefined, undefined);
             if (contents.includes('data:image')) {
                 const container = tk.c('div', win.main);
                 container.style.marginBottom = "4px";
@@ -659,7 +695,6 @@ var app = {
                                 const croppedCanvas = cropperinstance.getCroppedCanvas();
                                 return croppedCanvas.toDataURL('image/png');
                             }
-
                         } else {
                             cropperinstance.destroy();
                             cropperinstance = null;
@@ -948,10 +983,10 @@ var app = {
                             }
 
                             const menu = tk.c('div', document.body, 'cm');
-                            tk.p(item.path, 'bold', menu);
-
+                            const p = tk.ps(item.path, 'bold', menu);
+                            p.style.marginBottom = "7px";
                             if (item.path.includes('/system') || item.path.includes('/user/info')) {
-                                tk.p('This is an important folder, modifying it will likely cause damage.', 'warn', menu);
+                                tk.p('Important folder, modifying it could cause damage.', 'warn', menu);
                             }
                             tk.cb('b1 b2', 'Delete folder', () => {
                                 fs.delfold(item.path);
@@ -994,44 +1029,77 @@ var app = {
                             skibidi.innerText = `Loading ${item.name}, this might take a bit`;
                             const filecontent = await fs.read(item.path);
                             const menu = tk.c('div', document.body, 'cm');
-                            tk.p(item.path, 'bold', menu);
+                            const p = tk.ps(item.path, 'bold', menu);
+                            p.style.marginBottom = "7px";
 
                             if (item.path.includes('/system') || item.path.includes('/user/info')) {
-                                tk.p('This is an important file, modifying it will likely cause damage.', 'warn', menu);
+                                tk.p('Important file, modifying it could cause damage.', 'warn', menu);
                             }
                             if (item.path.includes('/user/info/name')) {
                                 tk.p('Deleting this file will erase your data on next restart.', 'warn', menu);
                             }
-                            tk.cb('b1 b2', 'Open', async function () {
+                            if (!filecontent.includes('data:video')) {
+                                if (filecontent.includes('data:')) {
+                                    const thing = tk.img(filecontent, 'embed', menu, false);
+                                    thing.style.marginBottom = "4px";
+                                } else {
+                                    const thing = tk.c('div', menu, 'embed resizeoff');
+                                    const genit = gen(8);
+                                    thing.id = genit;
+                                    const editor = ace.edit(`${genit}`);
+                                    editor.setOptions({
+                                        fontFamily: "MonoS",
+                                        fontSize: "9px",
+                                        wrap: true,
+                                    });
+                                    if (ui.light !== true) editor.setTheme("ace/theme/monokai");
+                                    thing.style.marginBottom = "4px";
+                                    thing.style.height = "130px";
+                                    editor.resize();
+                                    editor.setValue(filecontent, -1);
+                                    editor.setReadOnly(true);
+                                }
+                            }
+
+                            const btnmenu = tk.c('div', menu, 'brick-layout');
+                            btnmenu.style.marginBottom = "4px";
+
+                            tk.cb('b3', 'Open', async function () {
                                 if (filecontent.includes('data:')) {
                                     app.imgview.init(filecontent);
                                 } else {
                                     app.textedit.init(filecontent, item.path);
                                 }
                                 ui.dest(menu);
-                            }, menu);
-                            tk.cb('b1 b2', 'Open with', function () {
+                            }, btnmenu);
+                            tk.cb('b3', 'Open with', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
-                                tk.cb('b1 b2', 'Iris Media Viewer', function () {
+                                const btnmenu2 = tk.c('div', menu2, 'brick-layout');
+                                btnmenu.style.marginBottom = "4px";
+                                tk.cb('b3', 'Iris Media Viewer', function () {
                                     app.imgview.init(filecontent);
                                     ui.dest(menu2);
-                                }, menu2);
-                                tk.cb('b1 b2', 'Text Editor', function () {
+                                }, btnmenu2);
+                                tk.cb('b3', 'Text Editor', function () {
                                     app.textedit.init(filecontent, item.path);
                                     ui.dest(menu2);
-                                }, menu2);
-                                tk.cb('b1 b2', 'console.log', function () {
+                                }, btnmenu2);
+                                tk.cb('b3', 'Weather Archive', function () {
+                                    app.wetter.init(true, filecontent);
+                                    ui.dest(menu2);
+                                }, btnmenu2);
+                                tk.cb('b3', 'console.log', function () {
                                     console.log(filecontent);
                                     ui.dest(menu2);
-                                }, menu2);
+                                }, btnmenu2);
                                 tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
-                            }, menu);
-                            tk.cb('b1 b2', 'Download', () => {
+                            }, btnmenu);
+                            tk.cb('b3', 'Download', () => {
                                 wd.download(filecontent, `WebDesk File ${gen(4)}`);
                                 ui.dest(menu);
-                            }, menu);
-                            tk.cb('b1 b2', 'WebDrop', function () {
+                            }, btnmenu);
+                            tk.cb('b3', 'WebDrop', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
                                 const input = tk.c('input', menu2, 'i1');
@@ -1047,8 +1115,8 @@ var app = {
                                         tk.cb('b1', 'Close', () => ui.dest(menu2), menu2);
                                     });
                                 }, menu2);
-                            }, menu);
-                            tk.cb('b1 b2', 'Rename/Move', function () {
+                            }, btnmenu);
+                            tk.cb('b3', 'Rename/Move', function () {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
                                 const input = tk.c('input', menu2, 'i1');
@@ -1061,12 +1129,19 @@ var app = {
                                     navto(path);
                                     ui.dest(menu2);
                                 }, menu2);
-                            }, menu);
-                            tk.cb('b1 b2', 'Delete file', () => {
-                                fs.del(item.path);
-                                ui.dest(fileItem);
+                            }, btnmenu);
+                            tk.cb('b3', 'Delete file', () => {
                                 ui.dest(menu);
-                            }, menu);
+                                const menu2 = tk.c('div', document.body, 'cm');
+                                tk.ps('Are you sure you want to delete ' + item.path + '?', undefined, menu2);
+                                tk.ps(`This cannot be undone!`, undefined, menu2);
+                                tk.cb('b1', 'Delete file', () => {
+                                    fs.del(item.path);
+                                    ui.dest(fileItem);
+                                    ui.dest(menu2);
+                                }, menu2);
+                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                            }, btnmenu);
                             tk.cb('b1', 'Cancel', () => ui.dest(menu), menu);
                             ui.dest(skibidi);
                         }, items);
@@ -1075,15 +1150,38 @@ var app = {
                             e.dataTransfer.setData('text/plain', item.path);
                         });
                         fileItem.draggable = true;
-                        fileItem.addEventListener('contextmenu', async function (e) {
-                            e.preventDefault();
+                        let isLongPress = false;
+                        let timer;
+
+                        async function openmenu() {
                             const menu2 = tk.c('div', document.body, 'cm');
                             const date = await fs.date(item.path);
                             tk.p(`<span class="bold">Created</span> ${wd.timec(date.created)}`, undefined, menu2);
                             tk.p(`<span class="bold">Edited</span> ${wd.timec(date.edit)}`, undefined, menu2);
                             tk.p(`<span class="bold">Read</span> ${wd.timec(date.read)}`, undefined, menu2);
                             tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
-                        })
+                        }
+
+                        fileItem.addEventListener('touchstart', e => {
+                            e.preventDefault();
+                            isLongPress = false;
+                            timer = setTimeout(() => {
+                                isLongPress = true;
+                                openmenu();
+                            }, 500);
+                        });
+                        fileItem.addEventListener('touchend', () => {
+                            clearTimeout(timer);
+                            if (!isLongPress) {
+                                fileItem.click();
+                            }
+                        });
+                        fileItem.addEventListener('touchmove', () => clearTimeout(timer));
+                        fileItem.addEventListener('touchcancel', () => clearTimeout(timer));
+                        fileItem.addEventListener('contextmenu', e => {
+                            e.preventDefault();
+                            openmenu();
+                        });
                     }
                 });
                 items2 = items.querySelectorAll('.flist');
@@ -1433,6 +1531,7 @@ var app = {
             const side = tk.c('div', main, 'abtlogo');
             const info = tk.c('div', main, 'abtinfo');
             const logo = tk.img('./assets/img/favicon.png', 'abtimg', side);
+            win.main.style.padding = "0px";
             tk.cb('b4 b2', 'Changes', () => wd.hawktuah(true), side);
             tk.cb('b4 b2', 'Status', async function () {
                 const win = tk.mbw('Status', '300px', undefined, true);
@@ -1608,7 +1707,7 @@ var app = {
     wetter: {
         runs: true,
         name: 'Weather',
-        init: async function () {
+        init: async function (archive, file) {
             const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
             win.win.style.minWidth = "210px;"
             /* const canvas = tk.c('canvas', document.body);
@@ -1623,11 +1722,30 @@ var app = {
             }
             win.main.innerHTML = "Loading";
             async function refresh() {
-                const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
-                const info = await response.json();
+                let response;
+                let info;
+                if (archive !== true) {
+                    response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
+                    info = await response.json();
+                } else {
+                    info = await JSON.parse(file);
+                }
                 win.main.innerHTML = "";
                 const skibidi = tk.c('div', win.main);
-                tk.p(`${sys.city}`, 'med', skibidi);
+                if (archive !== true) {
+                    tk.p(`${sys.city}`, 'med', skibidi);
+                    win.name.innerHTML = "";
+                    tk.cb('b3', 'Archive data', async function () {
+                        const the = await app.files.pick('new', 'Save weather archive file... (JSON)');
+                        const silly = info;
+                        silly.timestamp = Date.now();
+                        await fs.write(the + ".json", silly);
+                        wm.snack('Saved weather to ' + the + ".json");
+                    }, win.name);
+                } else {
+                    tk.p(`${sys.city}`, 'med', skibidi);
+                    tk.ps('Archived: ' + wd.timec(info.timestamp), undefined, skibidi);
+                }
                 const userl = tk.c('div', skibidi, 'list flexthing');
                 const tnav = tk.c('div', userl, 'tnav');
                 const title = tk.c('div', userl, 'title');
@@ -1637,8 +1755,8 @@ var app = {
                 const img = tk.img('', 'weatheri', title);
                 title.style.maxHeight = "40px";
                 img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
-                tk.p(`Humidity is ${info.main.humidity}%, and it feels like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
-                tk.p(`Weather data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap</a>`, 'smtxt', skibidi);
+                tk.p(`Humidity ${archive = archive === true ? "was" : "is"} ${info.main.humidity}%, and it ${archive = archive === true ? "felt" : "feels"} like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
+                tk.p(`Data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap.</a>`, 'smtxt', skibidi);
                 tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
                 tk.cb('b1', 'Refresh', function () {
                     refresh(); wm.snack('Refreshed');
@@ -1708,13 +1826,12 @@ var app = {
 
             console.log(`<i> Installing ${apploc}`);
             const apps = await fs.read('/system/apps.json');
-            const ok = await execute(sys.appurl + apploc);
             const newen = { name: app.name, ver: app.ver, installedon: Date.now(), dev: app.pub, appid: app.appid, exec: '/system/apps/' + app.appid + '.js' };
-            await fs.write('/system/apps/' + app.appid + '.js', ok);
             const jsondata = JSON.parse(apps);
             const check = jsondata.some(entry => entry.appid === newen.appid);
             if (check === true) {
                 wm.snack('Already installed');
+                return;
             } else {
                 jsondata.push(newen);
                 if (update === true) {
@@ -1724,6 +1841,8 @@ var app = {
                 }
                 fs.write('/system/apps.json', jsondata);
             }
+            const ok = await execute(sys.appurl + apploc);
+            await fs.write('/system/apps/' + app.appid + '.js', ok);
         },
         init: async function () {
             const win = tk.mbw('App Market', '340px', 'auto', true, undefined, undefined);
@@ -1743,7 +1862,6 @@ var app = {
                     console.log(error);
                 }
             }
-            tk.p('Welcome to the App Market!', undefined, apps);
             tk.p(`Look for things you might want, all apps have <span class="bold">full access</span> to this WebDesk/it's files. Anything in this store is safe.`, undefined, apps);
             if (sys.dev === true) {
                 tk.cb('b1', 'Sideload', function () {
@@ -2139,7 +2257,7 @@ var app = {
                         callStatus.textContent = `Other person didn't answer`;
                         call.close();
                     }
-                }, 28000);
+                }, 24000);
 
                 call.on('stream', (remoteStream) => {
                     oncall = true;
