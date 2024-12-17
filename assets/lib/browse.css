@@ -16,6 +16,13 @@
     padding: 7px;
 }
 
+.browserREALtab {
+    background-color: #fff;
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+    padding: 0px !important;
+}
+
 .browsercont {
     display: flex;
     flex-direction: column;

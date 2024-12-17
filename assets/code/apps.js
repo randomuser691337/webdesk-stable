@@ -135,15 +135,21 @@ var app = {
             }, generalPane);
             const pgfx = tk.c('div', generalPane, 'list');
             const okgfx = tk.c('span', pgfx);
-            okgfx.innerText = "Performance mode ";
-            tk.cb('b7', 'On', async function () {
-                wm.notif('Performance mode on', `Reboot to apply changes.`, function () {
+            okgfx.innerText = "Limit Effects ";
+            tk.cb('b7', 'Most', async function () {
+                wm.notif('Performance mode on', `Effects limited/disabled. Reboot to apply.`, function () {
                     wd.reboot();
                 }, 'Reboot', true);
                 await fs.write('/system/info/lowgfx', 'true');
             }, pgfx);
-            tk.cb('b7', 'Off', async function () {
-                wm.notif('Performance mode off', `Reboot to apply changes.`, function () {
+            tk.cb('b7', 'Some', async function () {
+                wm.notif('Performance mode halved', `Effects will show, but not all. Reboot to apply.`, function () {
+                    wd.reboot();
+                }, 'Reboot', true);
+                await fs.write('/system/info/lowgfx', 'half');
+            }, pgfx);
+            tk.cb('b7', 'None', async function () {
+                wm.notif('Performance mode off', `All effects are enabled. Reboot to apply.`, function () {
                     wd.reboot();
                 }, 'Reboot', true);
                 await fs.del('/system/info/lowgfx');
@@ -420,7 +426,7 @@ var app = {
             ui.hide(tk.g('death'), 200);
             const main = tk.c('div', tk.g('setuparea'), 'setupbox');
             // HAHAHAHAHA FUNNY NUMBER!!!!
-            main.style.height = "420px";
+            main.style.height = "425px";
             // create setup menubar
             const bar = tk.c('div', main, 'setupbar');
             const tnav = tk.c('div', bar, 'tnav');
@@ -476,7 +482,7 @@ var app = {
                 sys.guest = true;
                 sys.name = "Guest";
                 wd.desktop('Guest', gen(8));
-                fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
+                fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders, right-click/tap and hold a file to see it's info, and normal tap/click it to open it.`);
                 wm.notif('Welcome to WebDesk!', `You've logged in as a guest, so WebDesk will be erased on reload and some features won't be available.`);
             }, first);
             tk.cb('b1', `Let's go`, () => ui.sw2(first, transfer), first);
@@ -950,9 +956,26 @@ var app = {
                     tk.cb('flists', '/', undefined, breadcrumbs);
                     tk.cb('flist flists', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
                 });
-
                 currentPath = tempPath;
-
+                const ok = tk.cb('b4', '+', function () {
+                    const menu = tk.c('div', document.body, 'rightclick');
+                    const pos = ok.getBoundingClientRect();
+                    const thing = { clientX: pos.left, clientY: pos.top };
+                    ui.rightclick(menu, thing, ok, true);
+                    const input = tk.c('input', menu, 'i1');
+                    input.placeholder = "Name your thing, hit a button";
+                    tk.cb('b3 b2', 'New text file', function () {
+                        if (input.value) {
+                            fs.write(tempPath + input.value, ' ');
+                            navto(currentPath);
+                            app.textedit.init('', tempPath + input.value);
+                            ui.dest(menu, 0);
+                        } else {
+                            wm.snack('Enter a name for your folder!');
+                        }
+                    }, menu);
+                }, breadcrumbs);
+                ok.style.marginLeft = "3px";
                 if (dragoverListener) items.removeEventListener('dragover', dragoverListener);
                 if (dropListener) items.removeEventListener('drop', dropListener);
 
@@ -990,6 +1013,7 @@ var app = {
                             }
                             tk.cb('b1 b2', 'Delete folder', () => {
                                 fs.delfold(item.path);
+                                ui.slidehide(folder);
                                 ui.dest(folder);
                                 ui.dest(menu);
                             }, menu);
@@ -1017,7 +1041,9 @@ var app = {
                             openmenu();
                         });
                     } else {
-                        if (item.name === "") return;
+                        if (item.name === "" || item.name.startsWith('.', 1)) {
+                            return;
+                        }
 
                         const fileItem = tk.cb('flist width', "File: " + item.name, async function () {
                             if (!sys.dev && item.path.includes('/system') || item.path.includes('/user/info') && sys.dev === false) {
@@ -1137,6 +1163,7 @@ var app = {
                                 tk.ps(`This cannot be undone!`, undefined, menu2);
                                 tk.cb('b1', 'Delete file', () => {
                                     fs.del(item.path);
+                                    ui.slidehide(fileItem);
                                     ui.dest(fileItem);
                                     ui.dest(menu2);
                                 }, menu2);
@@ -1153,17 +1180,20 @@ var app = {
                         let isLongPress = false;
                         let timer;
 
-                        async function openmenu() {
-                            const menu2 = tk.c('div', document.body, 'cm');
+                        async function openmenu(event) {
+                            const menu2 = tk.c('div', document.body, 'rightclick');
                             const date = await fs.date(item.path);
                             tk.p(`<span class="bold">Created</span> ${wd.timec(date.created)}`, undefined, menu2);
                             tk.p(`<span class="bold">Edited</span> ${wd.timec(date.edit)}`, undefined, menu2);
                             tk.p(`<span class="bold">Read</span> ${wd.timec(date.read)}`, undefined, menu2);
-                            tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                            if (!event) {
+                                ui.rightclick(menu2, undefined, fileItem);
+                            } else {
+                                ui.rightclick(menu2, event, fileItem);
+                            }
                         }
 
                         fileItem.addEventListener('touchstart', e => {
-                            e.preventDefault();
                             isLongPress = false;
                             timer = setTimeout(() => {
                                 isLongPress = true;
@@ -1172,16 +1202,15 @@ var app = {
                         });
                         fileItem.addEventListener('touchend', () => {
                             clearTimeout(timer);
-                            if (!isLongPress) {
-                                fileItem.click();
-                            }
                         });
                         fileItem.addEventListener('touchmove', () => clearTimeout(timer));
                         fileItem.addEventListener('touchcancel', () => clearTimeout(timer));
-                        fileItem.addEventListener('contextmenu', e => {
-                            e.preventDefault();
-                            openmenu();
-                        });
+                        if (sys.mob === false) {
+                            fileItem.addEventListener('contextmenu', e => {
+                                e.preventDefault();
+                                openmenu(e);
+                            });
+                        }
                     }
                 });
                 items2 = items.querySelectorAll('.flist');
@@ -1724,6 +1753,7 @@ var app = {
             async function refresh() {
                 let response;
                 let info;
+                let unitsym = sys.unitsym;
                 if (archive !== true) {
                     response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
                     info = await response.json();
@@ -1743,7 +1773,16 @@ var app = {
                         wm.snack('Saved weather to ' + the + ".json");
                     }, win.name);
                 } else {
-                    tk.p(`${sys.city}`, 'med', skibidi);
+                    if (archive !== true) {
+                        tk.p(`${sys.city}`, 'med', skibidi);
+                    } else {
+                        if (info.sys.country !== "US") {
+                            unitsym = "°C";
+                        } else {
+                            unitsym = "°F";
+                        }
+                        tk.p(`${info.name}, ${info.sys.country}`, 'med', skibidi);
+                    }
                     tk.ps('Archived: ' + wd.timec(info.timestamp), undefined, skibidi);
                 }
                 const userl = tk.c('div', skibidi, 'list flexthing');
@@ -1751,7 +1790,7 @@ var app = {
                 const title = tk.c('div', userl, 'title');
                 tnav.style.marginLeft = "6px";
                 userl.style.marginBottom = "6px";
-                tnav.innerText = `${Math.ceil(info.main.temp)}${sys.unitsym}, ${info.weather[0].description}`;
+                tnav.innerText = `${Math.ceil(info.main.temp)}${unitsym}, ${info.weather[0].description}`;
                 const img = tk.img('', 'weatheri', title);
                 title.style.maxHeight = "40px";
                 img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
@@ -2008,7 +2047,6 @@ var app = {
                     const data = await fs.read('/user/info/contactlist.json');
                     if (data) {
                         ok = JSON.parse(data);
-                        let yeah = 0;
                         ok.forEach((entry) => {
                             const notif = tk.c('div', win.main, 'notif2');
                             tk.ps(entry.name, 'bold', notif);
@@ -2021,7 +2059,8 @@ var app = {
                                 const update = ok.filter(item => item.time !== entry.time);
                                 const updated = JSON.stringify(update);
                                 await fs.write('/user/info/contactlist.json', updated);
-                                reload();
+                                ui.slidehide(notif);
+                                ui.dest(notif);
                             }, notif);
                             tk.cb('b4', 'Edit', async function () {
                                 const update = ok.find(item => item.time === entry.time);
@@ -2115,7 +2154,7 @@ var app = {
             win.main.classList = "browsercont";
             const searchInput = tk.c('input', okiedokie, 'i1 b6');
             function addtab(ok) {
-                const tab = tk.c('embed', win.main, 'browsertab');
+                const tab = tk.c('embed', win.main, 'browsertab browserREALtab');
                 if (ok) {
                     tab.src = ok;
                 } else {
@@ -2214,7 +2253,7 @@ var app = {
             ui.dest(win.title, 0);
             const tabs = tk.c('div', win.main, 'tabbar d');
             const btnnest = tk.c('div', tabs, 'tnav');
-            const tab = tk.c('embed', win.main, 'browsertab');
+            const tab = tk.c('embed', win.main, 'browsertab browserREALtab');
             win.main.classList = "browsercont";
             const fucker = tk.cb('winb red', '', function () {
                 ui.dest(win.win, 150);

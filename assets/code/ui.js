@@ -8,8 +8,8 @@ var ui = {
         ui.cv('accent', accent);
     },
     crtheme: async function (hex, opt) {
-        const a = ui.hextool(hex, 25);
-        ui.theme(ui.hextool(hex, 12), a, ui.hextool(hex, 35), ui.hextool(hex, 50), ui.hextorgb(ui.hextool(hex, 55)));
+        const a = ui.hextool(hex, 15);
+        ui.theme(ui.hextool(hex, 25), a, ui.hextool(hex, 45), ui.hextool(hex, 55), ui.hextorgb(ui.hextool(hex, 55)));
         if (!opt === true) {
             await fs.write('/user/info/color', hex);
             if (sys.autodarkacc === true) {
@@ -44,6 +44,15 @@ var ui = {
                 $(dr1).hide();
             } else {
                 $(dr1).fadeOut(210);
+            }
+        }
+    },
+    slidehide: function (dr1, anim) {
+        if (dr1) {
+            if (anim) {
+                $(dr1).slideUp(anim);
+            } else {
+                $(dr1).slideUp(210);
             }
         }
     },
@@ -333,7 +342,34 @@ var ui = {
                 }
             });
         }
-    }
+    },
+    rightclick: function (menu, event, btn, invert) {
+        if (!event || sys.mob === true) {
+            ui.center(menu);
+        } else if (invert === true) {
+            const rect = menu.getBoundingClientRect();
+            menu.style.left = event.clientX - rect.width + 10 + "px";
+            menu.style.top = event.clientY - 10 + "px";
+        } else {
+            menu.style.left = event.clientX - 10 + "px";
+            menu.style.top = event.clientY - 10 + "px";
+        }
+
+        if (btn) {
+            const hover = new Event('mouseover');
+            btn.dispatchEvent(hover);
+        }
+        document.body.addEventListener('mousedown', function (event) {
+            const parentDiv = event.target.parentElement;
+            if (parentDiv?.tagName === 'DIV' && ![menu].includes(parentDiv)) {
+                if (btn) {
+                    const stop = new Event('mouseout');
+                    btn.dispatchEvent(stop);
+                }
+                ui.dest(menu, 50);
+            }
+        });
+    },
 }
 var tk = {
     c: function (type, ele, classn) {

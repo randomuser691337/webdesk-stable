@@ -128,15 +128,23 @@ var wm = {
         if (mute !== true) {
             ui.play(sys.notifsrc);
         }
-        const div = tk.c('div', document.getElementById('notif'), 'notif');
+        const div = tk.c('div', tk.g('notif'), 'notif');
         const title = tk.p(name, 'bold', div);
         let content;
         if (cont) {
             content = tk.p(cont, undefined, div);
         }
-        const dbtn = tk.cb('b4', 'Close', function () {
-            ui.dest(div, 240);
-        }, div);
+        function ok() {
+            $(div).css({ opacity: 1 })
+                .animate(
+                    { opacity: 0 },
+                    { duration: 210, queue: false }
+                )
+                .slideUp(210, function () {
+                    ui.dest(div, 0);
+                });
+        }
+        const dbtn = tk.cb('b4', 'Close', () => ok(), div);
         let the = "Open";
         if (button) {
             the = button;
@@ -144,7 +152,7 @@ var wm = {
         if (mode) {
             const open = tk.cb('b4', the, undefined, div);
             open.addEventListener('click', mode);
-            open.addEventListener('click', function () { ui.dest(div, 120); });
+            open.addEventListener('click', () => ok());
         }
         const txt = tk.c('span', div, 'med');
         txt.innerText = ` ${wd.timecs(Date.now())}`

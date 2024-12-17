@@ -12,8 +12,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Dec 10, 2024",
-        ver: "0.2.4",
+        lastmod: "Dec 17, 2024",
+        ver: "0.2.5",
     }
 
     var sys = {
@@ -48,6 +48,7 @@
         loclast: Date.now(),
         notifsrc: "/assets/other/notif1.ogg",
         lowgfx: false,
+        lockscreen: true,
     }
     var el = {
         taskbar: undefined,
@@ -119,7 +120,7 @@
             sys.echoid = id;
             await ptp.go(id2);
         } else {
-            ui.hide(tk.g('death'), 180);
+            ui.hide(tk.g('death'), 140);
             wm.wal(`<p class="bold">Provide DeskID</p><p>You're trying to boot nothing. That doesn't really work, so make sure you've filled the DeskID field.</p><p>If you're visiting this file as a developer: append ?deskid=[the echodeskid here] to the URL to boot.`);
         }
     }
@@ -127,7 +128,7 @@
         let boot = false;
         setTimeout(function () {
             if (boot === false) {
-                ui.hide(tk.g('death'), 180);
+                ui.hide(tk.g('death'), 140);
                 wm.wal(`<p class="bold">EchoDesk failed to boot</p><p>Click "Try Again" if you want, otherwise check the other WebDesk, make sure your connection is OK, and disable your VPN if it's on.</p>`, () => reboot(), 'Try Again', 'noclose');
             }
         }, 10000);
@@ -155,8 +156,15 @@
 
             if (perf === "true") {
                 sys.lowgfx = true;
+                ui.cv('bl1', '4px');
+                ui.cv('bl2', '4px');
+                ui.cv('optbox', 'none');
+                ui.cv('mangomango', '0px');
+            } else if (perf === "half") {
+                sys.lowgfx = true;
                 ui.cv('bl1', '6px');
                 ui.cv('bl2', '4px');
+                ui.cv('mangomango', '1px');
             }
 
             if (clocksec === "true") {
@@ -276,7 +284,7 @@
         }
 
         wd.perfmon();
-        ui.hide(tk.g('death'), 180);
+        ui.hide(tk.g('death'), 140);
         wm.notif('Welcome to EchoDesk', `Your current DeskID is temporary, and some features are disabled.`);
         app.ach.unlock(`EchoDesk`, `Better than remote desktop in some cases?`);
         const dropZone = document.body;

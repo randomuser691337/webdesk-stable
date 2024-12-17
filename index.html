@@ -14,8 +14,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Dec 10, 2024",
-        ver: "0.2.4",
+        lastmod: "Dec 17, 2024",
+        ver: "0.2.5",
     }
 
     var sys = {
@@ -51,6 +51,7 @@
         loclast: Date.now(),
         notifsrc: "/assets/other/notif1.ogg",
         lowgfx: false,
+        lockscreen: true,
     }
 
     var el = {
@@ -72,7 +73,8 @@
 
 <body>
     <div id="contain">
-        <div id="background"></div>
+        <div id="background" class="dark background"></div>
+        <div id="background" class="background"></div>
         <div class="circle"></div>
         <div class="circle2"></div>
     </div>
@@ -123,7 +125,7 @@
                 ui.crtheme('#010101', true);
                 wd.dark('nosave');
                 app.migrate.init('skibidi');
-                ui.hide(tk.g('death'), 190);
+                ui.hide(tk.g('death'), 140);
                 boot = true;
                 return;
             }
@@ -157,8 +159,15 @@
 
             if (perf === "true") {
                 sys.lowgfx = true;
+                ui.cv('bl1', '4px');
+                ui.cv('bl2', '4px');
+                ui.cv('optbox', 'none');
+                ui.cv('mangomango', '0px');
+            } else if (perf === "half") {
+                sys.lowgfx = true;
                 ui.cv('bl1', '6px');
                 ui.cv('bl2', '4px');
+                ui.cv('mangomango', '1px');
             }
 
             if (clocksec === "true") {
@@ -229,10 +238,8 @@
             } else {
                 wd.meft();
             }
-            const placehold = await fs.read('/user/files/Welcome to WebDesk!.txt');
-            if (!placehold) {
-                fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders.`);
-            }
+            fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders, right-click/tap and hold a file to see it's info, and normal tap/click it to open it.`);
+
             sys.setupd = true;
             sys.name = sd;
             if (darkpref === "auto") {
@@ -341,7 +348,7 @@
         }
 
         wd.perfmon();
-        ui.hide(tk.g('death'), 190);
+        ui.hide(tk.g('death'), 140);
 
         const dropZone = document.body;
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
