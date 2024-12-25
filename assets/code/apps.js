@@ -3,7 +3,7 @@ var app = {
         runs: true,
         name: 'Settings',
         init: async function () {
-            const main = tk.mbw('Settings', '300px', 'auto', true, undefined, undefined);
+            const main = tk.mbw('Settings', '320px', 'auto', true, undefined, undefined);
             const generalPane = tk.c('div', main.main, 'hide');
             const appearPane = tk.c('div', main.main, 'hide');
             const accPane = tk.c('div', main.main, 'hide');
@@ -135,24 +135,30 @@ var app = {
             }, generalPane);
             const pgfx = tk.c('div', generalPane, 'list');
             const okgfx = tk.c('span', pgfx);
-            okgfx.innerText = "Limit Effects ";
-            tk.cb('b7', 'Most', async function () {
-                wm.notif('Performance mode on', `Effects limited/disabled. Reboot to apply.`, function () {
+            okgfx.innerText = "Graphics ";
+            tk.cb('b7', 'Low', async function () {
+                wm.notif('Graphics set to low', `Reboot to apply`, function () {
                     wd.reboot();
                 }, 'Reboot', true);
                 await fs.write('/system/info/lowgfx', 'true');
             }, pgfx);
-            tk.cb('b7', 'Some', async function () {
-                wm.notif('Performance mode halved', `Effects will show, but not all. Reboot to apply.`, function () {
+            tk.cb('b7', 'Medium', async function () {
+                wm.notif('Graphics set to medium', `Reboot to apply`, function () {
                     wd.reboot();
                 }, 'Reboot', true);
                 await fs.write('/system/info/lowgfx', 'half');
             }, pgfx);
-            tk.cb('b7', 'None', async function () {
-                wm.notif('Performance mode off', `All effects are enabled. Reboot to apply.`, function () {
+            tk.cb('b7', 'High', async function () {
+                wm.notif('Graphics set to high (default)', `Reboot to apply`, function () {
                     wd.reboot();
                 }, 'Reboot', true);
                 await fs.del('/system/info/lowgfx');
+            }, pgfx);
+            tk.cb('b7', 'Epic', async function () {
+                wm.notif('Graphics set to epic', `Reboot to apply`, function () {
+                    wd.reboot();
+                }, 'Reboot', true);
+                await fs.write('/system/info/lowgfx', 'epic');
             }, pgfx);
             const p = tk.c('div', generalPane, 'list');
             const ok = tk.c('span', p);
@@ -943,7 +949,6 @@ var app = {
             var currentPath = undefined;
             let dragoverListener = null;
             let dropListener = null;
-
             async function navto(path) {
                 items.innerHTML = "";
                 breadcrumbs.innerHTML = "";
@@ -982,9 +987,11 @@ var app = {
                 dragoverListener = e => e.preventDefault();
                 dropListener = async e => {
                     e.preventDefault();
+                    el.dropped = true;
                     const text = e.dataTransfer.getData('text/plain');
                     const fileData = await fs.read(text);
                     const relativePath = text.split('/').pop();
+                    await fs.del(text);
                     await fs.write(currentPath + relativePath, fileData);
                     setTimeout(() => navto(currentPath), 300);
                 };
@@ -1026,7 +1033,7 @@ var app = {
                             timer = setTimeout(() => {
                                 isLongPress = true;
                                 openmenu();
-                            }, 500);
+                            }, 400);
                         });
                         folder.addEventListener('touchend', () => {
                             clearTimeout(timer);
@@ -1176,6 +1183,17 @@ var app = {
                         fileItem.addEventListener('dragstart', e => {
                             e.dataTransfer.setData('text/plain', item.path);
                         });
+
+                        fileItem.addEventListener('dragend', e => {
+                            setTimeout(function () {
+                                console.log(el.dropped)
+                                if (el.dropped === true) {
+                                    console.log('waddafak')
+                                    ui.slidehide(fileItem);
+                                    ui.dest(fileItem);
+                                }
+                            }, 100);
+                        });
                         fileItem.draggable = true;
                         let isLongPress = false;
                         let timer;
@@ -1193,18 +1211,43 @@ var app = {
                             }
                         }
 
+                        let startX, startY, isScrolling;
+
+                        // I'll deal with it later
                         fileItem.addEventListener('touchstart', e => {
+                            e.preventDefault();
                             isLongPress = false;
+                            isScrolling = false;
+                            startX = e.touches[0].clientX;
+                            startY = e.touches[0].clientY;
+
                             timer = setTimeout(() => {
-                                isLongPress = true;
-                                openmenu();
-                            }, 500);
+                                if (!isScrolling) {
+                                    isLongPress = true;
+                                    openmenu();
+                                }
+                            }, 400);
                         });
+
+                        fileItem.addEventListener('touchmove', e => {
+                            const moveX = e.touches[0].clientX;
+                            const moveY = e.touches[0].clientY;
+
+                            if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+                                isScrolling = true;
+                                clearTimeout(timer);
+                            }
+                        });
+
                         fileItem.addEventListener('touchend', () => {
                             clearTimeout(timer);
+                            if (!isLongPress && !isScrolling) {
+                                fileItem.click();
+                            }
                         });
-                        fileItem.addEventListener('touchmove', () => clearTimeout(timer));
+
                         fileItem.addEventListener('touchcancel', () => clearTimeout(timer));
+
                         if (sys.mob === false) {
                             fileItem.addEventListener('contextmenu', e => {
                                 e.preventDefault();
@@ -1893,7 +1936,7 @@ var app = {
                     const apps = await response.json();
                     apps.forEach(function (app2) {
                         const notif = tk.c('div', win.main, 'notif2');
-                        tk.p(`<span class="bold">${app2.name}</bold> by ${app2.pub}`, 'bold', notif);
+                        tk.p(`<span class="bold">${app2.name}</span> by ${app2.pub}`, undefined, notif);
                         tk.p(app2.info, undefined, notif);
                         tk.cb('b3', 'App ID', () => wm.notif(`${app2.name}'s App ID:`, app2.appid, () => ui.copy(app2.appid), 'Copy', true), notif); tk.cb('b3', 'Install', () => app.appmark.create(app2.path, app2), notif)
                     });

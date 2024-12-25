@@ -83,7 +83,7 @@ var wm = {
                     top: endOffset.bottom,
                     left: endOffset.x,
                     opacity: 0,
-                }, 220, "swing", function () {
+                }, 260, "swing", function () {
                     $animatedDiv.hide();
                     $animatedDiv.removeClass("windowanim");
                 });
@@ -101,7 +101,7 @@ var wm = {
                 top: original.top,
                 left: original.left,
                 opacity: 1,
-            }, 220, "swing", function () {
+            }, 260, "swing", function () {
                 $animatedDiv.removeClass("minimized");
             });
 
@@ -129,25 +129,25 @@ var wm = {
             ui.play(sys.notifsrc);
         }
         const div = tk.c('div', tk.g('notif'), 'notif');
-        const title = tk.p(name, 'bold', div);
+        const title = tk.p(ui.filter(name), 'bold', div);
         let content;
         if (cont) {
-            content = tk.p(cont, undefined, div);
+            content = tk.p(ui.filter(cont), undefined, div);
         }
         function ok() {
             $(div).css({ opacity: 1 })
                 .animate(
                     { opacity: 0 },
-                    { duration: 210, queue: false }
+                    { duration: 260, queue: false }
                 )
-                .slideUp(210, function () {
+                .slideUp(260, function () {
                     ui.dest(div, 0);
                 });
         }
         const dbtn = tk.cb('b4', 'Close', () => ok(), div);
         let the = "Open";
         if (button) {
-            the = button;
+            the = ui.filter(button);
         }
         if (mode) {
             const open = tk.cb('b4', the, undefined, div);

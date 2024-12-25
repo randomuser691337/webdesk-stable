@@ -8,7 +8,7 @@ var ui = {
         ui.cv('accent', accent);
     },
     crtheme: async function (hex, opt) {
-        const a = ui.hextool(hex, 15);
+        const a = ui.hextool(hex, 45);
         ui.theme(ui.hextool(hex, 25), a, ui.hextool(hex, 45), ui.hextool(hex, 55), ui.hextorgb(ui.hextool(hex, 55)));
         if (!opt === true) {
             await fs.write('/user/info/color', hex);
@@ -370,6 +370,14 @@ var ui = {
             }
         });
     },
+    note: function (contents, div) {
+        const fuck = document.createElement('span');
+        fuck.innerHTML = ui.filter(" " + contents, fuck);
+        fuck.classList = 'rsmtxt';
+        fuck.style.opacity = "70%";
+        div.appendChild(fuck);
+        return fuck;
+    },
 }
 var tk = {
     c: function (type, ele, classn) {
@@ -451,7 +459,7 @@ var tk = {
                 const rect = e.target.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-                e.target.style.background = `radial-gradient(circle at ${x}px ${y}px , rgba(var(--accent), 0.65),rgba(var(--accent), 0.5))`;
+                e.target.style.background = `radial-gradient(circle at ${x}px ${y}px , rgba(var(--accent), 0.62),rgba(var(--accent), 0.53))`;
             });
         }
 
@@ -472,13 +480,13 @@ var tk = {
             windowDiv.style.maxHeight = "90vh";
         } else {
             const btm2 = el.mbpos;
-            windowDiv.style.top = btm2.height + 5 + "px";
-            windowDiv.style.left = "5px";
-            windowDiv.style.right = "5px";
+            windowDiv.style.top = btm2.height + 8 + "px";
+            windowDiv.style.left = "8px";
+            windowDiv.style.right = "8px";
             windowDiv.style.boxShadow = "none";
             windowDiv.style.resize = "none";
             const btm = el.tbpos;
-            windowDiv.style.bottom = btm.height + 5 + "px";
+            windowDiv.style.bottom = btm.height + 12 + "px";
         }
         var winbtns = tk.c('div', undefined, 'tnav');
         var closeButton = document.createElement('button');

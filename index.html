@@ -14,8 +14,8 @@
 </head>
 <script>
     var abt = {
-        lastmod: "Dec 17, 2024",
-        ver: "0.2.5",
+        lastmod: "Dec 25, 2024",
+        ver: "0.2.6",
     }
 
     var sys = {
@@ -63,6 +63,7 @@
         sm: undefined,
         tr: undefined,
         cc: undefined,
+        dropped: false,
     }
 
     var wc = {
@@ -73,7 +74,7 @@
 
 <body>
     <div id="contain">
-        <div id="background" class="dark background"></div>
+        <div class="dark background"></div>
         <div id="background" class="background"></div>
         <div class="circle"></div>
         <div class="circle2"></div>
@@ -159,15 +160,20 @@
 
             if (perf === "true") {
                 sys.lowgfx = true;
-                ui.cv('bl1', '4px');
-                ui.cv('bl2', '4px');
+                ui.cv('bl1', '3px');
+                ui.cv('bl2', '3px');
                 ui.cv('optbox', 'none');
                 ui.cv('mangomango', '0px');
             } else if (perf === "half") {
-                sys.lowgfx = true;
-                ui.cv('bl1', '6px');
+                ui.cv('bl1', '7px');
                 ui.cv('bl2', '4px');
+                ui.cv('optbox', 'none');
                 ui.cv('mangomango', '1px');
+            } else if (perf === "epic") {
+                ui.cv('bl1', '15px');
+                ui.cv('bl2', '12px');
+                ui.cv('optbox', 'none');
+                ui.cv('mangomango', '6px');
             }
 
             if (clocksec === "true") {
