@@ -5,10 +5,10 @@
     --bg2: #aaccff;
     --accent: 0, 60, 255;
     --acc: var(--accent);
-    --ui1: rgb(255, 255, 255, 0.4);
+    --ui1: rgb(255, 255, 255, 0.5);
     --ui2: #ffffff;
     --ui3: #ededed;
-    --bc: rgb(220, 220, 220, 0.4);
+    --bc: rgb(204, 204, 204, 0.5);
     --font: #000;
     --bl1: 10px;
     --bl2: 6px;
@@ -182,7 +182,7 @@ p {
     max-height: 85% !important;
     animation: setup 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     width: 550px;
-    height: 405px;
+    height: 420px;
     overflow: auto !important;
     z-index: 4 !important;
 }
@@ -235,28 +235,6 @@ p {
     box-shadow: rgba(0, 0, 0, 0.30) 0px 0px 150px 30px;
 }
 
-.tb {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
-    padding-left: 11px;
-    padding-right: 11px;
-    background-color: var(--ui2);
-    width: 100%;
-    box-sizing: border-box;
-    user-select: none;
-    border-top-left-radius: 13px;
-    border-top-right-radius: 13px;
-    border-bottom: 1px solid var(--bc);
-    transition: 0.05s;
-    z-index: 1;
-    position: sticky;
-    top: 0;
-    cursor: default !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-}
-
 .winf {
     box-shadow: rgba(0, 0, 0, 0.30) 0px 0px 150px 30px;
 }
@@ -273,17 +251,17 @@ p {
     }
 
     100% {
-        transform: scale(0.5);
+        transform: scale(0.2);
     }
 }
 
 .windowanim {
-    animation: scalething 0.22s ease;
+    animation: scalething 0.22s;
 }
 
 @keyframes scalething2 {
     0% {
-        transform: scale(0.4);
+        transform: scale(0.1);
     }
 
     100% {
@@ -292,8 +270,9 @@ p {
 }
 
 .windowanim2 {
-    animation: scalething2 0.22s ease;
+    animation: scalething2 0.22s;
 }
+
 
 .tb {
     display: flex;
@@ -310,8 +289,9 @@ p {
     border-top-right-radius: 13px;
     border-bottom: 1px solid var(--bc);
     transition: 0.05s;
-    z-index: 9999;
+    z-index: 9999 !important;
     cursor: default !important;
+    flex-wrap: wrap;
 }
 
 .tnav {
@@ -327,8 +307,8 @@ p {
 .title {
     flex-grow: 1;
     text-align: right;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
     margin-left: 2px;
 }
 
@@ -563,17 +543,18 @@ p {
 }
 
 .linkbtn {
-    padding: 1px;
-    border-radius: 9px;
-    background-color: rgba(var(--accent), 0.2);
-    font-size: var(--fz3);
+    text-decoration: underline;
+    background-color: rgb(0, 0, 0, 0);
+    font-size: var(--fz1);
     border: none;
     cursor: pointer !important;
     transition: all 0.01s ease-in-out;
+    margin: 0px;
+    padding: 0px;
 }
 
 .linkbtn:active {
-    background-color: rgba(var(--accent), 0.3);
+    opacity: 70%;
 }
 
 .b7 {
@@ -860,7 +841,7 @@ p {
 }
 
 .list {
-    padding: 5px;
+    padding: 6px;
     background-color: var(--ui2);
     border-radius: var(--rad2);
     width: 100%;
@@ -876,6 +857,20 @@ p {
 
 .yb {
     background-color: rgba(255, 220, 30, 0.5);
+}
+
+/* ugh */
+.mbimage {
+    height: 100%;
+    vertical-align: middle;
+    display: inline-block;
+    flex-grow: 1;
+    object-fit: cover;
+    margin-bottom: 1px;
+    overflow-clip-margin: content-box;
+    overflow: clip;
+    margin-right: 2px;
+    transform: scale(0.8);
 }
 
 .menubardiv {
@@ -903,7 +898,7 @@ p {
     left: 0px;
     right: 0px;
     top: 0px;
-    padding: 4px;
+    padding: 5px;
     backdrop-filter: blur(var(--bl2));
     -webkit-backdrop-filter: blur(var(--bl2));
     box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 37.5px 7.5px;
@@ -911,6 +906,10 @@ p {
     font-size: var(--fz2);
     border-bottom: 1px solid var(--bc);
     animation: menubar 0.4s ease;
+}
+
+.nogrowth {
+    align-items: stretch;
 }
 
 @keyframes menubar {
@@ -924,17 +923,18 @@ p {
 }
 
 .menubarb button {
-    padding: 4px 7px;
-    border-radius: var(--rad2);
+    padding: 3px 5px;
+    border-radius: var(--rad3);
     border: none;
     background-color: rgb(0, 0, 0, 0);
     font-size: var(--fz2);
     border: none !important;
     margin: 0px;
+    flex-shrink: 0;
 }
 
 .menubarb button:hover {
-    background-color: rgba(var(--acc), 0.6);
+    background-color: rgba(var(--acc), 0.4);
 }
 
 .tasknest {
@@ -1211,11 +1211,12 @@ a:active {
     justify-content: center;
     align-items: center;
     margin: 10px auto;
-    width: 75%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .splititem {
-    max-width: 50%;
+    max-width: 50% !important;
     text-align: center;
     padding-left: 20px !important;
     padding-right: 20px !important;
@@ -1251,9 +1252,7 @@ a:active {
     top: calc(var(--menubarheight) + 8px) !important;
     bottom: calc(var(--hawktuah));
     right: 8px !important;
-    width: auto !important;
-    height: auto !important;
-    transition: 0.3s all ease !important;
+    transition: bottom 0.26s ease, all 0.26s ease !important;
     max-width: 100% !important;
     max-height: 100% !important;
     width: auto !important;
@@ -1261,7 +1260,9 @@ a:active {
 }
 
 .unmax {
-    transition: 0.3s;
+    position: fixed;
+    bottom: 8px;
+    transition: bottom 0.26s ease, all 0.26s ease !important;
 }
 
 .window.max .tb {

@@ -343,13 +343,14 @@ var ui = {
             });
         }
     },
-    rightclick: function (menu, event, btn, invert) {
+    rightclick: function (menu, event, btn, menudiv) {
         if (!event || sys.mob === true) {
             ui.center(menu);
-        } else if (invert === true) {
+        } else if (menudiv === true) {
             const rect = menu.getBoundingClientRect();
-            menu.style.left = event.clientX - rect.width + 10 + "px";
-            menu.style.top = event.clientY - 10 + "px";
+            const button = btn.getBoundingClientRect();
+            menu.style.left = event.clientX - rect.width + button.width + 4 + "px";
+            menu.style.top = event.clientY + button.height + 4 + "px";
         } else {
             menu.style.left = event.clientX - 10 + "px";
             menu.style.top = event.clientY - 10 + "px";
@@ -517,7 +518,7 @@ var tk = {
                     if (yeah) {
                         yeah.dispatchEvent(mousedownevent);
                     } else {
-                        el.menubarbtn.innerText = "Desktop";
+                        if (el.menubarbtn) el.menubarbtn.innerText = "Desktop";
                     }
                 }, 40);
             });
@@ -530,7 +531,7 @@ var tk = {
         } else {
             minimizeButton.classList.add('winb');
         }
-        if (min === undefined) {
+        if (min === undefined && el.tr !== undefined) {
             minimizeButton.classList.add('yel');
             minimizeButton.addEventListener('mousedown', async function () {
                 await wm.minimize(windowDiv, tbn);
@@ -571,6 +572,6 @@ var tk = {
         if (sys.mobui !== true) {
             setTimeout(function () { ui.center(windowDiv); }, 30);
         }
-        return { win: windowDiv, main: contentDiv, tbn, title: titlebarDiv, closebtn: closeButton, winbtns, name: titleDiv };
+        return { win: windowDiv, main: contentDiv, tbn, title: titlebarDiv, closebtn: closeButton, winbtns, name: titleDiv, minbtn: minimizeButton };
     }
 }

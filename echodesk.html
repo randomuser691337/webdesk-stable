@@ -11,9 +11,12 @@
     <title>EchoDesk</title>
 </head>
 <script>
+    let url = window.location.href;
+    let params = new URLSearchParams(window.location.search);
+
     var abt = {
-        lastmod: "Dec 25, 2024",
-        ver: "0.2.6",
+        lastmod: "Jan 1, 2025",
+        ver: "0.2.7",
     }
 
     var sys = {
@@ -60,6 +63,7 @@
         tr: undefined,
         cc: undefined,
         dropped: false,
+        deskicon: undefined,
     }
 
     var wc = {

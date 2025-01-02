@@ -216,7 +216,7 @@ var wd = {
             }
         });
     },
-    desktop: function (name, deskid, waitopt) {
+    desktop: function (name, type, waitopt) {
         ui.dest(tk.g('setuparea'));
         ui.cv('menubarheight', '38px');
         let screenWidth;
@@ -233,7 +233,11 @@ var wd = {
                 elementWidth = el.sm.getBoundingClientRect().width;
                 el.sm.style.left = `${(screenWidth - elementWidth) / 2}px`;
                 tk.p(`Hello, ${name}!`, 'h2', el.sm);
-                tk.p(`Your DeskID is ${sys.deskid}`, undefined, el.sm);
+                const thing = tk.p(`Your DeskID is `, undefined, el.sm);
+                tk.cb('linkbtn', sys.deskid, function () {
+                    ui.copy(`${window.location.origin}/?id=${sys.deskid}`);
+                    wm.snack('Copied DeskID quicklink. Send it to your friends!');
+                }, thing);
                 const ok = tk.c('div', el.sm, 'embed nest brick-layout');
                 for (var key in app) {
                     if (app.hasOwnProperty(key)) {
@@ -263,9 +267,29 @@ var wd = {
                     el.am = undefined;
                 }
                 el.cc = tk.c('div', document.body, 'menubardiv');
-                tk.p(`Controls`, 'h2', el.cc);
-                tk.p(`Your DeskID is ${sys.deskid}`, undefined, el.cc);
                 const ok = tk.c('div', el.cc, 'embed nest');
+                if (sys.guest === false && sys.echodesk === false) {
+                    const yeah = tk.cb('b3 b2', 'Deep Sleep', function () {
+                        const menu = tk.c('div', document.body, 'cm');
+                        tk.p('Deep Sleep', 'bold', menu);
+                        tk.p(`Your DeskID will work as normal, and WebDesk will use little resources. Save your work before entering.`, undefined, menu);
+                        tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Enter', async function () {
+                            await fs.write('/system/eepysleepy', 'true');
+                            await wd.reboot();
+                        }, menu);
+                    }, ok);
+                    yeah.style.marginTop = "2px";
+                }
+                tk.cb('b3 b2', 'Clear Notifications', function () {
+                    ui.hide(tk.g('notif'), 200);
+                    setTimeout(function () {
+                        tk.g('notif').innerHTML = "";
+                        ui.show(tk.g('notif'));
+                    }, 200);
+                }, ok);
+                tk.cb('b3 b2', 'Reboot/Reload', function () {
+                    wd.reboot();
+                }, ok);
                 const addicon = tk.cb('conticon', '', function () {
                     const input = document.createElement('input');
                     input.type = 'file';
@@ -316,28 +340,6 @@ var wd = {
                 const notifimg = tk.img('/assets/img/icons/notify.svg', 'contimg', notificon, false);
                 if (sys.nvol === 0) notifimg.src = "/assets/img/icons/silent.svg";
                 ui.tooltip(notificon, 'Silent toggle');
-                if (sys.guest === false && sys.echodesk === false) {
-                    const yeah = tk.cb('b3 b2', 'Deep Sleep', function () {
-                        const menu = tk.c('div', document.body, 'cm');
-                        tk.p('Deep Sleep', 'bold', menu);
-                        tk.p(`Your DeskID will work as normal, and WebDesk will use little resources. Save your work before entering.`, undefined, menu);
-                        tk.cb('b1', 'Close', () => ui.dest(menu), menu); tk.cb('b1', 'Enter', async function () {
-                            await fs.write('/system/eepysleepy', 'true');
-                            await wd.reboot();
-                        }, menu);
-                    }, ok);
-                    yeah.style.marginTop = "2px";
-                }
-                tk.cb('b3 b2', 'Clear Notifications', function () {
-                    ui.hide(tk.g('notif'), 200);
-                    setTimeout(function () {
-                        tk.g('notif').innerHTML = "";
-                        ui.show(tk.g('notif'));
-                    }, 200);
-                }, ok);
-                tk.cb('b3 b2', 'Reboot/Reload', function () {
-                    wd.reboot();
-                }, ok);
             } else {
                 ui.dest(el.cc, 40);
                 el.cc = undefined;
@@ -360,7 +362,7 @@ var wd = {
                 }, el.am);
                 ui.note('Alt+M', min);
                 const rec = tk.cb('b2', 'Recenter', async function () {
-                    await wm.close(focused.window, focused.tbn);
+                    ui.center(focused.window);
                 }, el.am);
                 ui.note('Alt+R', rec);
                 const quit = tk.cb('b2', 'Quit', async function () {
@@ -383,7 +385,7 @@ var wd = {
             setInterval(tbresize, 200);
             el.menubar = tk.c('div', document.body, 'menubar menubarb flexthing');
             const left = tk.c('div', el.menubar, 'tnav');
-            const right = tk.c('div', el.menubar, 'title');
+            const right = tk.c('div', el.menubar, 'title nogrowth');
             el.menubarbtn = tk.cb('bold', 'Desktop', () => appmenu(), left);
             el.contb = tk.cb('time', '--:--', () => controlcenter(), right);
             const tasknest = tk.c('div', el.taskbar, 'tasknest');
@@ -395,12 +397,42 @@ var wd = {
                 el.taskbar.style.boxShadow = "none";
                 el.menubar.style.boxShadow = "none";
             }
-            setTimeout(function () {
+            setTimeout(async function () {
+                if (window.navigator.standalone === true) {
+                    const ok = await fs.read('/system/standalonepx');
+                    let px = 0;
+                    if (!ok) {
+                        wd.tbcal();
+                    } else {
+                        if (px > 50 || px < 0) {
+                            await fs.del('/system/standalone');
+                            px = 0;
+                            wd.tbcal();
+                            return;
+                        }
+                        px = ok;
+                        if (px !== 0) {
+                            el.taskbar.style.borderRadius = "var(--rad1)";
+                        }
+                        el.taskbar.style.bottom = px + "px";
+                    }
+                }
                 el.tbpos = el.taskbar.getBoundingClientRect();
                 el.mbpos = el.menubar.getBoundingClientRect();
                 ui.cv('menubarheight', el.mbpos.height + "px");
                 ui.cv('hawktuah', el.tbpos.height + 12 + "px");
-                el.startbutton.click();
+                const uid2 = params.get('id');
+                if (type !== "min") {
+                    setTimeout(wd.hawktuah, 300);
+                    if (!uid2) {
+                        el.startbutton.click();
+                    }
+                }
+                if (uid2) {
+                    app.webcomm.init(true, uid2);
+                    const newURL = window.location.origin;
+                    history.pushState(null, '', newURL);
+                }
             }, 900);
         }
         if (waitopt === "wait") {
@@ -442,7 +474,7 @@ var wd = {
         ui.cv('ui1', 'rgb(30, 30, 30, 0.5)');
         ui.cv('ui2', '#1a1a1a');
         ui.cv('ui3', '#2a2a2a');
-        ui.cv('bc', 'rgb(52, 52, 52, 0.4)');
+        ui.cv('bc', 'rgb(36, 36, 36, 0.5)');
         ui.cv('font', '#fff');
         ui.cv('inv', '1.0');
         if (fucker !== "nosave") {
@@ -454,7 +486,7 @@ var wd = {
         ui.cv('ui1', 'rgb(255, 255, 255, 0.5)');
         ui.cv('ui2', '#ffffff');
         ui.cv('ui3', '#ededed');
-        ui.cv('bc', 'rgb(220, 220, 220, 0.4)');
+        ui.cv('bc', 'rgb(204, 204, 204, 0.5)');
         ui.cv('font', '#000');
         ui.cv('inv', '0');
         if (fucker !== "nosave") {
@@ -765,7 +797,7 @@ var wd = {
         }
     },
     defaultcolor: function () {
-        ui.crtheme('#5781FF');
+        ui.crtheme('#4D79FF');
         wd.light();
     },
     wetter: function () {

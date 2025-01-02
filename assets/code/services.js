@@ -24,7 +24,7 @@ var ptp = {
                 }
 
                 if (notify) {
-                    wm.notif(`WebDesk Services`, `Your DeskID is back online.`);
+                    wm.notif(`WebDesk Services`, `Your DeskID is back online.`, undefined, undefined, true);
                     retryCount = 0;
                 }
                 notify = false;
@@ -38,7 +38,7 @@ var ptp = {
                 console.log(`<!> whoops: ${err}`);
                 if (err.message.includes('Lost connection to server')) {
                     if (!notify) {
-                        wm.notif('Connection Error', `Your connection was interrupted. WebDesk is trying to restore the connection.`);
+                        wm.notif('Connection/DeskID Error', `Your connection was interrupted. WebDesk is trying to reconnect your DeskID.`, undefined, undefined, true);
                         sys.deskid = "disabled";
                         ui.masschange('deskid', 'disabled');
                         app.ach.unlock('DeskID Issues', `Here's an achievement for your troubles.`);

@@ -57,9 +57,11 @@ var wm = {
             wid.classList.toggle('max');
             if (!wid.classList.contains('max')) {
                 wid.classList.add('unmax');
+                wid.style.bottom = wid.getBoundingClientRect().bottom;
                 setTimeout(() => {
                     wid.classList.remove('unmax');
-                }, 301);
+                    wid.style.bottom = "undefined";
+                }, 260);
             }
         }
     },

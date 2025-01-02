@@ -13,9 +13,12 @@
     <title>WebDesk</title>
 </head>
 <script>
+    let url = window.location.href;
+    let params = new URLSearchParams(window.location.search);
+
     var abt = {
-        lastmod: "Dec 25, 2024",
-        ver: "0.2.6",
+        lastmod: "Jan 1, 2025",
+        ver: "0.2.7",
     }
 
     var sys = {
@@ -64,6 +67,7 @@
         tr: undefined,
         cc: undefined,
         dropped: false,
+        deskicon: true,
     }
 
     var wc = {
@@ -116,8 +120,6 @@
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
         if (sd && !migcheck) {
-            const url = window.location.href;
-            const params = new URLSearchParams(window.location.search);
             const uid = params.get('deskid');
             if (uid) {
                 sys.migrid = uid;
@@ -296,28 +298,6 @@
                         }
                     }
                 }
-                setTimeout(async function () {
-                    if (window.navigator.standalone === true) {
-                        const ok = await fs.read('/system/standalonepx');
-                        let px = 0;
-                        if (!ok) {
-                            wd.tbcal();
-                        } else {
-                            if (px > 50 || px < 0) {
-                                await fs.del('/system/standalone');
-                                px = 0;
-                                wd.tbcal();
-                                return;
-                            }
-                            px = ok;
-                            if (px !== 0) {
-                                el.taskbar.style.borderRadius = "var(--rad1)";
-                            }
-                            el.taskbar.style.bottom = px + "px";
-                        }
-                    }
-                }, 300);
-                setTimeout(wd.hawktuah, 300);
             } else {
                 await fs.write('/system/apps.json', '[]');
             }
@@ -341,14 +321,19 @@
             await app.recovery.init();
         } else {
             const ok = await fs.read('/system/deskid');
-            if (ok) {
+            const uid2 = params.get('id');
+            if (ok && !uid2) {
                 console.log('<!> Found pre-existing WebDesk. Erasing...');
                 await fs.erase('reboot');
             }
             wd.seasonal();
             const id = await wd.newid();
             await ptp.go(id);
-            app.setup.init();
+            if (uid2) {
+                app.setup.init(true, uid2);
+            } else {
+                app.setup.init();
+            }
             sys.setupd = false;
             boot = true;
         }
