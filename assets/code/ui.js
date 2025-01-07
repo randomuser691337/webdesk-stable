@@ -349,7 +349,7 @@ var ui = {
         } else if (menudiv === true) {
             const rect = menu.getBoundingClientRect();
             const button = btn.getBoundingClientRect();
-            menu.style.left = event.clientX - rect.width + button.width + 4 + "px";
+            menu.style.left = event.clientX - rect.width + button.width + "px";
             menu.style.top = event.clientY + button.height + 4 + "px";
         } else {
             menu.style.left = event.clientX - 10 + "px";
@@ -491,12 +491,16 @@ var tk = {
         }
         var winbtns = tk.c('div', undefined, 'tnav');
         var closeButton = document.createElement('button');
+        let closeButtonNest = document.createElement('button');
         if (sys.mobui === true) {
+            closeButtonNest.classList.add('winbmob');
             closeButton.classList.add('b3');
             closeButton.innerText = "Quit";
         } else {
+            closeButtonNest.classList.add('winbnest');
             closeButton.classList.add('winb');
         }
+        closeButtonNest.appendChild(closeButton);
         let shortened;
         if (sys.mob === true) {
             shortened = ui.truncater(title, 7);
@@ -508,7 +512,7 @@ var tk = {
         }, el.tr);
         if (quit === undefined) {
             closeButton.classList.add('red');
-            closeButton.addEventListener('mousedown', async function () {
+            closeButtonNest.addEventListener('mousedown', async function () {
                 const mousedownevent = new MouseEvent('mousedown');
                 windowDiv.dispatchEvent(mousedownevent);
                 ui.dest(windowDiv, 130);
@@ -523,26 +527,31 @@ var tk = {
                 }, 40);
             });
         }
-
-        var minimizeButton = document.createElement('button');
+        let minimizeButton = document.createElement('button');
+        let minimizeButtonNest = document.createElement('button');
         if (sys.mobui === true) {
+            minimizeButtonNest.classList.add('winbmob');
             minimizeButton.classList.add('b3');
             minimizeButton.innerText = "Hide";
         } else {
+            minimizeButtonNest.classList.add('winbnest');
             minimizeButton.classList.add('winb');
         }
+        minimizeButtonNest.appendChild(minimizeButton);
         if (min === undefined && el.tr !== undefined) {
             minimizeButton.classList.add('yel');
-            minimizeButton.addEventListener('mousedown', async function () {
+            minimizeButtonNest.addEventListener('mousedown', async function () {
                 await wm.minimize(windowDiv, tbn);
             });
         }
-
-        winbtns.appendChild(closeButton);
-        winbtns.appendChild(minimizeButton);
+        winbtns.appendChild(closeButtonNest);
+        winbtns.appendChild(minimizeButtonNest);
         if (sys.mobui !== true) {
             var maximizeButton = document.createElement('button');
+            const maximizeButtonNest = document.createElement('button');
+            maximizeButtonNest.classList.add('winbnest');
             maximizeButton.classList.add('winb');
+            maximizeButtonNest.appendChild(maximizeButton);
             if (full === undefined) {
                 maximizeButton.classList.add('gre');
                 maximizeButton.addEventListener('mousedown', function () {
@@ -552,7 +561,7 @@ var tk = {
                     wm.max(windowDiv);
                 });
             }
-            winbtns.appendChild(maximizeButton);
+            winbtns.appendChild(maximizeButtonNest);
         }
         titlebarDiv.appendChild(winbtns);
         var titleDiv = document.createElement('div');

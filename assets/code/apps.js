@@ -113,7 +113,8 @@ var app = {
                 const opt = await fs.read('/system/info/devmode');
                 const pane = tk.c('div', win);
                 if (opt !== "true") {
-                    tk.p(`WARNING: Developer Mode lets you install third-party apps, and enables dev tools, but removes security protections.`, undefined, pane);
+                    tk.img('./assets/img/icons/warn.svg', 'setupi', pane);
+                    tk.p(`Developer Mode lets you install third-party apps, and enables dev tools, but removes security protections.`, undefined, pane);
                     tk.p(`Use caution, there's no support for issues relating to Developer Mode. Disabling Developer Mode will erase WebDesk, but will keep your files.`, undefined, pane);
                     tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
                     tk.cb(`b1`, 'Enable (reboot)', async function () {
@@ -121,7 +122,8 @@ var app = {
                         await wd.reboot();
                     }, pane);
                 } else {
-                    tk.p(`Developer Mode is enabled.`, undefined, pane);
+                    tk.img('./assets/img/icons/hlcrab.png', 'setupi', pane);
+                    tk.p(`Developer Mode enabled`, 'bold', pane);
                     tk.p(`Disabling it will reset WebDesk, but will keep your files, along with your DeskID and name.`, undefined, pane);
                     tk.cb(`b1`, 'Cancel', () => ui.dest(win), pane);
                     tk.cb(`b1`, 'Disable (reboot)', async function () {
@@ -254,7 +256,7 @@ var app = {
             // User pane
             tk.p('WebDesk User', undefined, userPane);
             tk.p(`Keep your WebDesk open when possible. <span class="bold">When WebDesk isn't open, anyone's able to take your DeskID.</span>`, undefined, userPane);
-            tk.cb('b1 b2', 'Location Settings', function () {
+            tk.cb('b1 b2', 'Location', function () {
                 app.locset.init();
             }, userPane);
             tk.cb('b1 b2', 'Change DeskID', function () {
@@ -368,20 +370,7 @@ var app = {
                 wm.snack('Location set to Paris, France so that WebDesk has something to fall back on.');
             }, ok.main);
             tk.cb('b1 b2', 'Update Location', async function () {
-                const data = await wd.savecity();
-                const hawktuah = Date.now();
-                await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: hawktuah, default: false }]);
-                sys.city = data.location;
-                sys.unit = data.unit;
-                sys.loclast = hawktuah;
-                sys.defaultloc = false;
-                if (ok.unit === "Metric") {
-                    sys.unitsym = "°C";
-                } else {
-                    sys.unitsym = "°F";
-                }
-                ok.closebtn.dispatchEvent(mousedownevent);
-                wm.snack(`New location: ${data.location}`);
+                wd.wetter(false);
             }, ok.main);
         }
     },
@@ -821,6 +810,9 @@ var app = {
                     editor.setTheme("ace/theme/monokai");
                 }
             }
+            if (path.endsWith('.js')) {
+                editor.session.setMode("ace/mode/javascript");
+            }
             ok();
             const colorch = setInterval(() => {
                 ok();
@@ -855,9 +847,37 @@ var app = {
                     editor.selectAll();
                     ui.dest(menu, 120);
                 }, menu);
+                const btnc = tk.cb('b1 b2', 'Copy Text', function () {
+                    const menu2 = tk.c('div', document.body, 'rightclick');
+                    const pos = btnc.getBoundingClientRect();
+                    const thing = { clientX: pos.left, clientY: pos.top };
+                    ui.rightclick(menu2, thing, btnc, true);
+                    tk.cb('b3 b2', `Selected Text`, function () {
+                        ui.copy(editor.getSelectedText());
+                        ui.dest(menu); ui.dest(menu2);
+                    }, menu2);
+                    tk.cb('b3 b2', `Entire File`, function () {
+                        ui.copy(editor.getValue());
+                        ui.dest(menu); ui.dest(menu2);
+                    }, menu2);
+                }, menu);
                 tk.cb('b1 b2', 'Find Text', function () {
                     editor.execCommand('find');
                     ui.dest(menu, 120);
+                }, menu);
+                const ok = tk.cb('b1 b2', 'Language', function () {
+                    const menu2 = tk.c('div', document.body, 'rightclick');
+                    const pos = ok.getBoundingClientRect();
+                    const thing = { clientX: pos.left, clientY: pos.top };
+                    ui.rightclick(menu2, thing, ok, true);
+                    tk.cb('b3 b2', `JavaScript`, function () {
+                        editor.session.setMode("ace/mode/javascript");
+                        ui.dest(menu); ui.dest(menu2);
+                    }, menu2);
+                    tk.cb('b3 b2', `None`, function () {
+                        editor.session.setMode("ace/mode/text");
+                        ui.dest(menu); ui.dest(menu2);
+                    }, menu2);
                 }, menu);
                 if (readonly !== true) {
                     tk.cb('b1 b2', 'Replace', function () {
@@ -880,6 +900,7 @@ var app = {
             function runc() {
                 const menu = tk.c('div', document.body, 'cm');
                 if (sys.dev === true) {
+                    tk.img('./assets/img/icons/hlcrab.png', 'setupi', menu);
                     tk.p(`WAIT!!!`, 'h2', menu);
                     tk.p(`RUN THIS CODE CAREFULLY. It will have full access to your data. It's safer to use an incognito window, if possible. If you were told to copy/paste something here, you're probably getting scammed.`, undefined, menu);
                     tk.cb('b1 b2', 'I understand, run the code', function () {
@@ -992,12 +1013,23 @@ var app = {
                     const pos = ok.getBoundingClientRect();
                     const thing = { clientX: pos.left, clientY: pos.top };
                     ui.rightclick(menu, thing, ok, true);
+                    tk.p(`Creating in ` + tempPath, 'smtxt', menu);
                     const input = tk.c('input', menu, 'i1');
                     input.placeholder = "Name your thing, hit a button";
                     tk.cb('b3 b2', 'New text file', function () {
                         if (input.value) {
                             fs.write(tempPath + input.value, ' ');
                             navto(currentPath);
+                            app.textedit.init('', tempPath + input.value);
+                            ui.dest(menu, 0);
+                        } else {
+                            wm.snack('Enter a name for your file!');
+                        }
+                    }, menu);
+                    tk.cb('b3 b2', 'New folder', function () {
+                        if (input.value) {
+                            fs.write(tempPath + input.value + "/.folder", ' ');
+                            navto(tempPath + input.value);
                             app.textedit.init('', tempPath + input.value);
                             ui.dest(menu, 0);
                         } else {
@@ -1032,7 +1064,7 @@ var app = {
                         let timer;
 
                         function openmenu() {
-                            if ((item.path.includes('/system') || item.path.includes('/user/info')) && sys.dev === false) {
+                            if ((item.path.startsWith('/system') || item.path.startsWith('/user/info')) && sys.dev === false) {
                                 wm.snack('Enable Developer Mode to modify this folder.', 6000);
                                 return;
                             }
@@ -1040,7 +1072,7 @@ var app = {
                             const menu = tk.c('div', document.body, 'cm');
                             const p = tk.ps(item.path, 'bold', menu);
                             p.style.marginBottom = "7px";
-                            if (item.path.includes('/system') || item.path.includes('/user/info')) {
+                            if (item.path.startsWith('/system') || item.path.startsWith('/user/info')) {
                                 tk.p('Important folder, modifying it could cause damage.', 'warn', menu);
                             }
                             tk.cb('b1 b2', 'Delete folder', () => {
@@ -1078,7 +1110,7 @@ var app = {
                         }
 
                         const fileItem = tk.cb('flist width', "File: " + item.name, async function () {
-                            if (!sys.dev && item.path.includes('/system') || item.path.includes('/user/info') && sys.dev === false) {
+                            if (!sys.dev && item.path.startsWith('/system/') || item.path.startsWith('/user/info/') && sys.dev === false) {
                                 wm.snack('Enable Developer Mode to modify system files.', 6000);
                                 return;
                             }
@@ -1090,10 +1122,10 @@ var app = {
                             const p = tk.ps(item.path, 'bold', menu);
                             p.style.marginBottom = "7px";
 
-                            if (item.path.includes('/system') || item.path.includes('/user/info')) {
+                            if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/')) {
                                 tk.p('Important file, modifying it could cause damage.', 'warn', menu);
                             }
-                            if (item.path.includes('/user/info/name')) {
+                            if (item.path.startsWith('/user/info/name')) {
                                 tk.p('Deleting this file will erase your data on next restart.', 'warn', menu);
                             }
                             if (!filecontent.includes('data:video')) {
@@ -1178,9 +1210,14 @@ var app = {
                                 ui.dest(menu);
                                 const menu2 = tk.c('div', document.body, 'cm');
                                 const input = tk.c('input', menu2, 'i1');
-                                input.placeholder = "Enter new path";
+                                input.placeholder = "Path for copying/moving";
                                 input.value = item.path;
                                 tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                                tk.cb('b1', 'Copy', () => {
+                                    fs.write(input.value, filecontent);
+                                    navto(path);
+                                    ui.dest(menu2);
+                                }, menu2);
                                 tk.cb('b1', 'Rename/Move', () => {
                                     fs.write(input.value, filecontent);
                                     fs.del(item.path);
@@ -1204,6 +1241,10 @@ var app = {
                             tk.cb('b1', 'Cancel', () => ui.dest(menu), menu);
                             ui.dest(skibidi);
                         }, items);
+
+                        if (item.name === ".folder") {
+                            fileItem.style.display = "none";
+                        }
 
                         fileItem.addEventListener('dragstart', e => {
                             e.dataTransfer.setData('text/plain', item.path);
@@ -1333,7 +1374,7 @@ var app = {
                                     }, menu);
                                     tk.cb('b1', 'Choose', function () {
                                         ui.dest(menu); ui.dest(win.win);
-                                        if (thing.path.includes('/system') || thing.path.includes('/user/info')) {
+                                        if (thing.path.startsWith('/system/') || thing.path.startsWith('/user/info/')) {
                                             if (sys.dev === false) {
                                                 wm.snack(`Enable Developer Mode to make or edit files here.`);
                                                 return;
@@ -1365,7 +1406,7 @@ var app = {
                         if (inp.value === "") {
                             wm.snack('Enter a filename.');
                         } else {
-                            if (selectedPath.includes('/system') || selectedPath.includes('/user/info')) {
+                            if (selectedPath.startsWith('/system') || selectedPath.startsWith('/user/info')) {
                                 if (sys.dev === false) {
                                     wm.snack(`Enable Developer Mode to make or edit files here.`);
                                     return;
@@ -1668,10 +1709,12 @@ var app = {
                 <p><a href="https://peerjs.com/" target="blank">PeerJS: DeskID/online services</a></p>
                 <p><a href="https://davidshimjs.github.io/qrcodejs/" target="blank">qrcode.js: WebDesk QR codes</a></p>
                 <p><a href="https://jquery.com/" target="blank">jQuery: WebDesk's UI</a></p>
+                <p><a href="https://fonts.google.com/" target="blank">Google Fonts: Fonts</a></p>
                 <p><a href="https://ace.c9.io/" target="blank">Ace: TextEdit's engine</a></p>
                 <p><a href="https://fengyuanchen.github.io/cropperjs/" target="blank">cropper.js: Cropping tool</a></p>
                 <p><a href="https://jscolor.com/" target="blank">jscolor: Color picker</a></p>
-                <p><a href="https://ace.c9.io/" target="blank">jszip: ZIP file handling</a></p>`;
+                <p><a href="https://ace.c9.io/" target="blank">jszip: ZIP file handling</a></p>
+                <p><a href="https://lucide.dev/" target="blank">Lucide: Most icons</a></p>`;
                 tk.cb('b1', 'Close', function () {
                     ui.dest(ok, 200);
                 }, ok);
@@ -1822,62 +1865,69 @@ var app = {
             if (sys.mobui === false) {
                 win.win.style.maxWidth = "330px";
             }
-            win.main.innerHTML = "Loading";
+            win.main.innerHTML = "Loading...";
             async function refresh() {
-                let response;
-                let info;
-                let unitsym = sys.unitsym;
-                if (archive !== true) {
-                    response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
-                    info = await response.json();
-                } else {
-                    info = await JSON.parse(file);
-                }
-                win.main.innerHTML = "";
-                const skibidi = tk.c('div', win.main);
-                if (archive !== true) {
-                    tk.p(`${sys.city}`, 'med', skibidi);
-                    win.name.innerHTML = "";
-                    tk.cb('b3', 'Archive data', async function () {
-                        const the = await app.files.pick('new', 'Save weather archive file... (JSON)');
-                        const silly = info;
-                        silly.timestamp = Date.now();
-                        await fs.write(the + ".json", silly);
-                        wm.snack('Saved weather to ' + the + ".json");
-                    }, win.name);
-                } else {
+                try {
+                    let response;
+                    let info;
+                    let unitsym = sys.unitsym;
+                    if (archive !== true) {
+                        response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
+                        info = await response.json();
+                    } else {
+                        info = await JSON.parse(file);
+                    }
+                    win.main.innerHTML = "";
+                    const skibidi = tk.c('div', win.main);
                     if (archive !== true) {
                         tk.p(`${sys.city}`, 'med', skibidi);
+                        win.name.innerHTML = "";
+                        tk.cb('b3', 'Archive data', async function () {
+                            const the = await app.files.pick('new', 'Save weather archive file... (JSON)');
+                            const silly = info;
+                            silly.timestamp = Date.now();
+                            await fs.write(the + ".json", silly);
+                            wm.snack('Saved weather to ' + the + ".json");
+                        }, win.name);
                     } else {
-                        if (info.sys.country !== "US") {
-                            unitsym = "°C";
+                        if (archive !== true) {
+                            tk.p(`${sys.city}`, 'med', skibidi);
                         } else {
-                            unitsym = "°F";
+                            if (info.sys.country !== "US") {
+                                unitsym = "°C";
+                            } else {
+                                unitsym = "°F";
+                            }
+                            tk.p(`${info.name}, ${info.sys.country}`, 'med', skibidi);
                         }
-                        tk.p(`${info.name}, ${info.sys.country}`, 'med', skibidi);
+                        tk.ps('Archived: ' + wd.timec(info.timestamp), undefined, skibidi);
                     }
-                    tk.ps('Archived: ' + wd.timec(info.timestamp), undefined, skibidi);
-                }
-                const userl = tk.c('div', skibidi, 'list flexthing');
-                const tnav = tk.c('div', userl, 'tnav');
-                const title = tk.c('div', userl, 'title');
-                tnav.style.marginLeft = "6px";
-                userl.style.marginBottom = "6px";
-                tnav.innerText = `${Math.ceil(info.main.temp)}${unitsym}, ${info.weather[0].description}`;
-                const img = tk.img('', 'weatheri', title);
-                title.style.maxHeight = "40px";
-                img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
-                tk.p(`Humidity ${archive = archive === true ? "was" : "is"} ${info.main.humidity}%, and it ${archive = archive === true ? "felt" : "feels"} like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
-                tk.p(`Data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap.</a>`, 'smtxt', skibidi);
-                tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
-                tk.cb('b1', 'Refresh', function () {
-                    refresh(); wm.snack('Refreshed');
-                }, skibidi);
-                if (sys.dev === true) {
-                    tk.cb('b1', 'JSON', async function () {
-                        const ok = JSON.stringify(info);
-                        app.textedit.init(ok, undefined, true);
+                    const userl = tk.c('div', skibidi, 'list flexthing');
+                    const tnav = tk.c('div', userl, 'tnav');
+                    const title = tk.c('div', userl, 'title');
+                    tnav.style.marginLeft = "6px";
+                    userl.style.marginBottom = "6px";
+                    tnav.innerText = `${Math.ceil(info.main.temp)}${unitsym}, ${info.weather[0].description}`;
+                    const img = tk.img('', 'weatheri', title);
+                    title.style.maxHeight = "40px";
+                    img.src = `https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`;
+                    tk.p(`Humidity ${archive = archive === true ? "was" : "is"} ${info.main.humidity}%, and it ${archive = archive === true ? "felt" : "feels"} like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
+                    tk.p(`Data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap.</a>`, 'smtxt', skibidi);
+                    tk.cb('b1', 'Settings', () => app.locset.init(), skibidi);
+                    tk.cb('b1', 'Refresh', function () {
+                        refresh(); wm.snack('Refreshed');
                     }, skibidi);
+                    if (sys.dev === true) {
+                        tk.cb('b1', 'JSON', async function () {
+                            const ok = JSON.stringify(info);
+                            app.textedit.init(ok, undefined, true);
+                        }, skibidi);
+                    }
+                } catch (error) {
+                    console.log(error);
+                    win.main.innerHTML = "<p>Error loading weather.</p>";
+                    tk.cb('b1', 'Close', () => wm.close(win.win), win.main);
+                    tk.cb('b1', 'Retry', () => refresh(), win.main);
                 }
             }
 
@@ -2321,28 +2371,20 @@ var app = {
             }, 250);
             wd.win();
         },
-        view: async function (path2) {
+        view: async function (path2, title) {
             tk.css('./assets/lib/browse.css');
-            const win = tk.mbw(`Embedder`, '640px', '440px', true);
-            ui.dest(win.title, 0);
-            const tabs = tk.c('div', win.main, 'tabbar d');
-            const btnnest = tk.c('div', tabs, 'tnav');
+            if (title === undefined) {
+                title = "Embedder";
+            } else {
+                title = title;
+            }
+            const win = tk.mbw(title, '640px', '440px');
             const tab = tk.c('embed', win.main, 'browsertab browserREALtab');
             win.main.classList = "browsercont";
-            const fucker = tk.cb('winb red', '', function () {
-                ui.dest(win.win, 150);
-                ui.dest(win.tbn, 150);
-            }, btnnest);
-            fucker.style.marginLeft = "6px";
-            tk.cb('winb yel', '', function () {
-                ui.hide(win.win, 150);
-            }, btnnest);
-            tk.cb('winb gre', '', function () {
-                wm.max(win.win);
-            }, btnnest);
+            win.name.innerHTML = "";
             tk.cb('b4 b6', '⟳', function () {
                 tab.src = tab.src;
-            }, btnnest);
+            }, win.name);
             setTimeout(function () {
                 if (path2) {
                     tab.src = path2;

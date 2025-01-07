@@ -785,7 +785,7 @@ var wd = {
             const unit = (country === 'US') ? 'Imperial' : 'Metric';
 
             return {
-                location: `${city}, ${region}, ${country}`,
+                location: `${region}, ${country}`,
                 unit: unit,
             }
         } else {
@@ -800,18 +800,24 @@ var wd = {
         ui.crtheme('#4D79FF');
         wd.light();
     },
-    wetter: function () {
+    wetter: function (setdefault) {
         const main = tk.c('div', document.body, 'cm');
         tk.img('./assets/img/setup/location.svg', 'setupi', main);
         const menu = tk.c('div', main);
         const info = tk.c('div', main, 'hide');
-        tk.p('Allow WebDesk to access your city for weather processing?', 'bold', menu);
+        tk.p('Allow WebDesk to access your state/region for weather processing?', 'bold', menu);
         tk.p('Your data is processed by OpenWeatherMap & IPInfo, and is only visible to you. This can be changed in Settings later.', undefined, menu);
         tk.p('If you deny, your location will be set to Paris, France.', undefined, menu);
-        tk.cb('b1', 'Deny', async function () {
-            await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
-            ui.dest(main);
-        }, menu);
+        if (setdefault === false) {
+            tk.cb('b1', 'Cancel', async function () {
+                ui.dest(main);
+            }, menu);
+        } else {
+            tk.cb('b1', 'Deny', async function () {
+                await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+                ui.dest(main);
+            }, menu);
+        }
         tk.cb('b1', 'More Info', async function () {
             ui.sw2(menu, info);
         }, menu);
@@ -835,11 +841,17 @@ var wd = {
                 tk.p(`An error occured`, 'bold', skibidi);
                 tk.p(`This is probably due to extensions like uBlock origin. You probably can't bother disabling them, so enter your city manually.`, undefined, skibidi);
                 const inp = tk.c('input', skibidi, 'i1');
-                inp.placeholder = "Enter city & country here";
-                tk.cb('b1', 'Deny', async function () {
-                    await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
-                    ui.dest(main);
-                }, skibidi);
+                inp.placeholder = "Location e.g. Paris, France";
+                if (setdefault === false) {
+                    tk.cb('b1', 'Cancel', async function () {
+                        ui.dest(main);
+                    }, menu);
+                } else {
+                    tk.cb('b1', 'Deny', async function () {
+                        await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
+                        ui.dest(main);
+                    }, menu);
+                }
                 tk.cb('b1', 'Set City', async function () {
                     const data = await wd.savecity(inp.value);
                     await fs.write('/user/info/location.json', [{ city: data.location, unit: data.unit, lastupdate: Date.now(), default: false }]);
@@ -873,11 +885,12 @@ var wd = {
         const hawk = await fs.read('/system/info/currentver');
         if (hawk !== abt.ver || skibidi === true) {
             await fs.write('/system/info/currentver', abt.ver);
-            const win = tk.mbw('Changelog', '300px', undefined, true);
+            const win = tk.mbw('Changelog', '300px', '390px', true);
             const div = tk.c('div', win.main, 'embed nest');
             const response = await fetch('./assets/other/changelog.html');
             const tuah = await response.text();
-            div.style.height = "350px";
+            div.style.height = "100%";
+            div.style.maxHeight = "100%";
             div.innerHTML = tuah;
         }
     },

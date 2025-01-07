@@ -80,6 +80,7 @@ var wm = {
                     yeah.dispatchEvent(mousedownevent);
                 }
                 const endOffset = btn.getBoundingClientRect();
+                const winrect = wid.getBoundingClientRect();
                 $animatedDiv.addClass("windowanim");
                 $animatedDiv.animate({
                     top: endOffset.bottom,

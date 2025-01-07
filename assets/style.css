@@ -38,7 +38,7 @@
     height: 100%;
     background: var(--bg1);
     transition: 0.02s;
-    opacity: 75%;
+    opacity: 80%;
 }
 
 .circle {
@@ -150,24 +150,6 @@ p {
     word-wrap: break-word;
 }
 
-@media (max-width:400px) {
-    .setup {
-        width: 85% !important;
-    }
-
-    .winb {
-        width: 15px !important;
-        height: 15px !important;
-        margin-right: 9px;
-    }
-
-    @media (max-height:700px) {
-        .setup {
-            height: 80% !important;
-        }
-    }
-}
-
 .setupbox {
     position: fixed;
     transform: translate(-50%, -50%) scale(1.0);
@@ -261,7 +243,7 @@ p {
 
 @keyframes scalething2 {
     0% {
-        transform: scale(0.1);
+        transform: scale(0.2);
     }
 
     100% {
@@ -312,16 +294,36 @@ p {
     margin-left: 2px;
 }
 
+.winbnest {
+    padding-right: 7px;
+    padding-left: 0px !important;
+    padding-top: 3px;
+    padding-bottom: 2px;
+    border: none;
+    background-color: rgb(0, 0, 0, 0);
+}
+
+.winbmob {
+    border: none;
+    background-color: rgb(0, 0, 0, 0);
+    padding: 0px !important;
+    margin: 0px !important;
+}
+
 .winb {
     width: 13px;
     height: 13px;
     padding: 0px !important;
-    border: none;
-    margin-right: 7px;
+    border: 1px solid rgba(0, 0, 0, 0);
     border-radius: 50%;
     background-color: rgba(127, 127, 127, 0.5);
     cursor: default !important;
     box-sizing: border-box;
+    box-shadow: var(--optbox);
+}
+
+.winb:hover {
+    opacity: 88%;
 }
 
 .winb:active {
@@ -448,7 +450,7 @@ p {
 }
 
 .b1:active {
-    transform: scale(0.9);
+    transform: scale(0.92);
     background-color: rgba(var(--acc), 0.5);
 }
 
@@ -470,7 +472,7 @@ p {
 }
 
 .b1t:active {
-    transform: scale(0.9);
+    transform: scale(0.92);
     background-color: rgba(var(--acc), 0.25);
 }
 
@@ -498,7 +500,7 @@ p {
 
 .b3:active {
     background-color: rgba(var(--accent), 0.45);
-    transform: scale(0.90);
+    transform: scale(0.92);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -538,7 +540,7 @@ p {
 .b4:active {
     background-color: rgba(var(--accent), 0.35);
     border-color: rgba(var(--accent), 0.8);
-    transform: scale(0.90);
+    transform: scale(0.92);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -908,6 +910,10 @@ p {
     animation: menubar 0.4s ease;
 }
 
+.menubar button:hover {
+    background-color: rgb(0, 0, 0, 0) !important;
+}
+∏
 .nogrowth {
     align-items: stretch;
 }
@@ -987,7 +993,7 @@ p {
 
 .rightclick {
     position: fixed;
-    padding: 6px;
+    padding: 7px;
     border-radius: var(--rad2);
     background-color: var(--ui2);
     border: 1px solid var(--bc);
@@ -1011,7 +1017,7 @@ p {
     transform: translate(-50%, -50%);
     box-shadow: rgba(0, 0, 0, 0.3) 0px 0px 75px 15px;
     z-index: 9998;
-    width: 250px;
+    width: 280px;
     max-width: 85%;
     max-height: 85%;
     overflow: auto !important;
@@ -1290,7 +1296,7 @@ a:active {
     padding: 0px;
     border-radius: 14px;
     background-color: #1d1d1d;
-    box-shadow: #191919 0px 0px 400px 80px;
+    box-shadow: #141414 0px 0px 400px 80px;
 }
 
 .webcomm {
