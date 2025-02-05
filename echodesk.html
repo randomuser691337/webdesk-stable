@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link rel="stylesheet" href="./assets/style.css" />
     <link rel="stylesheet" href="./assets/lib/crop/cropper.css" />
-    <link rel="shortcut icon" href="./assets/img/favicon.png">
-    <link rel="apple-touch-icon" href="./assets/img/noround.png">
+    <link rel="shortcut icon" href="/system/lib/img/favicon.png">
+    <link rel="apple-touch-icon" href="/system/lib/img/noround.png">
     <title>EchoDesk</title>
 </head>
 <script>
@@ -15,8 +15,8 @@
     let params = new URLSearchParams(window.location.search);
 
     var abt = {
-        lastmod: "Jan 6, 2025",
-        ver: "0.2.8",
+        lastmod: "Jan 9, 2025",
+        ver: "0.2.9",
     }
 
     var sys = {
@@ -49,9 +49,10 @@
         filter: false,
         nc: false,
         loclast: Date.now(),
-        notifsrc: "/assets/other/notif1.ogg",
+        notifsrc: "/assets/other/notif1.wav",
         lowgfx: false,
         lockscreen: true,
+        contained: false
     }
     var el = {
         taskbar: undefined,
@@ -87,6 +88,16 @@
         <div class="center">
             <p class="bold" style="color: #fff !important;">Loading</p>
             <p style="color: #fff !important; max-width: 230px;">EchoDesk is loading files. Things will be slower.</p>
+        </div>
+    </div>
+    <div id="crash"
+        style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000; display: none;">
+        <div class="center" style="color: #fff !important;">
+            <img style="width: 50px; height: 50px; border: none; border-radius: 12px;"
+                src="/system/lib/img/icons/hlcrab.png"></img>
+            <p class="h2">An error occured</p>
+            <p>Try a reboot, it usually works.</p>
+            <button class="b1" onclick="reboot();" style="color: #fff !important">Reboot</button>
         </div>
     </div>
 </body>

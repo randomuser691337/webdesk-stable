@@ -1,24 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<!-- 
+    Welcome! // Built by red40lover420
+
+    WebDesk's filesystem is stored in your browser.
+    If you want to make local changes, enable
+    Developer Mode and find the files you want to
+    edit in the Files app. Keep in mind, a few
+    files can't be changed as they're needed to
+    load the filesystem.
+
+    Have fun!
+-->
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#5a5a5a">
-    <link rel="stylesheet" href="./assets/style.css" />
-    <link rel="stylesheet" href="./assets/lib/crop/cropper.css" />
-    <link rel="shortcut icon" href="./assets/img/favicon.png">
-    <link rel="apple-touch-icon" href="./assets/img/noround.png">
-    <title>WebDesk</title>
+    <link rel="shortcut icon" href="/system/lib/img/favicon.png">
+    <link rel="apple-touch-icon" href="/system/lib/img/noround.png">
+    <title>WebDesk (IDB Filesystem)</title>
 </head>
 <script>
     let url = window.location.href;
     let params = new URLSearchParams(window.location.search);
 
     var abt = {
-        lastmod: "Jan 6, 2025",
-        ver: "0.2.8",
+        lastmod: "Feb 4, 2025",
+        ver: "0.2.9",
     }
 
     var sys = {
@@ -52,9 +63,10 @@
         filter: false,
         nc: false,
         loclast: Date.now(),
-        notifsrc: "/assets/other/notif1.ogg",
+        notifsrc: "/assets/other/notif1.wav",
         lowgfx: false,
         lockscreen: true,
+        contained: false,
     }
 
     var el = {
@@ -86,297 +98,428 @@
     <div id="setuparea">
     </div>
     <div id="notif"></div>
-    <div id="death"
-        style="z-index: 9999; position: fixed; left: 0px; right: 0px; bottom: 0px; top: 0px; background-color: #000;">
-    </div>
 </body>
 
 </html>
-<script src="./assets/code/vals.js"></script>
-<script src="./assets/lib/jq.js"></script>
-<script src="./assets/lib/jszip.js"></script>
-<script src="./assets/lib/peer.js"></script>
-<script src="./assets/lib/weather.js"></script>
-<script src="./assets/lib/qrcode.js"></script>
-<script src="./assets/lib/ace/ace.js"></script>
-<script src="./assets/lib/picker.js"></script>
-<script src="./assets/code/core.js"></script>
-<script src="./assets/code/wm.js"></script>
-<script src="./assets/code/services.js"></script>
-<script src="./assets/code/ui.js"></script>
-<script src="./assets/code/fs.js"></script>
-<script src="./assets/code/apps.js"></script>
-<script src="./assets/lib/crop/cropper.js"></script>
 <script>
-    wd.fontsw('./assets/fonts/Poppins-Regular.ttf', './assets/fonts/Poppins-Medium.ttf', './assets/fonts/Poppins-Bold.ttf', './assets/fonts/mono.ttf');
+    async function initscript(ok) {
+        const scriptContent = await fs.read(ok);
+        const script = document.createElement('script');
+        script.textContent = scriptContent;
+        document.body.appendChild(script);
+        return script;
+    }
+
+    async function initcss(ok) {
+        const scriptContent = await fs.read(ok);
+        const script = document.createElement('style');
+        script.textContent = scriptContent;
+        document.head.appendChild(script);
+        return script;
+    }
+
     async function boot() {
         let boot = false;
         setTimeout(function () {
             if (boot === false) {
-                app.recovery.init();
+                document.body.innerHTML = `<style>body{color:#000 !important;background:#fff !important;}</body>
+                <p><strong>WebDesk Net Recovery</strong></p>
+                <p>WebDesk hasn't booted within 10 seconds, so recovery has been initialized. Choose an option below</p>
+                <button onclick="reboot();">Reboot</button><button onclick="fs.del('/system/webdesk');setTimeout(function () {reboot();}, 200);">Reinstall WebDesk (Data is kept)</button>`;
             }
-        }, 7000);
+        }, 10000);
+        const uid2 = params.get('id');
         const eepysleepy = await fs.read('/system/eepysleepy');
         const migcheck = await fs.read('/system/migval');
         const sd = await fs.read('/user/info/name');
-        if (sd && !migcheck) {
-            const uid = params.get('deskid');
-            if (uid) {
-                sys.migrid = uid;
+        const installed = await fs.read('/system/webdesk');
+        if (installed) {
+            try {
+                await initscript('/system/apps.js');
+                await initcss('/system/style.css');
+                await initcss('/system/lib/layout1.css');
+                await initcss('/system/lib/crop/cropper.css');
+                await initscript('/system/lib/jq.js');
+                await initscript('/system/lib/peer.js');
+                await initscript('/system/lib/qrcode.js');
+                await initscript('/system/lib/ace/ace.js');
+                await initscript('/system/lib/ace/ext-searchbox.js');
+                await initscript('/system/lib/ace/theme-monokai.js');
+                await initscript('/system/lib/picker.js');
+                await initscript('/system/core.js');
+                await initscript('/system/wm.js');
+                await initscript('/system/services.js');
+                await initscript('/system/ui.js');
+                await initscript('/system/lib/crop/cropper.js');
+                abt.ver = await fs.read('/system/info/currentver');
+                abt.lastmod = await fs.read('/system/info/currentveredit');
+                async function initapps() {
+                    const contents = await fs.ls('/apps/');
+                    for (const item of contents.items) {
+                        if (item.path.endsWith('.app')) {
+                            const skibidihawk = await fs.ls(item.path + "/");
+                            for (const item3 of skibidihawk.items) {
+                                if (item3.name === "install.js") {
+                                    await initscript(item3.path);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await initapps();
+                await wd.fontsw('/system/lib/fonts/Poppins-Regular.woff2', '/system/lib/fonts/Poppins-Medium.woff2', '/system/lib/fonts/Poppins-Bold.woff2', '/system/lib/fonts/mono.woff2');
+                ui.hide(tk.g('death'), 140);
+            } catch (error) {
+                console.error(error);
+            }
+            if (sd && !migcheck) {
+                const uid = params.get('deskid');
+                if (uid) {
+                    sys.migrid = uid;
+                    const id = gen(7);
+                    await ptp.go(id);
+                    ui.crtheme('#010101', true);
+                    wd.dark('nosave');
+                    app.system.migrate.init('skibidi');
+                    ui.hide(tk.g('death'), 140);
+                    boot = true;
+                    return;
+                }
+                const deskid = await fs.read('/system/deskid');
+                if (deskid) {
+                    if (deskid.length === 8) {
+                        await wd.newid();
+                        window.location.reload();
+                    }
+                } else {
+                    await wd.newid();
+                    window.location.reload();
+                }
+                const [
+                    darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent, perf
+                ] = await Promise.all([
+                    fs.read('/user/info/lightdarkpref'),
+                    fs.read('/user/info/lightdark'),
+                    fs.read('/user/info/color'),
+                    fs.read('/user/info/font'),
+                    fs.read('/system/info/devmode'),
+                    fs.read('/user/info/mobile'),
+                    fs.read('/user/info/location.json'),
+                    fs.read('/user/info/clocksec'),
+                    fs.read('/system/appurl'),
+                    fs.read('/user/info/filter'),
+                    fs.read('/user/info/notifsrc'),
+                    fs.read('/user/info/silent'),
+                    fs.read('/system/info/lowgfx')
+                ]);
+
+                if (perf === "true") {
+                    sys.lowgfx = true;
+                    ui.cv('bl1', '3px');
+                    ui.cv('bl2', '3px');
+                    ui.cv('optbox', 'none');
+                    ui.cv('mangomango', '0px');
+                } else if (perf === "half") {
+                    ui.cv('bl1', '7px');
+                    ui.cv('bl2', '4px');
+                    ui.cv('optbox', 'none');
+                    ui.cv('mangomango', '1px');
+                } else if (perf === "epic") {
+                    ui.cv('bl1', '15px');
+                    ui.cv('bl2', '12px');
+                    ui.cv('mangomango', '4px');
+                }
+
+                if (clocksec === "true") {
+                    sys.seconds = true;
+                } else {
+                    sys.seconds = false;
+                }
+
+                if (city) {
+                    const ok = JSON.parse(city)[0];
+                    sys.city = ok.city;
+                    sys.unit = ok.unit;
+                    if (ok.unit === "Metric") {
+                        sys.unitsym = "°C";
+                    } else {
+                        sys.unitsym = "°F";
+                    }
+                    if (ok.default === true) {
+                        sys.defaultloc = true;
+                    } else {
+                        sys.defaultloc = false;
+                    }
+                    sys.loclast = ok.lastupdate;
+                } else {
+                    wd.wetter();
+                }
+
+                await ptp.go(deskid);
+
+                if (eepysleepy === "true") {
+                    ui.hide(tk.g('contain'), 0);
+                    sys.setupd = "eepy";
+                    boot = true;
+                    wd.dark('nosave');
+                    ui.crtheme('#999999', true);
+                    app.lockscreen.init();
+                    await wd.chokehold();
+                    wakelockgo();
+                }
+
+                if (apprepo) sys.appurl = apprepo;
+                if (notifsound) sys.notifsrc = notifsound;
+                if (silent === "true") sys.nvol = 0;
+
+                if (/Mobi|Android/i.test(navigator.userAgent)) {
+                    sys.mob = true;
+                    if (mob !== "false") {
+                        sys.mobui = true;
+                    }
+                }
+
+                if (filtering === "true") {
+                    sys.filter = true;
+                } else if (filtering === "nc") {
+                    sys.filter = true;
+                    sys.nc = true;
+                }
+
+                if (dev === "true") {
+                    sys.dev = true;
+                    wm.notif(`Developer Mode is enabled.`);
+                }
+
+                if (font === "big") {
+                    wd.bgft();
+                } else if (font === "small") {
+                    wd.smft();
+                } else {
+                    wd.meft();
+                }
+
+                fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders, right-click/tap and hold a file to see it's info, and normal tap/click it to open it.`);
+                sys.setupd = true;
+                sys.name = sd;
+                if (darkpref === "auto") {
+                    sys.autodarkacc = true;
+                } else {
+                    sys.autodarkacc = false;
+                }
+                if (lightdark === "dark") {
+                    wd.dark('nosave');
+                } else if (lightdark === "clear") {
+                    wd.clearm('nosave');
+                } else if (lightdark === "clear2") {
+                    wd.clearm2('nosave');
+                } else if (lightdark === "light") {
+                    wd.light('nosave');
+                } else {
+                    wd.light('nosave');
+                }
+                if (color) {
+                    ui.crtheme(color);
+                } else {
+                    wd.seasonal();
+                }
+                try {
+                    const skibidi = await fetch('/target.json');
+                    const fucker = await skibidi.text();
+                    const json = await JSON.parse(fucker);
+                    if (json['0'].target !== abt.ver) {
+                        const dark = ui.darken();
+                        const menu = tk.c('div', dark, 'cm');
+                        tk.img('/system/lib/img/icons/update.svg', 'setupi', menu);
+                        tk.p('Update WebDesk', 'bold', menu);
+                        tk.p('This will only take a few seconds.', undefined, menu);
+                        tk.p(abt.ver + " to " + json['0'].target, undefined, menu);
+                        tk.cb('b1', 'Later', () => ui.dest(dark), menu); tk.cb('b1', 'Update', async function () {
+                            await fs.del('/system/webdesk');
+                            reboot();
+                        }, menu);
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+                await wd.desktop(sd, deskid, 'wait');
+            } else if (migcheck === "down") {
                 const id = gen(7);
                 await ptp.go(id);
                 ui.crtheme('#010101', true);
                 wd.dark('nosave');
-                app.migrate.init('skibidi');
-                ui.hide(tk.g('death'), 140);
+                await fs.del('/system/migval');
+                app.system.migrate.init('down');
                 boot = true;
-                return;
-            }
-            const deskid = await fs.read('/system/deskid');
-            if (deskid) {
-                if (deskid.length === 8) {
-                    await wd.newid();
-                    window.location.reload();
-                }
-            } else {
-                await wd.newid();
-                window.location.reload();
-            }
-            const [
-                darkpref, lightdark, color, font, dev, mob, city, clocksec, apprepo, filtering, notifsound, silent, perf
-            ] = await Promise.all([
-                fs.read('/user/info/lightdarkpref'),
-                fs.read('/user/info/lightdark'),
-                fs.read('/user/info/color'),
-                fs.read('/user/info/font'),
-                fs.read('/system/info/devmode'),
-                fs.read('/user/info/mobile'),
-                fs.read('/user/info/location.json'),
-                fs.read('/user/info/clocksec'),
-                fs.read('/system/appurl'),
-                fs.read('/user/info/filter'),
-                fs.read('/user/info/notifsrc'),
-                fs.read('/user/info/silent'),
-                fs.read('/system/info/lowgfx')
-            ]);
-
-            if (perf === "true") {
-                sys.lowgfx = true;
-                ui.cv('bl1', '3px');
-                ui.cv('bl2', '3px');
-                ui.cv('optbox', 'none');
-                ui.cv('mangomango', '0px');
-            } else if (perf === "half") {
-                ui.cv('bl1', '7px');
-                ui.cv('bl2', '4px');
-                ui.cv('optbox', 'none');
-                ui.cv('mangomango', '1px');
-            } else if (perf === "epic") {
-                ui.cv('bl1', '15px');
-                ui.cv('bl2', '12px');
-                ui.cv('optbox', 'none');
-                ui.cv('mangomango', '6px');
-            }
-
-            if (clocksec === "true") {
-                sys.seconds = true;
-            } else {
-                sys.seconds = false;
-            }
-
-            if (city) {
-                const ok = JSON.parse(city)[0];
-                sys.city = ok.city;
-                sys.unit = ok.unit;
-                if (ok.unit === "Metric") {
-                    sys.unitsym = "°C";
-                } else {
-                    sys.unitsym = "°F";
-                }
-                if (ok.default === true) {
-                    sys.defaultloc = true;
-                } else {
-                    sys.defaultloc = false;
-                }
-                sys.loclast = ok.lastupdate;
-            } else {
-                wd.wetter();
-            }
-
-            await ptp.go(deskid);
-
-            if (eepysleepy === "true") {
-                ui.hide(tk.g('contain'), 0);
-                sys.setupd = "eepy";
+            } else if (migcheck === "echo") {
+                const id = gen(7);
+                await ptp.go(id);
+                ui.crtheme('#010101', true);
+                wd.dark('nosave');
+                await fs.del('/system/migval');
+                app.system.echodesk.init();
                 boot = true;
-                wd.dark('nosave');
-                ui.crtheme('#999999', true);
-                app.lockscreen.init();
-                await wd.chokehold();
-                wakelockgo();
-            }
-
-            if (apprepo) sys.appurl = apprepo;
-            if (notifsound) sys.notifsrc = notifsound;
-            if (silent === "true") sys.nvol = 0;
-
-            if (/Mobi|Android/i.test(navigator.userAgent)) {
-                sys.mob = true;
-                if (mob !== "false") {
-                    sys.mobui = true;
-                }
-            }
-
-            if (filtering === "true") {
-                sys.filter = true;
-            } else if (filtering === "nc") {
-                sys.filter = true;
-                sys.nc = true;
-            }
-
-            if (dev === "true") {
-                sys.dev = true;
-                wm.notif(`Developer Mode is enabled.`);
-            }
-
-            if (font === "big") {
-                wd.bgft();
-            } else if (font === "small") {
-                wd.smft();
-            } else {
-                wd.meft();
-            }
-            fs.write('/user/files/Welcome to WebDesk!.txt', `Welcome to WebDesk! This is your Files folder, where things you upload are stored. Use the buttons at the top to navigate between folders, right-click/tap and hold a file to see it's info, and normal tap/click it to open it.`);
-
-            sys.setupd = true;
-            sys.name = sd;
-            if (darkpref === "auto") {
-                sys.autodarkacc = true;
-            } else {
-                sys.autodarkacc = false;
-            }
-            if (lightdark === "dark") {
-                wd.dark('nosave');
-            } else if (lightdark === "clear") {
-                wd.clearm('nosave');
-            } else if (lightdark === "clear2") {
-                wd.clearm2('nosave');
-            } else if (lightdark === "light") {
-                wd.light('nosave');
-            } else {
-                wd.light('nosave');
-            }
-            if (color) {
-                ui.crtheme(color);
+            } else if (migcheck === "rec") {
+                await app.system.recovery.init();
             } else {
                 wd.seasonal();
+                const id = await wd.newid();
+                await ptp.go(id);
+                if (uid2) {
+                    app.system.setup.init(true, uid2);
+                } else {
+                    app.system.setup.init();
+                }
+                sys.setupd = false;
+                boot = true;
             }
-            await wd.desktop(sd, deskid, 'wait');
-            const data = await fs.read('/system/apps.json');
-            if (data) {
-                const apps = JSON.parse(data);
-                try {
-                    const response = await fetch(sys.appurl);
-                    const onlineApps = await response.json();
-                    for (const inapp of apps) {
-                        await wd.loadapps(inapp, onlineApps, apps);
-                    }
-                } catch (err) {
-                    console.log(err);
-                    try {
-                        for (const inapp of apps) {
-                            await wd.loadapps(inapp, inapp, inapp);
+
+            wd.perfmon();
+            ui.hide(tk.g('death'), 140);
+
+            const dropZone = document.body;
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function handleDrop(e) {
+                let dt = e.dataTransfer;
+                let files = dt.files;
+
+                handleFiles(files);
+            }
+
+            async function handleFiles(files) {
+                let filesArray = [...files];
+                filesArray.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = async function (e) {
+                        const contents = e.target.result;
+                        await fs.write(`/user/files/${file.name}`, contents);
+                        app.files.init('/user/files/');
+                    };
+
+                    reader.readAsDataURL(file);
+                });
+            }
+            boot = true;
+        } else {
+            try {
+                boot = true;
+                document.body.innerHTML = "<p>Downloading update package...</p>";
+                const response = await fetch('desk.zip');
+                const test = await fs.read('/system/core.js');
+                if (test) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        for (let registration of registrations) {
+                            if (registration.active) {
+                                registration.active.postMessage({ type: 'update' });
+                            }
                         }
-                    } catch (error) {
-                        if (sys.fucker === false) {
-                            wm.notif(`An issue occured with your apps.`, `Remove them? Their data will be safe, and you can reinstall them.`, function () {
-                                sys.fucker = true;
-                                fs.del('/system/apps.json');
-                                fs.delfold('/system/apps');
-                                wm.notif('App Issues', 'All apps were uninstalled due to corruption or a WebDesk update. Your data is safe, you can reinstall them anytime.', () => app.appmark.init(), 'App Market');
-                            }, 'Remove');
+                    });
+                } else {
+                    if ("serviceWorker" in navigator) {
+                        try {
+                            const registration = await navigator.serviceWorker.register("offline.js");
+                            console.log("<i> Service Worker registered: ", registration.scope);
+                            document.body.innerHTML += '<p>Set up offline mode!</p>';
+                        } catch (error) {
+                            console.error("<!> Service Worker registration failed: ", error);
+                            document.body.innerHTML += `<p>Couldn't set up Offline Mode, WebDesk can't run offline.</p>`;
+                            rebooton = "false";
                         }
                     }
                 }
-            } else {
-                await fs.write('/system/apps.json', '[]');
+
+                document.body.innerHTML += "<p>Downloaded, extracting files...</p>";
+                if (!response.ok) throw new Error(`Failed to fetch zip: ${response.statusText}`);
+                const blob = await response.blob();
+                const zip = await JSZip.loadAsync(blob);
+                const files = zip.files;
+
+                for (const filename in files) {
+                    const file = files[filename];
+                    if (!file.dir) {
+                        // Only for extracting WebDesk files
+                        if (filename.endsWith('.png') || filename.endsWith('.wav') || filename.endsWith('.woff2')) {
+                            const binaryContents = await file.async('blob');
+                            const reader = new FileReader();
+                            reader.onload = async function (e) {
+                                const base64Data = e.target.result;
+                                await fs.write(`/${filename}`, base64Data);
+                            };
+                            reader.readAsDataURL(binaryContents);
+                        } else {
+                            const contents = await file.async('string');
+                            await fs.write("/" + filename, contents);
+                        }
+
+                        // document.body.innerHTML += `Extracted ${filename}<br>`;
+                    }
+                }
+
+                document.body.innerHTML += '<p>Extracted, setting up install</p>';
+                await fs.write('/system/webdesk', 'existing');
+
+                const skibidi = await fetch('/target.json');
+                const fucker = await skibidi.text();
+                const json = await JSON.parse(fucker);
+                fs.write('/system/info/currentver', json['0'].target);
+                fs.write('/system/info/currentveredit', json['0'].lastmod);
+
+                /* await fetch('/go/fs.js').then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    localStorage.setItem("fs", response.text());
+                });
+
+                await fetch('/go/wfs.js').then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    localStorage.setItem("wfs", response.text());
+                }); */
+
+                const rebooton = params.get('reboot');
+
+                if (rebooton === "false") {
+                    document.body.innerHTML += '<p><strong>Done! <button onclick="reboot();">Reboot</button></strong></p>';
+                } else {
+                    document.body.innerHTML += '<p><strong>Done, rebooting!</strong></p>';
+                    reboot();
+                }
+            } catch (error) {
+                document.body.innerHTML = `
+                <style>body{color:#000 !important;background:#fff !important;}</body>
+                <p><strong>WebDesk Net Recovery</strong></p>
+                <p>An error occured while attempting install: ${error}</p>
+                <p>Choose an option below</p>
+                <button onclick="reboot();">Reboot</button><button onclick="fs.del('/system/webdesk/');reboot();">Retry Install</button>`;
             }
-        } else if (migcheck === "down") {
-            const id = gen(7);
-            await ptp.go(id);
-            ui.crtheme('#010101', true);
-            wd.dark('nosave');
-            await fs.del('/system/migval');
-            app.migrate.init('down');
-            boot = true;
-        } else if (migcheck === "echo") {
-            const id = gen(7);
-            await ptp.go(id);
-            ui.crtheme('#010101', true);
-            wd.dark('nosave');
-            await fs.del('/system/migval');
-            app.echodesk.init();
-            boot = true;
-        } else if (migcheck === "rec") {
-            await app.recovery.init();
-        } else {
-            const ok = await fs.read('/system/deskid');
-            const uid2 = params.get('id');
-            if (ok && !uid2) {
-                console.log('<!> Found pre-existing WebDesk. Erasing...');
-                await fs.erase('reboot');
-            }
-            wd.seasonal();
-            const id = await wd.newid();
-            await ptp.go(id);
-            if (uid2) {
-                app.setup.init(true, uid2);
-            } else {
-                app.setup.init();
-            }
-            sys.setupd = false;
-            boot = true;
         }
-
-        wd.perfmon();
-        ui.hide(tk.g('death'), 140);
-
-        const dropZone = document.body;
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-
-        dropZone.addEventListener('drop', handleDrop, false);
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        function handleDrop(e) {
-            let dt = e.dataTransfer;
-            let files = dt.files;
-
-            handleFiles(files);
-        }
-
-        async function handleFiles(files) {
-            let filesArray = [...files];
-            filesArray.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = async function (e) {
-                    const contents = e.target.result;
-                    await fs.write(`/user/files/${file.name}`, contents);
-                    app.files.init('/user/files/');
-                };
-
-                reader.readAsDataURL(file);
-            });
-        }
-        boot = true;
     }
+
     function reboot() {
-        wd.reboot();
+        window.location.reload();
     }
+
+    /* if (!navigator.onLine) {
+        const downfs = localStorage.getItem("fs");
+        const downwfs = localStorage.getItem("wfs");
+        const script = document.createElement('script');
+        script.textContent = downfs;
+        document.body.appendChild(script);
+    } */
 </script>
+<script src="/fs.js"></script>
+<script src="/jszip.js"></script>
