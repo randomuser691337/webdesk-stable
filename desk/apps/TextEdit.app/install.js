@@ -108,9 +108,6 @@ app['textedit'] = {
         }, win.name);
         function runc() {
             wd.exec(editor.getValue());
-            tk.cb('b1', 'Close', function () {
-                ui.dest(menu, 120);
-            }, menu);
         }
         tk.cb('b4 b6', 'Run', async function () {
             runc();

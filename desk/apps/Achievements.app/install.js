@@ -29,7 +29,7 @@ app['ach'] = {
             }
         }
 
-        const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined);
+        const win = tk.mbw('Achievements', '300px', 'auto', true, undefined, undefined, '/apps/Achievements.app/icon.svg');
         if (sys.mobui === false) {
             win.win.style.maxHeight = "60%";
         }

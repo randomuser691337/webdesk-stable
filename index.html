@@ -16,20 +16,73 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#5a5a5a">
     <link rel="shortcut icon" href="/system/lib/img/favicon.png">
     <link rel="apple-touch-icon" href="/system/lib/img/noround.png">
-    <title>WebDesk (IDB Filesystem)</title>
+    <title>WebDesk</title>
+    <style>
+        .line-wobble,
+        .line-wobble::after {
+            border-radius: calc(var(--uib-line-weight)/ 2)
+        }
+
+        .line-wobble::after,
+        .line-wobble::before {
+            content: '';
+            height: 100%;
+            width: 100%;
+            background-color: #4D79FF;
+        }
+
+        .line-wobble {
+            --uib-size: 120px;
+            --uib-speed: 1.55s;
+            --uib-color: #4D79FF;
+            --uib-line-weight: 6px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: var(--uib-line-weight);
+            width: var(--uib-size);
+            overflow: hidden;
+            transform: translate3d(0, 0, 0)
+        }
+
+        .line-wobble::before {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: .2
+        }
+
+        .line-wobble::after {
+            animation: wobble var(--uib-speed) ease-in-out infinite;
+            transform: translateX(-90%)
+        }
+
+        @keyframes wobble {
+
+            0%,
+            100% {
+                transform: translateX(-90%)
+            }
+
+            50% {
+                transform: translateX(90%)
+            }
+        }
+    </style>
 </head>
 <script>
     let url = window.location.href;
     let params = new URLSearchParams(window.location.search);
 
     var abt = {
-        lastmod: "Feb 4, 2025",
-        ver: "0.2.9",
+        lastmod: "Feb 9, 2025",
+        ver: "0.3.0",
     }
 
     var sys = {
@@ -98,6 +151,15 @@
     <div id="setuparea">
     </div>
     <div id="notif"></div>
+    <div id="loading"
+        style="background-color: #000 !important; color: #fff !important; left: 0px; right: 0px; top: 0px; bottom: 0px; z-index: 9999; position: fixed;">
+        <div style="position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);">
+            <div class="line-wobble"></div>
+        </div>
+    </div>
 </body>
 
 </html>
@@ -118,6 +180,30 @@
         return script;
     }
 
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/offline.js')
+            .then((registration) => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch((error) => {
+                console.error('Service Worker registration failed:', error);
+            });
+    }
+
+    async function initapps() {
+        const contents = await fs.ls('/apps/');
+        for (const item of contents.items) {
+            if (item.path.endsWith('.app')) {
+                const skibidihawk = await fs.ls(item.path + "/");
+                for (const item3 of skibidihawk.items) {
+                    if (item3.name === "install.js") {
+                        await initscript(item3.path);
+                    }
+                }
+            }
+        }
+    }
+
     async function boot() {
         let boot = false;
         setTimeout(function () {
@@ -134,9 +220,9 @@
         const sd = await fs.read('/user/info/name');
         const installed = await fs.read('/system/webdesk');
         if (installed) {
+            console.log(`<i> Boot stage 1: Read system files`);
             try {
                 await initscript('/system/apps.js');
-                await initcss('/system/style.css');
                 await initcss('/system/lib/layout1.css');
                 await initcss('/system/lib/crop/cropper.css');
                 await initscript('/system/lib/jq.js');
@@ -153,26 +239,13 @@
                 await initscript('/system/lib/crop/cropper.js');
                 abt.ver = await fs.read('/system/info/currentver');
                 abt.lastmod = await fs.read('/system/info/currentveredit');
-                async function initapps() {
-                    const contents = await fs.ls('/apps/');
-                    for (const item of contents.items) {
-                        if (item.path.endsWith('.app')) {
-                            const skibidihawk = await fs.ls(item.path + "/");
-                            for (const item3 of skibidihawk.items) {
-                                if (item3.name === "install.js") {
-                                    await initscript(item3.path);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                await initapps();
+                await initcss('/system/style.css');
                 await wd.fontsw('/system/lib/fonts/Poppins-Regular.woff2', '/system/lib/fonts/Poppins-Medium.woff2', '/system/lib/fonts/Poppins-Bold.woff2', '/system/lib/fonts/mono.woff2');
                 ui.hide(tk.g('death'), 140);
             } catch (error) {
                 console.error(error);
             }
+            console.log('<i> Boot stage 2: Load variables, make decisions');
             if (sd && !migcheck) {
                 const uid = params.get('deskid');
                 if (uid) {
@@ -324,6 +397,11 @@
                 } else {
                     wd.seasonal();
                 }
+                console.log('<i> Boot stage 3: Load apps');
+                await initapps();
+                console.log('<i> Boot stage 4: Load desktop, check for updates');
+                await wd.desktop(sd, deskid, 'wait');
+                ui.dest(tk.g('loading', 220));
                 try {
                     const skibidi = await fetch('/target.json');
                     const fucker = await skibidi.text();
@@ -343,26 +421,32 @@
                 } catch (error) {
                     console.log(error);
                 }
-                await wd.desktop(sd, deskid, 'wait');
             } else if (migcheck === "down") {
+                await initapps();
                 const id = gen(7);
                 await ptp.go(id);
                 ui.crtheme('#010101', true);
                 wd.dark('nosave');
                 await fs.del('/system/migval');
                 app.system.migrate.init('down');
+                ui.dest(tk.g('loading', 220));
                 boot = true;
             } else if (migcheck === "echo") {
+                await initapps();
                 const id = gen(7);
                 await ptp.go(id);
                 ui.crtheme('#010101', true);
                 wd.dark('nosave');
                 await fs.del('/system/migval');
                 app.system.echodesk.init();
+                ui.dest(tk.g('loading', 220));
                 boot = true;
             } else if (migcheck === "rec") {
+                await initapps();
                 await app.system.recovery.init();
+                ui.dest(tk.g('loading', 220));
             } else {
+                await initapps();
                 wd.seasonal();
                 const id = await wd.newid();
                 await ptp.go(id);
@@ -372,6 +456,7 @@
                     app.system.setup.init();
                 }
                 sys.setupd = false;
+                ui.dest(tk.g('loading', 220));
                 boot = true;
             }
 
@@ -412,6 +497,7 @@
                 });
             }
             boot = true;
+            await app.appmark.checkforup();
         } else {
             try {
                 boot = true;
@@ -426,18 +512,6 @@
                             }
                         }
                     });
-                } else {
-                    if ("serviceWorker" in navigator) {
-                        try {
-                            const registration = await navigator.serviceWorker.register("offline.js");
-                            console.log("<i> Service Worker registered: ", registration.scope);
-                            document.body.innerHTML += '<p>Set up offline mode!</p>';
-                        } catch (error) {
-                            console.error("<!> Service Worker registration failed: ", error);
-                            document.body.innerHTML += `<p>Couldn't set up Offline Mode, WebDesk can't run offline.</p>`;
-                            rebooton = "false";
-                        }
-                    }
                 }
 
                 document.body.innerHTML += "<p>Downloaded, extracting files...</p>";

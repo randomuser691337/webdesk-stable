@@ -2,17 +2,26 @@ app['about'] = {
     runs: true,
     name: 'About',
     init: async function () {
-        const win = tk.mbw('About', undefined, 'auto', true, undefined, undefined);
+        const win = tk.mbw('About', undefined, 'auto', true, undefined, undefined, '/system/lib/img/noround.png');
         tk.css('/apps/About.app/abt.css');
         const main = tk.c('div', win.main, 'abtcont');
         const side = tk.c('div', main, 'abtlogo');
         const info = tk.c('div', main, 'abtinfo');
         const logo = tk.img('/system/lib/img/favicon.png', 'abtimg', side);
-        logo.img.addEventListener('mouseover', function () {
-            setTimeout(async function () {
-                (await logo).edit.load('/system/lib/img/icons/HYPERPIGMENTATION.png')
-            }, 2000)
-        });
+        // i spent too much time coding this, all for a dumb joke ;-;
+        (async function () {
+            const logoel = await logo;
+            let timeout;
+            logoel.img.addEventListener('mouseover', function () {
+                timeout = setTimeout(async function () {
+                    logoel.edit.load('/system/lib/img/icons/HYPERPIGMENTATION.png');
+                }, 1000);
+                logoel.img.addEventListener('mouseout', function onMouseOut() {
+                    clearTimeout(timeout);
+                    logoel.img.removeEventListener('mouseout', onMouseOut);
+                });
+            });
+        })();
         win.main.style.padding = "0px";
         tk.cb('b4 b2', 'Changes', () => wd.hawktuah(true), side);
         tk.cb('b4 b2', 'Status', async function () {

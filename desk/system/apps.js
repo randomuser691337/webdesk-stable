@@ -1,9 +1,9 @@
 var app = {
     echoclient: {
-        runs: true,
+        runs: false,
         name: 'EchoDesk',
         init: async function () {
-            const win = tk.mbw('EchoDesk', '300px', 'auto', true, undefined, undefined);
+            const win = tk.mbw('', '300px', 'auto', true, undefined, undefined);
             if (sys.guest === true) {
                 tk.p(`Enter the EchoDesk ID and hit either of the "Connect" buttons. <span class="bold">You're in Guest mode, so you can't enter EchoDesk mode.</span>`, undefined, win.main);
             } else {

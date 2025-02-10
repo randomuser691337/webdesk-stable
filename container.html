@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#5a5a5a">
+    <link rel="stylesheet" href="./assets/style.css" />
+    <link rel="stylesheet" href="./assets/lib/crop/cropper.css" />
+    <link rel="shortcut icon" href="./assets/img/favicon.png">
+    <link rel="apple-touch-icon" href="./assets/img/noround.png">
+    <style>
+        .window {
+            animation: none !important;
+            resize: none !important;
+            border-radius: 0px;
+            background-color: rgba(0, 0, 0, 0) !important;
+            left: 0px !important;
+            right: 0px !important;
+            top: 0px !important;
+            bottom: 0px !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+            box-shadow: none;
+            backdrop-filter: blur(0px) !important;
+            -webkit-backdrop-filter: blur(0px) !important;
+        }
+
+        .tb {
+            height: 0px !important;
+            opacity: 0% !important;
+            padding: 0px !important;
+            border: none !important;
+        }
+
+        body {
+            background-color: rgba(0, 0, 0, 0) !important;
+        }
+    </style>
+    <title>WebDesk</title>
+</head>
+<script>
+    let url = window.location.href;
+    let params = new URLSearchParams(window.location.search);
+
+    var abt = {
+        lastmod: "Jan 9, 2025",
+        ver: "0.2.9",
+    }
+
+    var sys = {
+        deskid: undefined,
+        setupd: undefined,
+        migrid: 1,
+        autodarkacc: undefined,
+        webdrop: true,
+        name: "Default User",
+        model: undefined,
+        nvol: 1.0,
+        installer: undefined,
+        peer: undefined,
+        currentf: undefined,
+        full: false,
+        guest: false,
+        light: true,
+        fucker: false,
+        clip: undefined,
+        dev: false,
+        mob: false,
+        mobui: false,
+        city: "Paris, France",
+        unit: "Metric",
+        defaultloc: true,
+        unitsym: "°C",
+        seconds: false,
+        echodesk: false,
+        resume: undefined,
+        appurl: `https://appmarket.meower.xyz/refresh`,
+        filter: false,
+        nc: false,
+        loclast: Date.now(),
+        notifsrc: "/assets/other/notif1.ogg",
+        lowgfx: false,
+        lockscreen: false,
+        contained: true,
+    }
+
+    var el = {
+        taskbar: undefined,
+        migstat: undefined,
+        webchat: undefined,
+        currentid: undefined,
+        lock: undefined,
+        sm: undefined,
+        tr: undefined,
+        cc: undefined,
+        dropped: false,
+        deskicon: true,
+    }
+
+    var wc = {
+        webchat: undefined,
+        currentid: undefined,
+    }
+</script>
+
+<body>
+    <div id="contain" style="display: none;">
+        <div class="dark background"></div>
+        <div id="background" class="background"></div>
+        <div class="circle"></div>
+        <div class="circle2"></div>
+    </div>
+    <div id="setuparea">
+    </div>
+    <div id="notif"></div>
+</body>
+
+</html>
+<script src="./assets/code/vals.js"></script>
+<script src="./assets/lib/jq.js"></script>
+<script src="./assets/lib/jszip.js"></script>
+<script src="./assets/lib/peer.js"></script>
+<script src="./assets/lib/weather.js"></script>
+<script src="./assets/lib/qrcode.js"></script>
+<script src="./assets/lib/ace/ace.js"></script>
+<script src="./assets/lib/picker.js"></script>
+<script src="./assets/code/core.js"></script>
+<script src="./assets/code/wm.js"></script>
+<script src="./assets/code/services.js"></script>
+<script src="./assets/code/ui.js"></script>
+<script src="./assets/code/fs.js"></script>
+<script src="./assets/code/apps.js"></script>
+<script src="./assets/lib/crop/cropper.js"></script>
+<script>
+    wd.fontsw('./assets/fonts/Poppins-Regular.ttf', './assets/fonts/Poppins-Medium.ttf', './assets/fonts/Poppins-Bold.ttf', './assets/fonts/mono.ttf');
+    async function boot() {
+        let boot = false;
+        const uid = await params.get('code');
+        setTimeout(function () {
+            if (boot === false) {
+                const menu = tk.c('div', document.body, 'cm');
+                tk.p(`Couldn't start up app container.`, undefined, menu);
+                tk.cb('b1', 'console.log details', function () {
+                    console.log(uid);
+                    console.log(ok);
+                    console.log(app.placeholder);
+                }, menu);
+                tk.cb('b1', 'Retry', function () {
+                    reboot();
+                }, menu);
+            }
+        }, 5000);
+        if (uid) {
+            try {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const ok = e.target.result;
+                    app.placeholder.init = new Function('return ' + ok)();
+                    app.placeholder.init();
+                };
+                reader.readAsText(uid);
+                boot = true;
+            } catch (error) {
+                console.error('Failed to decode or execute the code:', error);
+            }
+        }
+    }
+    function reboot() {
+        wd.reboot();
+    }
+</script>

@@ -2,7 +2,7 @@ app['settings'] = {
     runs: true,
     name: 'Settings',
     init: async function () {
-        const main = tk.mbw('Settings', '310px', 'auto', true, undefined, undefined);
+        const main = tk.mbw('Settings', '310px', 'auto', true, undefined, undefined, '/apps/Settings.app/icon.svg');
         const generalPane = tk.c('div', main.main, 'hide');
         const appearPane = tk.c('div', main.main, 'hide');
         const accPane = tk.c('div', main.main, 'hide');

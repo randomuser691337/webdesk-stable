@@ -2,7 +2,7 @@ app['wetter'] = {
     runs: true,
     name: 'Weather',
     init: async function (archive, file) {
-        const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined);
+        const win = tk.mbw('Weather', 'auto', 'auto', true, undefined, undefined, '/apps/Weather.app/icon.svg');
         win.win.style.minWidth = "210px;"
         /* const canvas = tk.c('canvas', document.body);
         canvases.snow(canvas);

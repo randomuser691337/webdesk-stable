@@ -4,7 +4,7 @@ app['imgview'] = {
     runs: false,
     name: 'Iris',
     init: async function (contents, path) {
-        const win = tk.mbw('Iris', '400px', 'auto', undefined, undefined, undefined);
+        const win = tk.mbw('Iris', '400px', 'auto', undefined, undefined, undefined, '/apps/Iris.app/icon.svg');
         if (contents.includes('data:video')) {
             const img = tk.c('video', win.main, 'embed');
             const src = tk.c('source', img);

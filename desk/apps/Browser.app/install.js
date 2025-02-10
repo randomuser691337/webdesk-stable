@@ -5,7 +5,7 @@ app['browser'] = {
     name: 'Browser',
     init: async function (path2) {
         tk.css('/system/lib/layout1.css');
-        const win = tk.mbw('Browser', '80vw', '80vh');
+        const win = tk.mbw('Browser', '80vw', '80vh', undefined, undefined, undefined, '/apps/Browser.app/icon.svg');
         const tabs = tk.c('div', win.main, 'tabbar d');
         const btnnest = tk.c('div', tabs, 'tnav');
         const okiedokie = tk.c('div', tabs, 'browsertitle');

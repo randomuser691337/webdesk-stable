@@ -1,16 +1,12 @@
-const cacheName = "WebBoot 0.0.3";
-const cacheUrls = ["index.html", "fs.js", "wfs.js", "jszip.js", "target.json"];
-const ver = "0.0.3";
-
-self.addEventListener("install", async (event) => {
-    try {
-        const cache = await caches.open(cacheName);
-        await cache.addAll(cacheUrls);
-        console.log(`<i> Cache installed (version: ${ver})`);
-    } catch (error) {
-        console.error("Service Worker installation failed:", error);
-    }
-});
+const CACHE_NAME = 'offline-cache-v1';
+const FILES_TO_CACHE = [
+    '/',
+    '/index.html',
+    '/fs.js',
+    '/wfs.js',
+    'jszip.js',
+    '/target.json'
+];
 
 self.addEventListener("message", (event) => {
     if (event.data && event.data.type === "stop") {
@@ -24,51 +20,65 @@ self.addEventListener("message", (event) => {
         console.log(ver);
         event.source.postMessage({ type: ver });
     } else if (event.data && event.data.type === "update") {
-        update();
+        event.waitUntil(
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => {
+                        if (cacheName !== CACHE_NAME) {
+                            console.log('Deleting old cache:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            })
+        );
     }
 });
 
-async function update() {
-    try {
-        console.log("<i> Clearing old cache...");
-        const cache = await caches.open(cacheName);
-        await caches.delete(cacheName);
-        const newCache = await caches.open(cacheName);
-        await newCache.addAll(cacheUrls);
-        console.log("<i> Updated offline mode");
-    } catch (error) {
-        console.error("Error clearing or recaching the cache:", error);
-    }
-}
+self.addEventListener('install', (event) => {
+    console.log('<i> Service Worker installing...');
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('Caching files...');
+                return cache.addAll(FILES_TO_CACHE);
+            })
+            .then(() => self.skipWaiting())
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    console.log('<i> Service Worker activating...');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        console.log('Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+});
 
 if (navigator.onLine === false) {
-    console.log(`<i> Worker ${ver} is initializing... (active)`);
-    self.addEventListener("fetch", (event) => {
+    self.addEventListener('fetch', (event) => {
+        console.log('<i> Fetching:', event.request.url);
         event.respondWith(
-            (async () => {
-                const cache = await caches.open(cacheName);
-
-                try {
-                    const cachedResponse = await cache.match(event.request);
-                    if (cachedResponse) {
-                        console.log("<i> cachedResponse: ", event.request.url);
-                        return cachedResponse;
+            caches.match(event.request)
+                .then((response) => {
+                    if (response) {
+                        console.log('<i> Serving from cache: ', event.request.url);
+                        return response;
                     }
 
-                    const fetchResponse = await fetch(event.request);
-                    if (fetchResponse) {
-                        console.log("<i> fetchResponse: ", event.request.url);
-                        await cache.put(event.request, fetchResponse.clone());
-                        return fetchResponse;
-                    }
-                } catch (error) {
-                    console.log("<!> Fetch failed: ", error);
-                    const cachedResponse = await cache.match("index.html");
-                    return cachedResponse;
-                }
-            })()
+                    return fetch(event.request)
+                        .catch(() => {
+                            return caches.match('/index.html');
+                        });
+                })
         );
     });
-} else {
-    console.log(`<i> Worker ${ver} is initializing... (dormant)`);
 }

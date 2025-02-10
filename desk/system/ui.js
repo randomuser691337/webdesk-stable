@@ -62,19 +62,19 @@ var ui = {
         if (ok) {
             let correct;
             if (filename.endsWith('.wav')) {
-                 correct = ok.replace(/^data:application\/octet-stream/, 'data:audio/wav');
-                 audio = new Audio(correct);
+                correct = ok.replace(/^data:application\/octet-stream/, 'data:audio/wav');
+                audio = new Audio(correct);
             } else {
                 console.log(`<!> Who are you, who am I to you? (Audio file isn't wav, giving up)`)
             }
         } else {
             audio = new Audio(filename);
         }
-    
+
         audio.volume = sys.nvol;
         await audio.play();
         return audio;
-    },    
+    },
     show: function (dr1, anim) {
         if (dr1) {
             if (anim) {
@@ -357,7 +357,7 @@ var ui = {
         }
     },
     rightclick: function (menu, event, btn, menudiv) {
-        if (!event || sys.mob === true) {
+        if (!event || sys.mobui === true) {
             ui.center(menu);
         } else if (menudiv === true) {
             const rect = menu.getBoundingClientRect();
@@ -438,7 +438,7 @@ var tk = {
     img: async function (src, classn, div, draggable, directurl) {
         const fuck = document.createElement('img');
         div.appendChild(fuck);
-        async function reload() {
+        async function reload(param) {
             try {
                 const data = await fs.read(src);
                 if (data) {
@@ -459,9 +459,9 @@ var tk = {
                     fuck.src = src;
                 }
             } catch (error) {
-                console.log(data);
                 console.log(error);
                 fuck.src = src;
+                console.log(data);
             }
         }
         if (classn) {
@@ -481,7 +481,7 @@ var tk = {
                 await reload();
             }
         }
-        return {img: fuck, edit};
+        return { img: fuck, edit };
     },
     css: function (path) {
         return initcss(path);
@@ -515,7 +515,7 @@ var tk = {
     a: function (ele1, ele2) {
         ele1.appendChild(ele2);
     },
-    mbw: function (title, wid, hei, full, min, quit) {
+    mbw: function (title, wid, hei, full, min, quit, icon) {
         var windowDiv = document.createElement('div');
         windowDiv.classList.add('window');
         windowDiv.setAttribute('wdname', title);
@@ -555,9 +555,49 @@ var tk = {
         } else {
             shortened = ui.truncater(title, 10);
         }
-        const tbn = tk.cb('b1', shortened, function () {
+        const tbn = tk.cb('', '', function () {
             wm.show(windowDiv, tbn);
         }, el.tr);
+        if (icon) {
+            tk.img(icon, 'dockicon', tbn, false, 'noretry');
+        } else {
+            tk.img('/system/lib/img/icons/noicon.svg', 'dockicon', tbn, false, 'noretry');
+        }
+
+        const tooltip = tk.c('div', document.body, 'tooltipd');
+        tooltip.textContent = shortened;
+
+        function updateTooltipPosition() {
+            const { x, width, top, height } = tbn.getBoundingClientRect();
+            tooltip.style.left = `${x + width / 2 - tooltip.offsetWidth / 2}px`;
+            setTimeout(updateTooltipPosition, 200);
+        }
+        
+        
+        window.addEventListener("resize", updateTooltipPosition);
+        
+        if (el.taskbar) {
+            new ResizeObserver(updateTooltipPosition).observe(el.taskbar);
+        }
+
+        updateTooltipPosition();
+        
+
+        const showTooltip = () => {
+            tooltip.classList.add('visible');
+        };
+
+        const hideTooltip = () => {
+            tooltip.classList.remove('visible');
+        };
+
+        tbn.addEventListener('mouseenter', showTooltip);
+        tbn.addEventListener('mouseleave', hideTooltip);
+
+        const removeTooltipListener = () => {
+            tbn.removeEventListener('mouseenter', showTooltip);
+            tbn.removeEventListener('mouseleave', hideTooltip);
+        };
         if (quit === undefined) {
             closeButton.classList.add('red');
             closeButtonNest.addEventListener('mousedown', async function () {

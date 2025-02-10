@@ -459,7 +459,8 @@ var wd = {
             el.contb = tk.cb('time', '--:--', () => controlcenter(), right);
             const tasknest = tk.c('div', el.taskbar, 'tasknest');
             const lefttb = tk.c('div', tasknest, 'tnav auto');
-            el.startbutton = tk.cb('b1', 'Apps', () => startmenu(), lefttb);
+            el.startbutton = tk.cb('', '', () => startmenu(), lefttb);
+            tk.img('/system/lib/img/icons/apps.svg', 'dockicon', el.startbutton, false, 'noretry');
             el.tr = tk.c('div', lefttb);
             if (sys.nvol === 0) el.contb.classList.toggle('silentbtn');
             if (sys.mobui === true) {
@@ -893,7 +894,7 @@ var wd = {
             }
         }, menu);
         tk.p('How this works', 'bold', info);
-        tk.p(`IPInfo finds your city via your IP address. After this, your city is fed into OpenWeatherMap for weather details.`, undefined, info);
+        tk.p(`IPInfo finds your region via your IP address. After this, your region is fed into OpenWeatherMap for weather details.`, undefined, info);
         tk.p('None of your data is viewable or visible to anyone else but you. ', undefined, info);
         tk.cb('b1 b2', `OpenWeatherMap's website`, async function () {
             window.open('https://openweathermap.org', '_blank');
@@ -996,6 +997,9 @@ var wd = {
             tk.cb('b1 b2', 'I understand, run the code', function () {
                 ui.dest(menu, 120);
                 eval(code);
+            }, menu);
+            tk.cb('b1 b2', 'Close', function () {
+                ui.dest(menu, 120);
             }, menu);
         } else {
             tk.p(`Enable Developer Mode in Settings -> General to run custom code.`, undefined, menu);

@@ -181,13 +181,13 @@ p {
     0% {
         transform: scale(0.6);
         opacity: 0%;
-        filter: blur(var(--mangomango));
+        /* filter: blur(var(--mangomango)); */
     }
 
     100% {
         transform: scale(1);
         opacity: 100%;
-        filter: blur(0px)
+        /* filter: blur(0px) */
     }
 }
 
@@ -208,7 +208,7 @@ p {
     -webkit-backdrop-filter: blur(var(--bl1));
     backdrop-filter: blur(var(--bl1));
     resize: both;
-    animation: winanim 0.25s ease;
+    animation: winanim 0.3s ease;
     min-width: 80px;
     min-height: 50px;
     display: flex;
@@ -988,10 +988,51 @@ p {
 }
 
 .tasknest button {
-    padding: 3px 5px;
-    font-size: var(--fz3) !important;
+    padding: 0px;
+    margin: 0px;
     box-shadow: none !important;
     margin: 2px;
+    border: none;
+    background-color: rgb(0, 0, 0, 0) !important;
+}
+
+.tooltipd {
+    position: fixed;
+    bottom: var(--hawktuah);
+    padding: 5px 10px;
+    font-size: 14px;
+    background: var(--ui1);
+    border-radius: var(--rad2);
+    color: var(--font);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+}
+
+.tooltipd.visible {
+    opacity: 1;
+}
+
+.dockicon {
+    border-radius: var(--rad3);
+    width: 41px;
+    height: 41px;
+    border: none;
+    margin: 0px !important;
+    padding: 0px !important;
+    vertical-align: middle;
+    transition: 0.04s;
+    box-shadow: var(--optbox);
+}
+
+.dockicon:hover {
+    transform: scale(1.08);
+}
+
+.dockicon:active {
+    transform: scale(0.95);
+    opacity: 70%;
 }
 
 @keyframes tb {

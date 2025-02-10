@@ -2,7 +2,7 @@ app['files'] = {
     runs: true,
     name: 'Files',
     init: async function () {
-        const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined);
+        const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined, '/apps/Files.app/icon.svg');
         const search = tk.c('input', win.main, 'i1');
         win.name.innerHTML = "";
         const breadcrumbs = tk.c('div', win.name);
@@ -204,7 +204,7 @@ app['files'] = {
 
                     const fileItem = tk.cb('flist width', "File: " + item.name, async function () {
                         try {
-                            if (!sys.dev && item.path.startsWith('/system/') || item.path.startsWith('/user/info/') || thing.path.startsWith('/apps/') && sys.dev === false) {
+                            if (sys.dev === false && (item.path.startsWith('/system/') || item.path.startsWith('/user/info/') || item.path.startsWith('/apps/'))) {
                                 wm.snack('Enable Developer Mode to modify system files.', 6000);
                                 return;
                             }
@@ -214,7 +214,6 @@ app['files'] = {
                             const filecontent = await fs.read(item.path);
                             const menu = tk.c('div', document.body, 'cm');
                             const p = tk.ps(item.path, 'bold', menu);
-                            p.style.marginBottom = "7px";
     
                             if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/')) {
                                 tk.p('Important file, modifying it could cause damage.', 'warn', menu);
@@ -222,12 +221,14 @@ app['files'] = {
                             if (item.path.startsWith('/user/info/name')) {
                                 tk.p('Deleting this file will erase your data on next restart.', 'warn', menu);
                             }
+
+                            let thing;
     
                             try {
                                 if (!filecontent.startsWith('data:video')) {
                                     if (filecontent.startsWith('data:')) {
-                                        const thing = await tk.img(filecontent, 'embed', menu, false, true);
-                                        thing.style.marginBottom = "4px";
+                                        thing = tk.img(filecontent, 'embed', menu, false, true);
+                                        (await thing).img.style.marginBottom = "4px";
                                     } else {
                                         const thing = tk.c('div', menu, 'embed resizeoff');
                                         const genit = gen(8);
@@ -248,7 +249,11 @@ app['files'] = {
                                 }
                             } catch (error) {
                                 console.log('<!> ' + error);
-                                tk.p('Failed to load preview.', 'warn', menu);
+                                const ok = tk.p('Failed to load preview.', 'warn', menu);
+                                ok.style.marginBottom = "7px";
+                                if (thing) {
+                                    thing.img.remove();
+                                }
                             }
     
                             const btnmenu = tk.c('div', menu, 'brick-layout');
@@ -521,7 +526,7 @@ app['files'] = {
                     if (inp.value === "") {
                         wm.snack('Enter a filename.');
                     } else {
-                        if (selectedPath.startsWith('/system') || selectedPath.startsWith('/user/info') || thing.path.startsWith('/apps/')) {
+                        if (selectedPath.startsWith('/system') || selectedPath.startsWith('/user/info') || selectedPath.startsWith('/apps/')) {
                             if (sys.dev === false) {
                                 wm.snack(`Enable Developer Mode to make or edit files here.`);
                                 return;
