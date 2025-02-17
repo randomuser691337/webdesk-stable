@@ -76,11 +76,26 @@ var fs = {
     },
     copyfold: async function (oldplace, newplace) {
         const ok = await fs.ls(oldplace);
-        for (const path of ok.path) { 
-            console.log(path);
+        const div = tk.c('div', document.body, 'cm');
+        tk.p(`Copying ${oldplace} to ${newplace}`, undefined, div);
+        const status = tk.p(`Starting...`, undefined, div);
+        for (const path of ok.items) { 
+            if (path.type === "folder") { 
+                await fs.copyfold(path.path, newplace + path.name + "/");
+            }
+            const fileContent = await fs.read(path.path);
+            await fs.write(newplace + path.name, fileContent);
+            console.log(path.name);
+            console.log(newplace);
+            status.innerText = `Copying ${path.name}...`;
         }
+        status.innerText = `Copy completed.`;
+        setTimeout(() => ui.dest(div, 0), 3000);
     },
     persist: function () {
         return this.askwfs('persist');
+    },
+    usedspace: function () {
+        return this.askwfs('space');
     },
 };

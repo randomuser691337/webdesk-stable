@@ -87,6 +87,13 @@ function idbop(operation, params, opt, requestId) {
         case 'persist':
             fs2.persist();
             break;
+        case 'space':
+            fs2.used().then(files => {
+                self.postMessage({ type: 'result', data: files, requestId });
+            }).catch(error => {
+                console.error('Error fetching files:', error);
+            });
+            break;
         case 'all':
             fs2.all().then(files => {
                 self.postMessage({ type: 'result', data: files, requestId });
@@ -324,28 +331,26 @@ var fs2 = {
             const objectStore = transaction.objectStore('main');
             const items = new Map();
 
-            objectStore.openCursor().onsuccess = function (event) {
-                const cursor = event.target.result;
-                if (cursor) {
-                    if (cursor.key.startsWith(path)) {
-                        const relativePath = cursor.key.substring(path.length);
+            objectStore.getAllKeys().onsuccess = function (event) {
+                const keys = event.target.result;
+                keys.forEach(key => {
+                    if (key.startsWith(path)) {
+                        const relativePath = key.substring(path.length);
                         const parts = relativePath.split('/');
 
                         if (parts.length > 1) {
-                            if (path + parts[0] !== "/webdeskmetadata") {
-                                items.set(parts[0], { path: path + parts[0], name: parts[0], type: 'folder' });
+                            if (!items.has(parts[0]) && path + parts[0] !== "/webdeskmetadata") {
+                                items.set(parts[0], { path: path + parts[0] + '/', name: parts[0], type: 'folder' });
                             }
                         } else {
-                            items.set(relativePath, { path: cursor.key, name: relativePath, type: 'file' });
+                            items.set(relativePath, { path: key, name: relativePath, type: 'file' });
                         }
                     }
-                    cursor.continue();
-                } else {
-                    resolve({ items: Array.from(items.values()) });
-                }
+                });
+                resolve({ items: Array.from(items.values()) });
             };
 
-            objectStore.openCursor().onerror = function (event) {
+            objectStore.getAllKeys().onerror = function (event) {
                 reject(event.target.error);
             };
         });
@@ -444,6 +449,41 @@ var fs2 = {
                 resolve();
             };
             request.onerror = function (event) {
+                reject(event.target.error);
+            };
+        });
+    },
+    used: function () {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['main'], 'readonly');
+            const objectStore = transaction.objectStore('main');
+            let totalSize = 0;
+
+            objectStore.openCursor().onsuccess = function (event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const item = cursor.value;
+                    if (item && item.data) {
+                        if (typeof item.data === 'string') {
+                            totalSize += item.data.length;
+                        } else if (item.data instanceof Blob) {
+                            totalSize += item.data.size;
+                        } else if (typeof item.data === 'object') {
+                            totalSize += JSON.stringify(item.data).length;
+                        }
+                    }
+                    cursor.continue();
+                } else {
+                    navigator.storage.estimate().then(estimate => {
+                        const availableSpace = estimate.quota - estimate.usage;
+                        resolve({ used: totalSize, available: availableSpace });
+                    }).catch(error => {
+                        reject(error);
+                    });
+                }
+            };
+
+            objectStore.openCursor().onerror = function (event) {
                 reject(event.target.error);
             };
         });

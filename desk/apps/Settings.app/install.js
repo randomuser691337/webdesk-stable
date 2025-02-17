@@ -2,7 +2,7 @@ app['settings'] = {
     runs: true,
     name: 'Settings',
     init: async function () {
-        const main = tk.mbw('Settings', '310px', 'auto', true, undefined, undefined, '/apps/Settings.app/icon.svg');
+        const main = tk.mbw('Settings', '310px', 'auto', true, undefined, undefined, '/apps/Settings.app/Contents/icon.svg');
         const generalPane = tk.c('div', main.main, 'hide');
         const appearPane = tk.c('div', main.main, 'hide');
         const accPane = tk.c('div', main.main, 'hide');
@@ -34,7 +34,7 @@ app['settings'] = {
             for (const item of contents.items) {
                 if (item.type === "folder") {
                     if (item.path.includes('.app')) {
-                        const skibidi2 = await fs.ls(item.path + "/");
+                        const skibidi2 = await fs.ls(item.path);
                         for (const item3 of skibidi2.items) {
                             if (item3.name === "manifest.json") {
                                 const thing = await fs.read(item3.path);
@@ -367,7 +367,7 @@ app['settings'] = {
             const degp = tk.p(`<span class="bold">Measurement</span> `, undefined, ok.main);
             const degps = tk.c('span', degp);
             degps.innerText = `${sys.unit} (${sys.unitsym})`;
-            const mousedownevent = new MouseEvent('mousedown');
+            const mousedownevent = new MouseEvent('click');
             tk.cb('b1 b2', 'Disable Location', async function () {
                 await fs.write('/user/info/location.json', [{ city: 'Paris, France', unit: 'Metric', lastupdate: Date.now(), default: true }]);
                 sys.city = "Paris, France";

@@ -39,7 +39,7 @@ app['appmark'] = {
         }
     },
     init: async function () {
-        const win = tk.mbw('App Market', '400px', true, undefined, undefined, undefined, '/apps/App Market.app/icon.png');
+        const win = tk.mbw('App Market', '400px', '320px', undefined, undefined, undefined, '/apps/App Market.app/Contents/icon.png');
         const apps = tk.c('div', win.main);
         const appinfo = tk.c('div', win.main, 'hide');
         async function loadapps() {
@@ -52,7 +52,7 @@ app['appmark'] = {
                     const notif = tk.c('div', containerdiv, 'notif2');
                     tk.p(`<span class="bold">${app2.name}</span> by ${app2.pub}`, undefined, notif);
                     tk.line(notif);
-                    tk.p(app2.info, undefined, notif);
+                    tk.p(app2.info, 'rsmtxt', notif);
                     tk.cb('b3', 'App ID', () => wm.notif(`${app2.name}'s App ID:`, app2.appid, () => ui.copy(app2.appid), 'Copy', true), notif); tk.cb('b3', 'Install', () => app.appmark.create(app2.path, app2), notif);
                 });
             } catch (error) {
@@ -132,7 +132,8 @@ app['appmark'] = {
             if (item.path.endsWith('.app')) {
                 const skibidihawk = await fs.ls(item.path + "/");
                 for (const item3 of skibidihawk.items) {
-                    if (item3.name === "manifest.json") {
+                    console.log(item3);
+                    if (item3.type === "file" && item3.name === "manifest.json") {
                         const fuck = await fs.read(item3.path);
                         const ok = JSON.parse(fuck);
                         if (ok.dev === "Browser" && ok.ver === 1) {

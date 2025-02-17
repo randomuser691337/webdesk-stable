@@ -185,6 +185,10 @@ var wd = {
             $window.addClass('winf');
 
             if (!$window.hasClass('max') && sys.mobui !== true) {
+                if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') {
+                    return;
+                }
+
                 if (event.type === 'mousedown') {
                     offsetX = event.clientX - $window.offset().left;
                     offsetY = event.clientY - $window.offset().top;
@@ -541,10 +545,10 @@ var wd = {
         }, 140);
     },
     dark: function (fucker) {
-        ui.cv('ui1', 'rgb(30, 30, 30, 0.5)');
-        ui.cv('ui2', '#1a1a1a');
-        ui.cv('ui3', '#2a2a2a');
-        ui.cv('bc', 'rgb(36, 36, 36, 0.5)');
+        ui.cv('ui1', 'rgb(35, 35, 35, 0.6)');
+        ui.cv('ui2', '#1f1f1f');
+        ui.cv('ui3', '#2f2f2f');
+        ui.cv('bc', 'rgba(45, 45, 45, 0.5)');
         ui.cv('font', '#fff');
         ui.cv('dimfont', '#bbb');
         ui.cv('inv', '1.0');
@@ -554,10 +558,10 @@ var wd = {
         ui.light = false;
     },
     light: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0.5)');
+        ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
         ui.cv('ui2', '#ffffff');
-        ui.cv('ui3', '#ededed');
-        ui.cv('bc', 'rgb(204, 204, 204, 0.5)');
+        ui.cv('ui3', '#efefef');
+        ui.cv('bc', 'rgb(220, 220, 220, 0.6)');
         ui.cv('font', '#000');
         ui.cv('dimfont', '#444');
         ui.cv('inv', '0');
@@ -928,15 +932,15 @@ var wd = {
         if (existingStyle) {
             existingStyle.remove();
         }
-    
+
         const normalURL = await fs.read(normal);
         const mediumURL = await fs.read(medium);
         const boldURL = await fs.read(bold);
         const monoURL = await fs.read(mono);
-    
+
         const style = document.createElement('style');
         style.id = 'dynamic-font';
-    
+
         style.innerHTML = `
             @font-face {
                 font-family: 'Font';
@@ -957,9 +961,9 @@ var wd = {
                 font-family: 'MonoS';
                 src: url(${monoURL}) format('woff2');
             }`;
-    
+
         document.head.appendChild(style);
-    },    
+    },
     tbcal: async function () {
         let px = 0;
         const ok = await fs.read('/system/standalonepx');
@@ -994,16 +998,16 @@ var wd = {
             tk.img('/system/lib/img/icons/hlcrab.png', 'setupi', menu);
             tk.p(`WAIT!!!`, 'h2', menu);
             tk.p(`RUN THIS CODE CAREFULLY. It will have full access to your data. It's safer to use an incognito window, if possible. If you were told to copy/paste something here, you're probably getting scammed.`, undefined, menu);
-            tk.cb('b1 b2', 'I understand, run the code', function () {
+            tk.cb('b1 b2', 'I understand, run code', function () {
                 ui.dest(menu, 120);
                 eval(code);
-            }, menu);
-            tk.cb('b1 b2', 'Close', function () {
-                ui.dest(menu, 120);
             }, menu);
         } else {
             tk.p(`Enable Developer Mode in Settings -> General to run custom code.`, undefined, menu);
         }
+        tk.cb('b1 b2', 'Close', function () {
+            ui.dest(menu, 120);
+        }, menu);
     }
 }
 

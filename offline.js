@@ -1,10 +1,9 @@
 const CACHE_NAME = 'offline-cache-v1';
 const FILES_TO_CACHE = [
-    '/',
     '/index.html',
     '/fs.js',
     '/wfs.js',
-    'jszip.js',
+    '/jszip.js',
     '/target.json'
 ];
 

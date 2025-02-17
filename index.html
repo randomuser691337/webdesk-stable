@@ -23,6 +23,11 @@
     <link rel="apple-touch-icon" href="/system/lib/img/noround.png">
     <title>WebDesk</title>
     <style>
+        :root {
+            --accent: 0, 60, 255;
+            --acc: var(--accent);
+        }
+
         .line-wobble,
         .line-wobble::after {
             border-radius: calc(var(--uib-line-weight)/ 2)
@@ -33,13 +38,13 @@
             content: '';
             height: 100%;
             width: 100%;
-            background-color: #4D79FF;
+            background-color: rgba(var(--acc), 1.0);
         }
 
         .line-wobble {
             --uib-size: 120px;
             --uib-speed: 1.55s;
-            --uib-color: #4D79FF;
+            --uib-color: rgba(var(--acc), 0.5);
             --uib-line-weight: 6px;
             position: relative;
             display: flex;
@@ -81,8 +86,8 @@
     let params = new URLSearchParams(window.location.search);
 
     var abt = {
-        lastmod: "Feb 9, 2025",
-        ver: "0.3.0",
+        lastmod: "Feb 16, 2025",
+        ver: "0.3.1",
     }
 
     var sys = {
@@ -116,7 +121,7 @@
         filter: false,
         nc: false,
         loclast: Date.now(),
-        notifsrc: "/assets/other/notif1.wav",
+        notifsrc: "/system/lib/other/notif1.wav",
         lowgfx: false,
         lockscreen: true,
         contained: false,
@@ -143,10 +148,10 @@
 
 <body>
     <div id="contain">
-        <div class="dark background"></div>
+        <div class="dark background" id="darkbg"></div>
         <div id="background" class="background"></div>
-        <div class="circle"></div>
-        <div class="circle2"></div>
+        <div class="circle" id="circle1"></div>
+        <div class="circle2" id="circle2"></div>
     </div>
     <div id="setuparea">
     </div>
@@ -193,10 +198,10 @@
     async function initapps() {
         const contents = await fs.ls('/apps/');
         for (const item of contents.items) {
-            if (item.path.endsWith('.app')) {
-                const skibidihawk = await fs.ls(item.path + "/");
+            if (item.path.endsWith('.app/')) {
+                const skibidihawk = await fs.ls(item.path);
                 for (const item3 of skibidihawk.items) {
-                    if (item3.name === "install.js") {
+                    if (item3.type === "file" && item3.name === "install.js") {
                         await initscript(item3.path);
                     }
                 }
@@ -333,6 +338,7 @@
 
                 if (eepysleepy === "true") {
                     ui.hide(tk.g('contain'), 0);
+                    await initscript('/apps/Lock Screen.app/install.js');
                     sys.setupd = "eepy";
                     boot = true;
                     wd.dark('nosave');
@@ -502,7 +508,7 @@
             try {
                 boot = true;
                 document.body.innerHTML = "<p>Downloading update package...</p>";
-                const response = await fetch('desk.zip');
+                const response = await fetch('desk.zip', { cache: 'no-store' });
                 const test = await fs.read('/system/core.js');
                 if (test) {
                     navigator.serviceWorker.getRegistrations().then(registrations => {

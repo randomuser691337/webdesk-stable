@@ -23,6 +23,13 @@
     padding: 0px !important;
 }
 
+.browsertabwtf {
+    border: none !important;
+    padding: 5px;
+    transform: scale(1.0) !important;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
 .browsercont {
     display: flex;
     flex-direction: column;
@@ -40,7 +47,9 @@
     border: none;
     font-size: 14px;
     font-family: 'PoppinsB', Arial;
-    border-radius: 4px;
+    border-radius: 34px;
+    width: 20px; height: 20px;
+    margin-left: 5px;
 }
 
 .browserclosetab:hover {

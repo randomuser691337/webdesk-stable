@@ -2,7 +2,7 @@ app['files'] = {
     runs: true,
     name: 'Files',
     init: async function () {
-        const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined, '/apps/Files.app/icon.svg');
+        const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined, '/apps/Files.app/Contents/icon.svg');
         const search = tk.c('input', win.main, 'i1');
         win.name.innerHTML = "";
         const breadcrumbs = tk.c('div', win.name);
@@ -68,6 +68,7 @@ app['files'] = {
                 tk.cb('flists', '/', undefined, breadcrumbs);
                 tk.cb('flist flists', crumb, () => navto('/' + crumbs.slice(0, index + 1).join('/') + "/"), breadcrumbs);
             });
+
             currentPath = tempPath;
             const ok = tk.cb('b4', '+', function () {
                 const menu = tk.c('div', document.body, 'rightclick');
@@ -119,45 +120,57 @@ app['files'] = {
             for (const item of contents.items) {
                 if (item.type === "folder") {
                     let folder;
+                    let flipped = false;
                     if (item.path.includes('.app')) {
-                        const skibidi2 = await fs.ls(item.path + "/");
+                        const skibidi2 = await fs.ls(item.path);
                         for (const item3 of skibidi2.items) {
                             if (item3.name === "install.js") {
-                                folder = tk.cb('flist width', "App: " + item.name, function () {
-                                    const menu = tk.c('div', document.body, 'cm');
-                                    if (sys.dev === true) {
-                                        if (item.path.startsWith('/apps/')) {
-                                            tk.p(item.name, 'bold', menu);
-                                            tk.cb('b1 b2', 'View contents', async function () {
-                                                await navto(item.path + "/");
-                                                ui.dest(menu);
-                                            }, menu);
-                                            tk.cb('b1 b2', 'Delete app', async function () {
-                                                await fs.delfold(item.path);
-                                                ui.dest(menu);
-                                                ui.slidehide(folder, 100);
-                                            }, menu);
-                                            tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                if (flipped === false) {
+                                    flipped = true;
+                                    folder = tk.cb('flist width', "App: " + item.name, function () {
+                                        const menu = tk.c('div', document.body, 'cm');
+                                        if (sys.dev === true) {
+                                            if (item.path.startsWith('/apps/')) {
+                                                tk.p(item.name, 'bold', menu);
+                                                tk.cb('b1 b2', 'View contents', async function () {
+                                                    await navto(item.path);
+                                                    ui.dest(menu);
+                                                }, menu);
+                                                tk.cb('b1 b2', 'Delete app', async function () {
+                                                    await fs.delfold(item.path);
+                                                    ui.dest(menu);
+                                                    ui.slidehide(folder, 100);
+                                                }, menu);
+                                                tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                            } else {
+                                                tk.p(`This is a WebDesk app, but it's not in the /Apps/ folder.`, 'bold', menu);
+                                                tk.cb('b1 b2', 'View contents', async function () {
+                                                    await navto(item.path);
+                                                    ui.dest(menu);
+                                                }, menu); tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                            }
                                         } else {
-                                            tk.p(`This is a WebDesk app, but it's not in the /Apps/ folder.`, 'bold', menu);
+                                            tk.p('Enable Developer Mode to manage this app.', 'bold', menu);
                                             tk.cb('b1', 'Close', () => ui.dest(menu), menu);
                                         }
-                                    } else {
-                                        tk.p('Enable Developer Mode to manage this app.', 'bold', menu);
-                                        tk.cb('b1', 'Close', () => ui.dest(menu), menu);
-                                    }
-                                }, items);
+                                    }, items);
+                                }
+                            } else {
+                                if (flipped === false) {
+                                    folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path), items);
+                                    flipped = true;
+                                }
                             }
                         }
                     } else {
-                        folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path + "/"), items);
+                        folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path), items);
                     }
 
                     let isLongPress = false;
                     let timer;
 
                     function openmenu() {
-                        if ((item.path.startsWith('/system') || item.path.startsWith('/user/info') || thing.path.startsWith('/apps/')) && sys.dev === false) {
+                        if ((item.path.startsWith('/system') || item.path.startsWith('/user/info') || item.path.startsWith('/apps/')) && sys.dev === false) {
                             wm.snack('Enable Developer Mode to modify this folder.', 6000);
                             return;
                         }
@@ -188,7 +201,7 @@ app['files'] = {
                     folder.addEventListener('touchend', () => {
                         clearTimeout(timer);
                         if (!isLongPress) {
-                            navto(item.path + "/");
+                            navto(item.path);
                         }
                     });
                     folder.addEventListener('touchmove', () => clearTimeout(timer));
@@ -208,13 +221,13 @@ app['files'] = {
                                 wm.snack('Enable Developer Mode to modify system files.', 6000);
                                 return;
                             }
-    
+
                             const skibidi = tk.c('div', document.body, 'cm');
                             skibidi.innerText = `Loading ${item.name}, this might take a bit`;
                             const filecontent = await fs.read(item.path);
                             const menu = tk.c('div', document.body, 'cm');
                             const p = tk.ps(item.path, 'bold', menu);
-    
+
                             if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/')) {
                                 tk.p('Important file, modifying it could cause damage.', 'warn', menu);
                             }
@@ -223,14 +236,17 @@ app['files'] = {
                             }
 
                             let thing;
-    
+
                             try {
                                 if (!filecontent.startsWith('data:video')) {
                                     if (filecontent.startsWith('data:')) {
                                         thing = tk.img(filecontent, 'embed', menu, false, true);
                                         (await thing).img.style.marginBottom = "4px";
+                                    } else if (item.name.endsWith('.svg')) {
+                                        thing = tk.img(item.path, 'embed', menu, false, false);
+                                        (await thing).img.style.marginBottom = "4px";
                                     } else {
-                                        const thing = tk.c('div', menu, 'embed resizeoff');
+                                        thing = tk.c('div', menu, 'embed resizeoff');
                                         const genit = gen(8);
                                         thing.id = genit;
                                         const editor = ace.edit(`${genit}`);
@@ -253,15 +269,18 @@ app['files'] = {
                                 ok.style.marginBottom = "7px";
                                 if (thing) {
                                     thing.img.remove();
+                                    thing.remove();
                                 }
                             }
-    
+
                             const btnmenu = tk.c('div', menu, 'brick-layout');
                             btnmenu.style.marginBottom = "4px";
-    
+
                             tk.cb('b3', 'Open', async function () {
-                                if (filecontent.startsWith('data:')) {
+                                if (filecontent.startsWith('data:app') || filecontent.startsWith('data:image')) {
                                     app.imgview.init(filecontent);
+                                } else if (filecontent.startsWith('data:')) {
+                                    app.imgview.init(filecontent, item.path, item.name);
                                 } else {
                                     app.textedit.init(filecontent, item.path);
                                 }
@@ -480,7 +499,7 @@ app['files'] = {
                 const thing = await fs.ls(path);
                 thing.items.forEach(function (thing) {
                     if (thing.type === "folder") {
-                        const target = tk.cb('flist width', "Folder: " + thing.name, () => navto(thing.path + "/"), items);
+                        const target = tk.cb('flist width', "Folder: " + thing.name, () => navto(thing.path), items);
                     } else {
                         if (thing.name == "") {
                             return;

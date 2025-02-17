@@ -34,7 +34,7 @@ function echoerr() {
     wm.wal(`<p>EchoDesk is encountering issues.</p>`, () => reboot(), 'Reboot Now');
 }
 
-const fs = {
+const echofs = {
     read: async function (path) {
         let success = false;
         try {
