@@ -1,14 +1,12 @@
 .tabbar {
-    background-color: var(--ui2);
     padding: 6px;
-    border-bottom: 1px solid var(--ui3);
     box-sizing: border-box;
     text-align: left;
     flex: 0 0 auto;
 }
 
 .browsertab {
-    border-radius: var(--rad1);
+    border-radius: var(--rad2);
     box-sizing: border-box;
     flex: 1 1 auto;
     overflow: auto;
@@ -18,8 +16,8 @@
 
 .browserREALtab {
     background-color: #fff;
-    border-top-left-radius: 0px !important;
-    border-top-right-radius: 0px !important;
+    border-top-left-radius: var(--optrad) !important;
+    border-top-right-radius: var(--optrad) !important;
     padding: 0px !important;
 }
 

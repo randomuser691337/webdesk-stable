@@ -21,7 +21,7 @@
 let clickCount = 0;
 let clickStartTime = null;
 const pageStartTime = Date.now();
-const circle = document.querySelector('.circle');
+const circle = document.getElementById('background');
 
 const resetClicks = () => {
     clickCount = 0;
@@ -113,23 +113,65 @@ function ughfine(targetElement) {
 }
 
 document.addEventListener('keydown', async function (event) {
-    if (event.altKey && event.key.toLowerCase() === 'q' && focused.closebtn !== undefined) {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const altKey = isMac ? event.metaKey : event.altKey;
+
+    if (altKey && event.key.toLowerCase() === 'q' && focused.closebtn !== undefined) {
         event.preventDefault();
         await wm.close(focused.window, focused.tbn);
     }
-    if (event.altKey && event.key.toLowerCase() === 'm' && focused.minbtn !== undefined) {
+    if (altKey && event.key.toLowerCase() === 'm' && focused.minbtn !== undefined) {
         event.preventDefault();
         await wm.minimize(focused.window, focused.tbn);
     }
-    if (event.altKey && event.key.toLowerCase() === 'l') {
+    if (altKey && event.key.toLowerCase() === 'l') {
         event.preventDefault();
         app.lockscreen.init();
     }
-    if (event.altKey && event.key.toLowerCase() === 'r' && focused.window !== undefined) {
+    if (altKey && event.key.toLowerCase() === 'x') {
+        // Spotlight (Beta)
+        event.preventDefault();
+        const menu = tk.c('div', document.body, 'cm');
+        tk.p('Spotlight', 'bold', menu);
+        const input = tk.c('input', menu, 'i1');
+        input.placeholder = 'Search...';
+        input.focus();
+        const files = await fs.getall();
+        const resultsContainer = tk.c('div', menu, 'embed');
+        resultsContainer.style = `overflow: auto; flex-grow: 1; max-height: 200px; resize: none !important;`;
+        input.addEventListener('input', async function () {
+            setTimeout(function () {
+                resultsContainer.innerHTML = "";
+                const searchTerm = input.value.toLowerCase();
+                const results = files.filter(file => file.toLowerCase().includes(searchTerm));
+                resultsContainer.innerHTML = '';
+                results.forEach(result => {
+                    const resultItem = tk.c('button', resultsContainer, 'flist width');
+                    resultItem.innerText = result;
+                    resultItem.addEventListener('click', async function () {
+                        const filecontent = await fs.read(result);
+                        const item = [{ path: result, name: result.split('/').slice(0, -1).join('/') }];
+                        app.files.openfile(filecontent, item);
+                        ui.dest(menu);
+                    });
+                });
+            }, 500);
+        });
+
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                const firstbutton = resultsContainer.querySelector('button');
+                if (firstbutton) {
+                    firstbutton.click();
+                }
+            }
+        });
+    }
+    if (altKey && event.key.toLowerCase() === 'r' && focused.window !== undefined) {
         event.preventDefault();
         ui.center(focused.window);
     }
-    if (event.altKey && event.key.toLowerCase() === '/') {
+    if (altKey && event.key.toLowerCase() === '/') {
         event.preventDefault();
         const keys = tk.c('div', document.body, 'cm');
         tk.p('Keybinds', 'bold', keys);
@@ -243,19 +285,20 @@ var wd = {
         ui.dest(tk.g('setuparea'));
         ui.cv('menubarheight', '38px');
         let screenWidth;
-        function startmenu() {
+        async function startmenu() {
             if (el.sm == undefined) {
                 resetall();
                 el.sm = all;
                 all.classList = "tbmenu";
                 elementWidth = el.sm.getBoundingClientRect().width;
                 el.sm.style.left = `${(screenWidth - elementWidth) / 2}px`;
-                tk.p(`Hello, ${name}!`, 'h2', el.sm);
-                const thing = tk.p(`Your DeskID is `, undefined, el.sm);
-                tk.cb('linkbtn', sys.deskid, function () {
-                    ui.copy(`${window.location.origin}/?id=${sys.deskid}`);
-                    wm.snack('Copied DeskID quicklink. Send it to your friends!');
-                }, thing);
+                const p = tk.p(`${sys.name} `, 'h3', el.sm);
+                tk.cb('linkbtn h3', 'Manage', function () {
+                    app.settings.init('usercfg');
+                    ui.hide(el.sm, 0);
+                }, p);
+                const thing = tk.p(``, undefined, el.sm);
+                const kys = tk.p('Weather - DeskID: 0000000', 'smtxt', el.sm);
                 const ok = tk.c('div', el.sm, 'embed nest brick-layout');
                 for (let key in app) {
                     if (app.hasOwnProperty(key)) {
@@ -281,12 +324,21 @@ var wd = {
                     }
                 }
                 wd.reorg(ok);
+                const response = await fetch(`https://weather.meower.xyz/json?city=${sys.city}&units=${sys.unit}`);
+                const info = await response.json();
+                let unitsym;
+                if (info.sys.country !== "US") {
+                    unitsym = "°C";
+                } else {
+                    unitsym = "°F";
+                }
+                kys.innerText = `${Math.ceil(info.main.temp)}${unitsym}, ${info.weather[0].description} - DeskID: ${sys.deskid}`;
             } else {
                 ui.hide(el.sm, 140);
                 el.sm = undefined;
             }
         }
-        function controlcenter() {
+        async function controlcenter() {
             if (el.cc == undefined) {
                 resetall();
                 el.cc = all;
@@ -356,19 +408,19 @@ var wd = {
                 tk.img('/system/lib/img/icons/fs.svg', 'contimg', screenicon, false);
                 const notificon = tk.cb('conticon', '', async function () {
                     if (sys.nvol === 0) {
-                        notifimg.src = "/system/lib/img/icons/notify.svg";
+                        (await notifimg).edit.load("/system/lib/img/icons/notify.svg");
                         sys.nvol = 1.0;
                         ui.play(sys.notifsrc);
-                        await fs.del('/user/info/silent');
+                        await set.del('silent');
                     } else {
-                        notifimg.src = "/system/lib/img/icons/silent.svg";
+                        (await notifimg).edit.load("/system/lib/img/icons/silent.svg");
                         sys.nvol = 0.0;
-                        await fs.write('/user/info/silent', 'true');
+                        await set.set('silent', 'true');
                     }
                     el.contb.classList.toggle('silentbtn');
                 }, ok);
                 const notifimg = tk.img('/system/lib/img/icons/notify.svg', 'contimg', notificon, false);
-                if (sys.nvol === 0) notifimg.src = "/system/lib/img/icons/silent.svg";
+                if (sys.nvol === 0) (await notifimg).edit.load("/system/lib/img/icons/silent.svg");;
                 ui.tooltip(notificon, 'Silent toggle');
                 ui.show(el.cc, 0);
             } else {
@@ -433,7 +485,10 @@ var wd = {
             }, el.wn);
         }
         function desktopgo() {
-            el.taskbar = tk.c('div', document.body, 'taskbar');
+            el.taskbar = tk.c('div', document.body, 'taskbar startanim');
+            setTimeout(() => {
+                el.taskbar.classList.remove('startanim');
+            }, 1000);
             function tbresize() {
                 screenWidth = window.innerWidth;
                 elementWidth = el.taskbar.offsetWidth;
@@ -463,8 +518,28 @@ var wd = {
             el.contb = tk.cb('time', '--:--', () => controlcenter(), right);
             const tasknest = tk.c('div', el.taskbar, 'tasknest');
             const lefttb = tk.c('div', tasknest, 'tnav auto');
-            el.startbutton = tk.cb('', '', () => startmenu(), lefttb);
-            tk.img('/system/lib/img/icons/apps.svg', 'dockicon', el.startbutton, false, 'noretry');
+            el.startbutton = tk.cb('tbbutton', '', () => startmenu(), lefttb);
+            tk.img('/system/lib/img/icons/apps.svg', 'dockicon dockalt', el.startbutton, false, 'noretry');
+            const tooltip = tk.c('div', document.body, 'tooltipd');
+            tooltip.textContent = 'App Menu';
+
+            function updateTooltipPosition() {
+                const { x, width } = el.startbutton.getBoundingClientRect();
+                tooltip.style.left = `${x + width / 2 - tooltip.offsetWidth / 2}px`;
+                setTimeout(updateTooltipPosition, 200);
+            }
+
+            window.addEventListener("resize", updateTooltipPosition);
+
+            if (el.taskbar) {
+                new ResizeObserver(updateTooltipPosition).observe(el.taskbar);
+            }
+
+            updateTooltipPosition();
+            const showTooltip = () => { tooltip.classList.add('visible'); };
+            const hideTooltip = () => { tooltip.classList.remove('visible'); };
+            el.startbutton.addEventListener('mouseenter', showTooltip);
+            el.startbutton.addEventListener('mouseleave', hideTooltip);
             el.tr = tk.c('div', lefttb);
             if (sys.nvol === 0) el.contb.classList.toggle('silentbtn');
             if (sys.mobui === true) {
@@ -514,6 +589,20 @@ var wd = {
         } else {
             desktopgo();
         }
+
+        document.addEventListener('mousedown', function (event) {
+            if (!el.all) return;
+        
+            const target = event.target;
+            const isInsideMenu = el.all.contains(target);
+            const isStartButton = el.taskbar && el.taskbar.contains(target);;
+            const isMenuBarButton = target === el.menubarbtn;
+            const isMenuBarChild = el.menubar && el.menubar.contains(target);
+        
+            if (!isInsideMenu && !isStartButton && !isMenuBarButton && !isMenuBarChild) {
+                ui.hide(el.all, sys.animspeed);
+            }
+        });        
     },
     clock: function () {
         const currentTime = new Date();
@@ -531,8 +620,12 @@ var wd = {
             elements[i].innerText = formattedTime;
         }
     },
-    finishsetup: function (name, div1, div2) {
-        ui.sw2(div1, div2); ui.masschange('name', name); fs.write('/user/info/name', name); fs.write('/system/info/setuptime', Date.now()); fs.write('/system/info/setupver', abt.ver);
+    finishsetup: async function (name) {
+        ui.masschange('name', name);
+        await set.set('name', name);
+        await set.set('setuptime', Date.now());
+        await set.set('setupver', abt.ver);
+        await wd.reboot();
     },
     reboot: function () {
         ui.show(tk.g('death'), 140);
@@ -544,59 +637,51 @@ var wd = {
             }
         }, 140);
     },
-    dark: function (fucker) {
-        ui.cv('ui1', 'rgb(35, 35, 35, 0.6)');
+    dark: async function (fucker) {
+        const access = await set.read('blur');
+        if (access === "false") {
+            ui.cv('ui1', 'var(--ui2)');
+        } else {
+            ui.cv('ui1', 'rgb(35, 35, 35, 0.75)');
+        }
         ui.cv('ui2', '#1f1f1f');
         ui.cv('ui3', '#2f2f2f');
-        ui.cv('bc', 'rgba(45, 45, 45, 0.5)');
+        ui.cv('bc', 'rgba(60, 60, 60, 0.6)');
         ui.cv('font', '#fff');
         ui.cv('dimfont', '#bbb');
+        ui.cv('darkbg', '0.15');
         ui.cv('inv', '1.0');
         if (fucker !== "nosave") {
-            fs.write('/user/info/lightdark', 'dark');
+            set.set('lightdark', 'dark');
         }
         ui.light = false;
     },
-    light: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0.6)');
+    light: async function (fucker) {
+        const access = await set.read('blur');
+        if (access === "false") {
+            ui.cv('ui1', 'var(--ui2)');
+        } else {
+            ui.cv('ui1', 'rgb(255, 255, 255, 0.75)');
+        }
         ui.cv('ui2', '#ffffff');
-        ui.cv('ui3', '#efefef');
+        ui.cv('ui3', '#eee');
         ui.cv('bc', 'rgb(220, 220, 220, 0.6)');
         ui.cv('font', '#000');
         ui.cv('dimfont', '#444');
         ui.cv('inv', '0');
+        ui.cv('darkbg', '0');
         if (fucker !== "nosave") {
-            fs.write('/user/info/lightdark', 'light');
+            set.set('lightdark', 'light');
         }
         ui.light = true;
-    },
-    clearm: function (fucker) {
-        ui.cv('ui1', 'rgb(255, 255, 255, 0.2)');
-        ui.cv('ui2', 'rgba(var(--accent), 0.1)');
-        ui.cv('ui3', 'rgba(var(--accent) 0.2)');
-        ui.cv('bc', 'rgb(255, 255, 255, 0)');
-        ui.cv('font', '#000');
-        ui.cv('inv', '0');
-        if (fucker !== "nosave") {
-            fs.write('/user/info/lightdark', 'clear');
-        }
-        ui.light = true;
-    },
-    clearm2: function (fucker) {
-        wd.clearm();
-        ui.cv('font', '#fff');
-        if (fucker !== "nosave") {
-            fs.write('/user/info/lightdark', 'clear2');
-        }
-        ui.light = false;
     },
     notifsrc: async function (src, play) {
         sys.notifsrc = src;
-        await fs.write('/user/info/notifsrc', src);
+        await set.set('notifsrc', src);
         if (play === true) {
             ui.play(src);
             wm.snack('Saved', 1500);
-            await fs.del('/user/info/cnotifurl');
+            await set.del('cnotifurl');
         }
     },
     timec: function (id) {
@@ -792,16 +877,16 @@ var wd = {
             ui.crtheme('#694700');
             wd.dark();
             wm.notif(`Happy Halloween!`, `To those who celebrate it. If you don't like the color, you can use the default.`, function () {
-                wd.defaultcolor();
+                wd.defaulttheme();
             }, 'Set defaults');
         } else if (today.getMonth() === 11 && today.getDate() === 25) {
             ui.crtheme('#00412A');
             wd.dark();
             wm.notif(`Merry Christmas!`, `To those who celebrate it. If you don't like the color, you can use the default.`, function () {
-                wd.defaultcolor();
+                wd.defaulttheme();
             }, 'Set defaults');
         } else {
-            wd.defaultcolor();
+            wd.defaulttheme();
         }
     },
     savecity: async function (city2) {
@@ -824,10 +909,6 @@ var wd = {
                 unit: unit,
             }
         }
-    },
-    defaultcolor: function () {
-        ui.crtheme('#4D79FF');
-        wd.light();
     },
     wetter: function (setdefault) {
         const main = tk.c('div', document.body, 'cm');
@@ -927,6 +1008,23 @@ var wd = {
             sys.resume = resolve;
         });
     },
+    checkperms: function () {
+        if (webid.priv === 0) {
+            const div = tk.c('div', document.body, 'cm');
+            tk.p(`Your account is currently limited.`, 'bold', div);
+            tk.p(`Contact support for more information.`, undefined, div);
+            tk.cb('b1', 'Close', () => ui.dest(div), div);
+            return false;
+        } else if (webid.priv === -1) {
+            const div = tk.c('div', document.body, 'cm');
+            tk.p(`Not connected to WebDesk servers`, 'bold', div);
+            tk.p(`You can still use WebDesk normally. The servers might be down, you're logged out or you need to reboot.`, undefined, div);
+            tk.cb('b1', 'Close', () => ui.dest(div), div); tk.cb('b1', 'Reboot', () => wd.reboot(), div);
+            return false;
+        } else {
+            return true;
+        }
+    },
     fontsw: async function (normal, medium, bold, mono) {
         const existingStyle = tk.g('dynamic-font');
         if (existingStyle) {
@@ -964,6 +1062,81 @@ var wd = {
 
         document.head.appendChild(style);
     },
+    defaulttheme: async function () {
+        const restore = await fs.read('/system/lib/img/wallpapers/restore/default');
+        const fuck = await wd.setwall(restore, true);
+        console.log(fuck);
+        wd.light();
+        return fuck;
+    },
+    setwall: async function (silly, setaccent, nosave) {
+        if (nosave !== true) {
+            const wall = await fs.read('/system/lib/img/wallpapers/current/wall');
+            if (wall) {
+                await fs.write(`/system/lib/img/wallpapers/current/${gen(16)}`, wall);
+            }
+        }
+        await fs.write(`/system/lib/img/wallpapers/current/wall`, silly);
+        const go = await wd.setbg(setaccent);
+        console.log(go);
+        return go;
+    },
+    setbg: async function (setcol, cust) {
+        if (!cust) cust = '/system/lib/img/wallpapers/current/wall';
+        const img = await fs.read(cust);
+        let ok = null;
+        if (img) {
+            const oldw = tk.g('wallpaper');
+            if (oldw) {
+                oldw.remove();
+            }
+            const bg = tk.c('div', document.body, 'wallpaper');
+            bg.id = "wallpaper";
+            bg.style.backgroundImage = `url(${img})`;
+            if (tk.g('background')) {
+                tk.g('background').remove();
+                tk.g('darkbg').style.opacity = "var(--darkbg)";
+                tk.g('darkbg').style.background = "#000";
+            }
+            if (setcol === true) {
+                if (sys.dev === true) console.log('<i> Setting accent to wallpaper');
+                ok = await new Promise((resolve) => {
+                    ui.getcl(img, function (color) {
+                        const colorString = color.join(', ');
+                        ui.cv('accent', colorString);
+                        resolve(colorString);
+                    });
+                });
+                await set.set('color', ui.rgbtohex(ok));
+            }
+        }
+        return ok;
+    },
+    blurcheck: async function (perf) {
+        const access = await set.read('blur');
+        if (perf === "true") {
+            sys.lowgfx = true;
+            ui.cv('bl1', '3px');
+            ui.cv('bl2', '3px');
+            ui.cv('optbox', 'none');
+            ui.cv('mangomango', '0px');
+        } else if (perf === "half") {
+            ui.cv('bl1', '7px');
+            ui.cv('bl2', '4px');
+            ui.cv('optbox', 'none');
+            ui.cv('mangomango', '1px');
+        } else if (perf === "epic") {
+            ui.cv('bl1', '15px');
+            ui.cv('bl2', '12px');
+            ui.cv('mangomango', '4px');
+        }
+
+        if (access === "false") {
+            ui.cv('ui1', 'var(--ui2)');
+            ui.cv('bl1', '0px');
+            ui.cv('bl2', '0px');
+        }
+    },
     tbcal: async function () {
         let px = 0;
         const ok = await fs.read('/system/standalonepx');
@@ -992,7 +1165,7 @@ var wd = {
             await fs.write('/system/standalonepx', px);
         }, div);
     },
-    exec: function (code) {
+    exec: function (code2) {
         const menu = tk.c('div', document.body, 'cm');
         if (sys.dev === true) {
             tk.img('/system/lib/img/icons/hlcrab.png', 'setupi', menu);
@@ -1000,7 +1173,7 @@ var wd = {
             tk.p(`RUN THIS CODE CAREFULLY. It will have full access to your data. It's safer to use an incognito window, if possible. If you were told to copy/paste something here, you're probably getting scammed.`, undefined, menu);
             tk.cb('b1 b2', 'I understand, run code', function () {
                 ui.dest(menu, 120);
-                eval(code);
+                eval(code2);
             }, menu);
         } else {
             tk.p(`Enable Developer Mode in Settings -> General to run custom code.`, undefined, menu);

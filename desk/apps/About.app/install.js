@@ -1,8 +1,8 @@
 app['about'] = {
-    runs: true,
+    runs: false,
     name: 'About',
     init: async function () {
-        const win = tk.mbw('About', undefined, 'auto', true, undefined, undefined, '/system/lib/img/noround.png');
+        const win = tk.mbw('About', undefined, 'auto', true, undefined, undefined, '/system/lib/img/noround.png', true);
         tk.css('/apps/About.app/Contents/abt.css');
         const main = tk.c('div', win.main, 'abtcont');
         const side = tk.c('div', main, 'abtlogo');
@@ -67,9 +67,9 @@ app['about'] = {
                 ui.dest(ok, 200);
             }, ok);
         }, side);
-        const setupon = await fs.read('/system/info/setuptime');
-        const ogver = await fs.read('/system/info/setupver');
-        const color = await fs.read('/user/info/color');
+        const setupon = await set.read('setuptime');
+        const ogver = await set.read('setupver');
+        const color = await set.read('color');
         tk.p(`WebDesk ${abt.ver}`, 'h2', info);
         tk.p(`<span class="bold">Updated</span> ${abt.lastmod}`, undefined, info);
         if (setupon) {

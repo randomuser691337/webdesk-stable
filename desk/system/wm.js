@@ -11,7 +11,7 @@ var wm = {
         const thing2 = document.createElement('div');
         win.main.appendChild(thing);
         win.main.appendChild(thing2);
-        function closewal() { 
+        function closewal() {
             ui.dest(win.win, 130); ui.dest(win.tbn, 130);
             if (opt === "urgent") {
                 ui.dest(dark, 130);
@@ -20,7 +20,7 @@ var wm = {
                 }
             }
         }
-        
+
         if (opt === "urgent") {
             dark = tk.c('div', document.body, 'darkscreen');
             if (sys.light === true) {
@@ -31,7 +31,7 @@ var wm = {
             tk.cb('b1', 'Close', () => closewal(), thing2);
         } else if (opt !== "noclose") {
             tk.cb('b1', 'Close', () => closewal(), thing2);
-        } 
+        }
 
         if (btn1 !== undefined) {
             const btn = tk.cb('b1', name, () => closewal(), thing2);
@@ -80,7 +80,7 @@ var wm = {
                 setTimeout(() => {
                     wid.classList.remove('unmax');
                     wid.style.bottom = "undefined";
-                }, 260);
+                }, sys.animspeed2);
             }
         }
     },
@@ -103,10 +103,18 @@ var wm = {
                 $animatedDiv.animate({
                     top: endOffset.bottom,
                     left: endOffset.x - (endOffset.width / 2),
-                }, 260, function () {
+                    opacity: 0
+                }, sys.animspeed2, function () {
                     $animatedDiv.hide();
                     $animatedDiv.removeClass("windowanim");
                 });
+                setTimeout(async function () {
+                    const $btn = $(el.taskbar);
+                    $btn.addClass("tbanim");
+                    setTimeout(() => {
+                        $btn.removeClass("tbanim");
+                    }, 500);
+                }, sys.animspeed - 40);
             } else {
                 wm.show(wid, btn);
             }
@@ -120,7 +128,8 @@ var wm = {
             $animatedDiv.show().animate({
                 top: original.top,
                 left: original.left,
-            }, 260, function () {
+                opacity: 1
+            }, sys.animspeed2, function () {
                 $animatedDiv.removeClass("minimized");
             });
 
@@ -162,9 +171,9 @@ var wm = {
             $(div).css({ opacity: 1 })
                 .animate(
                     { opacity: 0 },
-                    { duration: 260, queue: false }
+                    { duration: sys.animspeed2, queue: false }
                 )
-                .slideUp(260, function () {
+                .slideUp(sys.animspeed2, function () {
                     ui.dest(div, 0);
                 });
         }

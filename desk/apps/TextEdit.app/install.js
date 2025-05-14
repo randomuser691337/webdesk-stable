@@ -16,9 +16,9 @@ app['textedit'] = {
         tabs.style.flex = "0 0 auto";
         tabs.appendChild(win.title);
         win.closebtn.style.marginLeft = "2px";
-        const editdiv = tk.c('div', win.main, 'browsertab');
+        const editdiv = tk.c('div', win.main, 'browsertab optrad');
         editdiv.style.display = "block";
-        editdiv.style.borderRadius = "0px";
+        editdiv.style.borderRadius = "var(--optrad)";
         win.name.innerHTML = "";
         win.main.classList = "browsercont";
         const genit = gen(8);
@@ -47,11 +47,11 @@ app['textedit'] = {
             wm.snack('Saved');
         }
         if (readonly !== true) {
-            tk.cb('b4 b6', 'Save', async function () {
+            tk.cb('b3', 'Save', async function () {
                 await save();
             }, win.name);
         } else {
-            tk.cb('b4 b6', 'Save', async function () {
+            tk.cb('b3', 'Save', async function () {
                 const path = await app.files.pick('new', 'Save in new file');
                 const newContents = editor.getValue();
                 fs.write(path, newContents);
@@ -59,7 +59,7 @@ app['textedit'] = {
             }, win.name);
             editor.setReadOnly(true);
         }
-        tk.cb('b4 b6', 'Menu', async function () {
+        tk.cb('b3', 'Menu', async function () {
             const menu = tk.c('div', document.body, 'cm');
             if (readonly !== true) {
                 tk.p('Editing ' + path, 'bold', menu);
@@ -109,7 +109,7 @@ app['textedit'] = {
         function runc() {
             wd.exec(editor.getValue());
         }
-        tk.cb('b4 b6', 'Run', async function () {
+        tk.cb('b3', 'Run', async function () {
             runc();
         }, win.name);
         wd.win();

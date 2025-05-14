@@ -1,5 +1,6 @@
 var globcall;
 // This is a clusterfuck of bullshit that needs to be rewritten eventually
+var authcallids = [];
 var ptp = {
     go: async function (id) {
         let retryCount = 0;
@@ -49,7 +50,7 @@ var ptp = {
                     ptp.go(gen(7));
                     return;
                 } else if (err.message.includes(`Error: Could not connect to peer ` + sys.echoid)) {
-                    wm.wal(`<p class="bold">EchoDesk Connection Interrupted</p><p>The other WebDesk might have rebooted, or is encountering network issues.</p><p>Check your Internet on this side too.</p>`);
+                    wm.wal(`<p class="bold">EchoDesk Connection Interrupted</p><p>The other WebDesk might have resys.webdeskbooted, or is encountering network issues.</p><p>Check your Internet on this side too.</p>`);
                 }
 
                 notify = true;
@@ -81,7 +82,7 @@ var ptp = {
                     try {
                         const parsedData = JSON.parse(data);
                         if (parsedData.type === 'request') {
-                            const response = { response: sys.name, deskid: sys.deskid };
+                            const response = { response: sys.name, deskid: sys.deskid, id: sys.callid };
                             dataConnection.send(JSON.stringify(response));
                             dataConnection.close();
                         }
@@ -108,8 +109,9 @@ var ptp = {
                 showYourself.on('data', (data) => {
                     try {
                         const parsedData = JSON.parse(data);
+                        console.log(parsedData);
                         if (parsedData.response) {
-                            wm.notif(`Call from ${parsedData.response}`, `Their DeskID is ${parsedData.deskid}`, function () {
+                            if (sys.callid === parsedData.id) {
                                 navigator.mediaDevices.getUserMedia({ audio: true })
                                     .then((stream) => {
                                         call.answer(stream);
@@ -121,7 +123,10 @@ var ptp = {
                                         wm.notif('WebCall Error', 'Microphone access is denied, calling/answering might fail.');
                                         console.log(`<!> ${err}`);
                                     });
-                            }, 'Answer');
+                                    random["call" + sys.callid].win.closebtn.click();
+                            }
+                        } else {
+                            console.log(`<!> Call IDs don't match, giving up.`);
                         }
                     } catch (err) {
                         console.error('Failed to parse data:', err);
@@ -185,16 +190,20 @@ async function handleData(conn, data) {
                 if (data.filename === "/system/deskid") {
                     el.migstat.innerText = "Creating new DeskID";
                     wd.newid();
+                    conn.send("Ready");
                     return;
                 }
                 ui.sw('quickstartwdsetup', 'quickstartwdgoing');
                 el.migstat.innerText = "Copying: " + data.filename;
                 await fs.write(data.filename, data.file);
+                data.file = null;
+                conn.send("Ready");
             }
         } else if (data.name === "MigrationEnd") {
             if (sys.setupd === false) {
+                set.set('migrated', 'true');
                 setTimeout(function () {
-                    ui.sw('quickstartwdgoing', 'setupdone');
+                    wd.reboot();
                 }, 600);
             }
         } else if (data.name === "EchoGive") {
@@ -304,17 +313,31 @@ async function migrationgo(deskid, el) {
             conn.on('open', async function () {
                 try {
                     console.log('Part 2 complete');
-                    const fileContents = await Promise.all(files.map(file => fs.read(file)));
-                    fileContents.forEach((content, index) => {
+                    for (const file of files) {
                         if (el) {
-                            el.innerText = 'Sending ' + files[index];
+                            el.innerText = `Sending ${file}`;
                         }
-                        conn.send({
-                            name: 'MigrationFile',
-                            file: content,
-                            filename: files[index],
+                        const fileContent = await fs.read(file);
+                        await new Promise((readyResolve, readyReject) => {
+                            conn.send({
+                                name: 'MigrationFile',
+                                file: fileContent,
+                                filename: file,
+                            });
+
+                            conn.on('data', (data) => {
+                                if (data === 'Ready') {
+                                    readyResolve();
+                                }
+                            });
+
+                            conn.on('error', (err) => {
+                                console.error('Error during migration:', err);
+                                readyReject(err);
+                            });
                         });
-                    });
+                    }
+
                     conn.send({ name: 'MigrationEnd' });
                     resolve(true);
                 } catch (fileReadError) {
@@ -406,7 +429,7 @@ async function refreshfriends() {
         let ids = [];
         const notifiedDeskIds = {};
 
-        data = await fs.read('/user/info/contactlist.json');
+        data = await fs.read('/user/info/contacts.json');
         parsed = JSON.parse(data);
 
         const refint = setInterval(async function () {
@@ -414,7 +437,7 @@ async function refreshfriends() {
                 clearInterval(refint);
                 return;
             }
-            data = await fs.read('/user/info/contactlist.json');
+            data = await fs.read('/user/info/contacts.json');
             parsed = JSON.parse(data);
         }, 20000);
 

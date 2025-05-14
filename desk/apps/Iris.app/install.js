@@ -20,13 +20,30 @@ app['imgview'] = {
             }
             const zip = new JSZip();
             const zipContent = await zip.loadAsync(uint8Array);
-            tk.p(`ZIP files are read-only for the time being. Hit a file to open it in TextEdit.`, undefined, win.main);
+            tk.p(`ZIP files are read-only for the time being.`, undefined, win.main);
             let div = tk.c('div', win.main);
             zipContent.forEach((relativePath, zipEntry) => {
                 tk.cb('flist', relativePath, async function () {
-                    zip.file(relativePath).async("string").then(content => {
-                        app.textedit.init(content, undefined, true);
-                    });
+                    if (relativePath.endsWith('.png') || relativePath.endsWith('.wav') || relativePath.endsWith('.mp3') || relativePath.endsWith('.woff2')) {
+                        const path = await app.files.pick('new', "Save file from ZIP");
+                        if (!path) {
+                            wm.snack('Cancelled save');
+                            return;
+                        } else {
+                            zip.file(relativePath).async("blob").then(binaryContents => {
+                                const reader = new FileReader();
+                                reader.onload = async function (e) {
+                                    const base64Data = e.target.result;
+                                    await fs.write(path, base64Data);
+                                };
+                                reader.readAsDataURL(binaryContents);
+                            });
+                        }
+                    } else {
+                        zip.file(relativePath).async("string").then(content => {
+                            app.textedit.init(content, undefined, true);
+                        });
+                    }
                 }, div);
             });
         } else if (contents.includes('data:application/pdf')) {

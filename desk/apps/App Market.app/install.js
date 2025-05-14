@@ -63,9 +63,11 @@ app['appmark'] = {
         if (sys.dev === true) {
             tk.cb('b1', 'Sideload', function () {
                 const menu = tk.c('div', document.body, 'cm');
+                const id = gen(12);
                 let path2 = undefined;
                 tk.p('Sideload', 'bold', menu);
                 tk.p('Only sideload things you made.', undefined, menu);
+                tk.p(`This app's ID is ${id}`, undefined, menu);
                 const name = tk.c('input', menu, 'i1');
                 name.placeholder = "App name";
                 const dev = tk.c('input', menu, 'i1');
@@ -80,11 +82,16 @@ app['appmark'] = {
                 }, menu);
                 tk.cb('b1', `Install`, async function () {
                     if (name.value !== "" && dev.value !== "" && path2 !== undefined) {
-                        const newen = { name: name.value, ver: 1.0, installedon: Date.now(), dev: dev.value, appid: gen(12), exec: path2 };
-                        const apps = await fs.read('/system/apps.json');
-                        const jsondata = JSON.parse(apps);
-                        jsondata.push(newen);
-                        fs.write('/system/apps.json', jsondata);
+                        const appdata = `app['${id}'] = {
+                            runs: true,
+                            name: '${name.value}',
+                            init: async function () {
+                                ${await fs.read(path2)}
+                            }
+                        }`;
+                        fs.write(`/apps/${id}.app/install.js`, appdata);
+                        const newen = { name: name.value, ver: 1.0, installedon: Date.now(), dev: dev.value, appid: id, system: false, lastpath: `/apps/${id}.app/`, };
+                        await fs.write(`/apps/${id}.app/manifest.json`, newen);
                         ui.dest(menu);
                         wm.snack('Installed ' + name.value);
                     } else {
@@ -127,13 +134,15 @@ app['appmark'] = {
         await loadapps();
     },
     checkforup: async function () {
+        console.log('<i> Checking for app updates...');
         const contents = await fs.ls('/apps/');
         for (const item of contents.items) {
-            if (item.path.endsWith('.app')) {
-                const skibidihawk = await fs.ls(item.path + "/");
+            if (item.path.endsWith('.app/')) {
+                const skibidihawk = await fs.ls(item.path);
+                let manifestfound = false;
                 for (const item3 of skibidihawk.items) {
-                    console.log(item3);
                     if (item3.type === "file" && item3.name === "manifest.json") {
+                        manifestfound = true;
                         const fuck = await fs.read(item3.path);
                         const ok = JSON.parse(fuck);
                         if (ok.dev === "Browser" && ok.ver === 1) {
@@ -141,7 +150,9 @@ app['appmark'] = {
                         } else {
                             const ok2 = await fetch(sys.appurl + "/update/" + ok.appid);
                             const upd = await ok2.json();
+                            console.log(upd, ok2);
                             if (upd.ver !== ok.ver) {
+                                console.log(`<i> App out of date: ${ok.ver} -> ${upd.ver}`);
                                 app.appmark.create(upd.path, upd, true);
                             }
                         }
@@ -149,5 +160,5 @@ app['appmark'] = {
                 }
             }
         }
-    }
+    }    
 }

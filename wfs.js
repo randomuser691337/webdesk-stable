@@ -1,34 +1,43 @@
 let db;
 const request = indexedDB.open("WebDeskDB", 2);
 const pin = undefined;
+let lastAction = "Initializing";
+
+function logTimeout(action) {
+    lastAction = action;
+    setTimeout(() => {
+        console.warn(`<i> Operation "${lastAction}" is taking longer than expected.`);
+    }, 4000);
+}
 
 request.onerror = function (event) {
-    console.error('Error opening database:', event.target.error);
+    console.error('<!> Error opening database: ', event.target.error);
     self.postMessage({ type: 'error', data: event.target.error });
 };
 
 request.onsuccess = function (event) {
     db = event.target.result;
-    console.log('Database opened successfully');
+    console.log('<i> Database opened successfully');
     self.postMessage({ type: 'db_ready' });
 };
 
 request.onupgradeneeded = function (event) {
     db = event.target.result;
+    logTimeout("Upgrading database");
     if (!db.objectStoreNames.contains('main')) {
         const objectStore = db.createObjectStore('main', { keyPath: 'path' });
         console.log('Worker initialized DB for the first time');
     }
 };
 
-self.onmessage = function (event) {
+self.onmessage = async function (event) {
     const { type, operation, params, opt, requestId } = event.data;
     if (type === 'fs') {
-        idbop(operation, params, opt, requestId);
+        await idbop(operation, params, opt, requestId);
     }
 };
 
-function idbop(operation, params, opt, requestId) {
+async function idbop(operation, params, opt, requestId) {
     if ((typeof params === 'string' && params.includes('//'))) {
         self.postMessage({ type: 'result', data: null, requestId });
         console.error(`FS request contains //, which screws things up. Data has been returned as null. Params: ${params}`);
@@ -79,8 +88,14 @@ function idbop(operation, params, opt, requestId) {
                 });
             break;
         case 'erase':
-            fs2.erase(params);
+            try {
+                await fs2.erase(params);
+                self.postMessage({ type: 'result', data: true, requestId });
+            } catch (error) {
+                self.postMessage({ type: 'error', data: error.message || error, requestId });
+            }
             break;
+
         case 'list':
             fs2.list(params);
             break;
@@ -195,7 +210,7 @@ var fs2 = {
             };
         });
     },
-    write: function (path, data) {
+    write: async function (path, data) {
         if (path.includes('/webdeskmetadata')) {
             reject('Forbidden');
         }
@@ -292,22 +307,32 @@ var fs2 = {
             };
         });
     },
-    erase: function (path) {
-        if (db) { db.close(); }
+    erase: async function (path) {
+        return new Promise((resolve, reject) => {
+            if (db) db.close();
 
-        const deleteRequest = indexedDB.deleteDatabase("WebDeskDB");
-        deleteRequest.onsuccess = function () {
-            console.log("<!> WebDesk erased.");
-            if (path === "reboot") {
-                self.postMessage({ type: 'reboot' });
-            } else if (path === "runaway") {
-                self.postMessage({ type: 'runaway' });
-            }
-        };
+            const deleteRequest = indexedDB.deleteDatabase("WebDeskDB");
 
-        deleteRequest.onerror = function (event) {
-            console.log("<!> Error erasing: ", event.target.error);
-        };
+            deleteRequest.onsuccess = function () {
+                console.log("<!> WebDesk erased.");
+                if (path === "reboot") {
+                    self.postMessage({ type: 'reboot' });
+                } else if (path === "runaway") {
+                    self.postMessage({ type: 'runaway' });
+                }
+                resolve('true');
+            };
+
+            deleteRequest.onerror = function (event) {
+                console.log("<!> Error erasing: ", event.target.error);
+                reject(event.target.error);
+            };
+
+            deleteRequest.onblocked = function () {
+                console.log("<!> Delete blocked");
+                reject(new Error("Hey wtf"));
+            };
+        });
     },
     persist: function () {
         if ('storage' in navigator && 'persist' in navigator.storage) {
@@ -343,7 +368,7 @@ var fs2 = {
                                 items.set(parts[0], { path: path + parts[0] + '/', name: parts[0], type: 'folder' });
                             }
                         } else {
-                            items.set(relativePath, { path: key, name: relativePath, type: 'file' });
+                            items.set(relativePath, { path: key, name: relativePath, type: 'file', folder: path });
                         }
                     }
                 });

@@ -25,16 +25,16 @@ app['wetter'] = {
                 win.main.innerHTML = "";
                 const skibidi = tk.c('div', win.main);
                 win.name.innerHTML = "";
-                tk.cb('b4 b6', 'Settings', () => app.settings.locset.init(), win.name);
+                tk.cb('b3', 'Settings', () => app.settings.locset.init(), win.name);
                 if (sys.dev === true) {
-                    tk.cb('b4 b6', 'JSON', async function () {
+                    tk.cb('b3', 'JSON', async function () {
                         const ok = JSON.stringify(info);
                         app.textedit.init(ok, undefined, true);
                     }, win.name);
                 }
                 if (archive !== true) {
                     tk.p(`${sys.city}`, 'med', skibidi);
-                    tk.cb('b4 b6', 'Archive', async function () {
+                    tk.cb('b3', 'Archive', async function () {
                         const the = await app.files.pick('new', 'Save weather archive file... (JSON)');
                         const silly = info;
                         silly.timestamp = Date.now();
@@ -54,17 +54,17 @@ app['wetter'] = {
                     }
                     tk.ps('Archived: ' + wd.timec(info.timestamp), undefined, skibidi);
                 }
-                tk.cb('b4 b6', '⟳', function () {
+                tk.cb('b3', '⟳', function () {
                     refresh(); wm.snack('Refreshed');
                 }, win.name);
                 const userl = tk.c('div', skibidi, 'list flexthing');
                 const tnav = tk.c('div', userl, 'tnav');
                 const title = tk.c('div', userl, 'title');
-                tnav.style.marginLeft = "6px";
+                userl.style.padding = "7px";
                 userl.style.marginBottom = "6px";
                 tnav.innerText = `${Math.ceil(info.main.temp)}${unitsym}, ${info.weather[0].description}`;
                 const img = tk.img(`https://openweathermap.org/img/wn/${info.weather[0].icon}@2x.png`, 'weatheri', title, undefined, true);
-                title.style.maxHeight = "40px";
+                title.style.maxHeight = "38px";
                 tk.p(`Humidity ${archive = archive === true ? "was" : "is"} ${info.main.humidity}%, and it ${archive = archive === true ? "felt" : "feels"} like ${Math.ceil(info.main.feels_like)}${sys.unitsym}.`, undefined, skibidi);
                 tk.p(`Data from <a href="https://openweathermap.org", target="_blank">OpenWeatherMap.</a>`, 'smtxt', skibidi);
             } catch (error) {

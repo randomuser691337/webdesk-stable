@@ -1,22 +1,28 @@
 app['files'] = {
     runs: true,
     name: 'Files',
+    prohib: function (path) {
+        if ((path.startsWith('/system/') || path.startsWith('/apps/') || path.startsWith('/user/info/')) && !path.startsWith('/system/lib/img/wallpapers/') && sys.dev === false) {
+            return true;
+        } else {
+            return false;
+        }
+    },
     init: async function () {
-        const win = tk.mbw(`Files`, '340px', 'auto', true, undefined, undefined, '/apps/Files.app/Contents/icon.svg');
+        const win = tk.mbw(`Files`, '340px', '480px', true, undefined, undefined, '/apps/Files.app/Contents/icon.svg', true);
         const search = tk.c('input', win.main, 'i1');
         win.name.innerHTML = "";
         const breadcrumbs = tk.c('div', win.name);
         search.style.marginBottom = "5px";
         const items = tk.c('div', win.main);
-        if (sys.mobui === true) {
-            items.style.maxHeight = screen.height - 180 + "px";
-        } else {
-            items.style.maxHeight = "370px";
-        }
         items.style.overflow = "auto";
+        items.style.flexGrow = "1";
         items.style.borderRadius = "12px";
         items.style.padding = "6px";
         items.style.paddingTop = "0px";
+        win.main.style.display = "flex";
+        win.main.style.flexDirection = "column";
+        win.main.style.height = "100%";
         win.main.style.padding = "8px";
         let items2;
         search.placeholder = "Search for a file...";
@@ -78,6 +84,11 @@ app['files'] = {
                 const input = tk.c('input', menu, 'i1');
                 input.placeholder = "Name your thing, hit a button";
                 tk.cb('b3 b2', 'New text file', function () {
+                    const prohibcheck = app.files.prohib(tempPath);
+                    if (prohibcheck === true) {
+                        wm.snack('Enable Developer Mode to make things here.');
+                        return;
+                    }
                     if (input.value) {
                         fs.write(tempPath + input.value, ' ');
                         navto(currentPath);
@@ -106,6 +117,10 @@ app['files'] = {
                 e.preventDefault();
                 el.dropped = true;
                 const text = e.dataTransfer.getData('text/plain');
+                if (app.files.prohib(text) === true) {
+                    wm.snack('Enable Developer Mode to move system files.');
+                    return;
+                }
                 const fileData = await fs.read(text);
                 const relativePath = text.split('/').pop();
                 await fs.del(text);
@@ -120,57 +135,64 @@ app['files'] = {
             for (const item of contents.items) {
                 if (item.type === "folder") {
                     let folder;
-                    let flipped = false;
-                    if (item.path.includes('.app')) {
-                        const skibidi2 = await fs.ls(item.path);
-                        for (const item3 of skibidi2.items) {
-                            if (item3.name === "install.js") {
-                                if (flipped === false) {
-                                    flipped = true;
-                                    folder = tk.cb('flist width', "App: " + item.name, function () {
-                                        const menu = tk.c('div', document.body, 'cm');
-                                        if (sys.dev === true) {
-                                            if (item.path.startsWith('/apps/')) {
-                                                tk.p(item.name, 'bold', menu);
-                                                tk.cb('b1 b2', 'View contents', async function () {
-                                                    await navto(item.path);
-                                                    ui.dest(menu);
-                                                }, menu);
-                                                tk.cb('b1 b2', 'Delete app', async function () {
-                                                    await fs.delfold(item.path);
-                                                    ui.dest(menu);
-                                                    ui.slidehide(folder, 100);
-                                                }, menu);
-                                                tk.cb('b1', 'Close', () => ui.dest(menu), menu);
-                                            } else {
-                                                tk.p(`This is a WebDesk app, but it's not in the /Apps/ folder.`, 'bold', menu);
-                                                tk.cb('b1 b2', 'View contents', async function () {
-                                                    await navto(item.path);
-                                                    ui.dest(menu);
-                                                }, menu); tk.cb('b1', 'Close', () => ui.dest(menu), menu);
-                                            }
-                                        } else {
-                                            tk.p('Enable Developer Mode to manage this app.', 'bold', menu);
-                                            tk.cb('b1', 'Close', () => ui.dest(menu), menu);
-                                        }
-                                    }, items);
+                    console.log(item);
+                    if (item.path.endsWith('.app/')) {
+                        folder = tk.cb('flist width left', "📦 " + item.name, function () {
+                            const menu = tk.c('div', document.body, 'cm');
+                            if (sys.dev === true) {
+                                if (item.path.startsWith('/apps/')) {
+                                    tk.p(item.name, 'bold', menu);
+                                    tk.cb('b1 b2', 'View contents', async function () {
+                                        await navto(item.path);
+                                        ui.dest(menu);
+                                    }, menu);
+                                    tk.cb('b1 b2', 'Delete app', async function () {
+                                        await fs.delfold(item.path);
+                                        ui.dest(menu);
+                                        ui.slidehide(folder, 100);
+                                    }, menu);
+                                    tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                } else {
+                                    tk.p(`This is a WebDesk app, but it's not in the /Apps/ folder.`, 'bold', menu);
+                                    tk.cb('b1 b2', 'View contents', async function () {
+                                        await navto(item.path);
+                                        ui.dest(menu);
+                                    }, menu);
+                                    tk.cb('b1 b2', 'Delete app', async function () {
+                                        await fs.delfold(item.path);
+                                        ui.dest(menu);
+                                        ui.slidehide(folder, 100);
+                                    }, menu);
+                                    tk.cb('b1', 'Close', () => ui.dest(menu), menu);
                                 }
                             } else {
-                                if (flipped === false) {
-                                    folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path), items);
-                                    flipped = true;
+                                if (!item.path.startsWith('/apps/')) {
+                                    tk.p(item.name, 'bold', menu);
+                                    tk.cb('b1 b2', 'View contents', async function () {
+                                        await navto(item.path);
+                                        ui.dest(menu);
+                                    }, menu);
+                                    tk.cb('b1 b2', 'Delete app', async function () {
+                                        await fs.delfold(item.path);
+                                        ui.dest(menu);
+                                        ui.slidehide(folder, 100);
+                                    }, menu);
+                                    tk.cb('b1', 'Close', () => ui.dest(menu), menu);
+                                } else {
+                                    tk.p(`Enable Developer Mode to manage this app, or go to Settings -> Manage apps`, 'bold', menu);
+                                    tk.cb('b1', 'Close', () => ui.dest(menu), menu);
                                 }
                             }
-                        }
+                        }, items);
                     } else {
-                        folder = tk.cb('flist width', "Folder: " + item.name, () => navto(item.path), items);
+                        folder = tk.cb('flist width left', "📁 " + item.name, () => navto(item.path), items);
                     }
 
                     let isLongPress = false;
                     let timer;
 
                     function openmenu() {
-                        if ((item.path.startsWith('/system') || item.path.startsWith('/user/info') || item.path.startsWith('/apps/')) && sys.dev === false) {
+                        if (app.files.prohib(item.path) === true) {
                             wm.snack('Enable Developer Mode to modify this folder.', 6000);
                             return;
                         }
@@ -178,7 +200,7 @@ app['files'] = {
                         const menu = tk.c('div', document.body, 'cm');
                         const p = tk.ps(item.path, 'bold', menu);
                         p.style.marginBottom = "7px";
-                        if (item.path.startsWith('/system') || item.path.startsWith('/user/info')) {
+                        if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/') || item.path.startsWith('/apps/')) {
                             tk.p('Important folder, modifying it could cause damage.', 'warn', menu);
                         }
                         tk.cb('b1 b2', 'Delete folder', () => {
@@ -215,9 +237,45 @@ app['files'] = {
                         return;
                     }
 
-                    const fileItem = tk.cb('flist width', "File: " + item.name, async function () {
+                    const fileItem = tk.cb('flist width left', "📄 " + item.name, undefined, items);
+
+                    if (item.name === ".folder") {
+                        fileItem.style.display = "none";
+                    }
+
+                    fileItem.addEventListener('dragstart', e => {
+                        e.dataTransfer.setData('text/plain', item.path);
+                    });
+
+                    fileItem.addEventListener('dragend', e => {
+                        setTimeout(function () {
+                            console.log(el.dropped)
+                            if (el.dropped === true) {
+                                ui.slidehide(fileItem, 100);
+                                ui.dest(fileItem);
+                            }
+                        }, 100);
+                    });
+                    fileItem.draggable = true;
+                    let isLongPress = false;
+                    let timer;
+
+                    async function openmenu(event) {
+                        const menu2 = tk.c('div', document.body, 'rightclick');
+                        const date = await fs.date(item.path);
+                        tk.p(`<span class="bold">Created</span> ${wd.timec(date.created)}`, undefined, menu2);
+                        tk.p(`<span class="bold">Edited</span> ${wd.timec(date.edit)}`, undefined, menu2);
+                        tk.p(`<span class="bold">Read</span> ${wd.timec(date.read)}`, undefined, menu2);
+                        if (!event) {
+                            ui.rightclick(menu2, undefined, fileItem);
+                        } else {
+                            ui.rightclick(menu2, event, fileItem);
+                        }
+                    }
+
+                    async function openmenuv2() {
                         try {
-                            if (sys.dev === false && (item.path.startsWith('/system/') || item.path.startsWith('/user/info/') || item.path.startsWith('/apps/'))) {
+                            if (app.files.prohib(item.path) === true) {
                                 wm.snack('Enable Developer Mode to modify system files.', 6000);
                                 return;
                             }
@@ -228,9 +286,10 @@ app['files'] = {
                             const menu = tk.c('div', document.body, 'cm');
                             const p = tk.ps(item.path, 'bold', menu);
 
-                            if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/')) {
+                            if (item.path.startsWith('/system/') || item.path.startsWith('/user/info/') || item.path.startsWith('/apps/')) {
                                 tk.p('Important file, modifying it could cause damage.', 'warn', menu);
                             }
+
                             if (item.path.startsWith('/user/info/name')) {
                                 tk.p('Deleting this file will erase your data on next restart.', 'warn', menu);
                             }
@@ -239,12 +298,56 @@ app['files'] = {
 
                             try {
                                 if (!filecontent.startsWith('data:video')) {
-                                    if (filecontent.startsWith('data:')) {
+                                    if (filecontent.startsWith('data:image')) {
                                         thing = tk.img(filecontent, 'embed', menu, false, true);
                                         (await thing).img.style.marginBottom = "4px";
                                     } else if (item.name.endsWith('.svg')) {
                                         thing = tk.img(item.path, 'embed', menu, false, false);
                                         (await thing).img.style.marginBottom = "4px";
+                                    } else if (item.name.endsWith('.zip')) {
+                                    } else if (item.name.endsWith('.mp3')) {
+                                        const audio = tk.c('audio', menu, 'hide');
+                                        thing = tk.c('div', menu);
+                                        thing.style.resize = "none";
+                                        const progressBar = tk.c('input', thing);
+                                        progressBar.type = "range";
+                                        progressBar.min = 0;
+                                        progressBar.max = 100;
+                                        progressBar.value = 0;
+                                        progressBar.style.width = "90% !important";
+
+                                        const playPauseBtn = tk.cb('b4', 'Play', function () {
+                                            if (audio.paused) {
+                                                audio.play();
+                                                playPauseBtn.textContent = "Pause";
+                                            } else {
+                                                audio.pause();
+                                                playPauseBtn.textContent = "Play";
+                                            }
+                                        }, thing);
+
+                                        audio.addEventListener("timeupdate", function () {
+                                            progressBar.value = (audio.currentTime / audio.duration) * 100;
+                                        });
+
+                                        progressBar.addEventListener("input", function () {
+                                            audio.currentTime = (progressBar.value / 100) * audio.duration;
+                                        });
+
+                                        let correct;
+                                        if (item.name.endsWith('.wav')) {
+                                            correct = filecontent.replace(/^data:application\/octet-stream/, 'data:audio/wav');
+                                            audio.src = correct;
+                                        } else if (item.name.endsWith('.mp3')) {
+                                            correct = filecontent.replace(/^data:application\/octet-stream/, 'data:audio/mpeg');
+                                            audio.src = correct;
+                                        } else {
+                                            console.log(`<!> Audio file isn't wav or mp3, giving up`);
+                                            audio.remove();
+                                            thing.innerText = "Music file is corrupted or not supported";
+                                        }
+                                        correct = undefined;
+                                        thing.style.marginBottom = "4px";
                                     } else {
                                         thing = tk.c('div', menu, 'embed resizeoff');
                                         const genit = gen(8);
@@ -277,13 +380,7 @@ app['files'] = {
                             btnmenu.style.marginBottom = "4px";
 
                             tk.cb('b3', 'Open', async function () {
-                                if (filecontent.startsWith('data:app') || filecontent.startsWith('data:image')) {
-                                    app.imgview.init(filecontent);
-                                } else if (filecontent.startsWith('data:')) {
-                                    app.imgview.init(filecontent, item.path, item.name);
-                                } else {
-                                    app.textedit.init(filecontent, item.path);
-                                }
+                                app.files.openfile(filecontent, item);
                                 ui.dest(menu);
                             }, btnmenu);
                             tk.cb('b3', 'Open with', function () {
@@ -295,6 +392,10 @@ app['files'] = {
                                     app.imgview.init(filecontent, item.path);
                                     ui.dest(menu2);
                                 }, btnmenu2);
+                                tk.cb('b3', 'Music', function () {
+                                    app.music.init(item.path, item.name);
+                                    ui.dest(menu2);
+                                }, btnmenu2);
                                 tk.cb('b3', 'Text Editor', function () {
                                     app.textedit.init(filecontent, item.path);
                                     ui.dest(menu2);
@@ -303,11 +404,50 @@ app['files'] = {
                                     app.wetter.init(true, filecontent);
                                     ui.dest(menu2);
                                 }, btnmenu2);
+                                tk.cb('b3', 'Wallpaper', function () {
+                                    wd.setwall(filecontent, undefined, true);
+                                    ui.dest(menu2);
+                                }, btnmenu2);
                                 tk.cb('b3', 'console.log', function () {
                                     console.log(filecontent);
                                     ui.dest(menu2);
                                 }, btnmenu2);
-                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2);
+                                if (sys.dev === true) {
+                                    tk.cb('b3', 'Update Package', async function () {
+                                        const dark = ui.darken();
+                                        const menu = tk.c('div', dark, 'cm');
+                                        tk.img('/desk/system/lib/img/icons/warn.svg', 'icon', menu);
+                                        tk.p('Install this WebDesk?', 'bold', menu);
+                                        tk.p(`This will overwrite WebDesk with it's own files, which could install viruses.`, undefined, menu);
+                                        tk.p(`Make sure you have a backup. WebDesk updates will overwrite this version.`, undefined, menu);
+                                        tk.cb('b1 nodontdoit', 'Install', async function () {
+                                            await fs.write('/system/custom', 'true');
+                                            const blob = await (await fetch(filecontent)).blob();
+                                            const zip = await JSZip.loadAsync(blob);
+                                            const files = zip.files;
+                                            for (const filename in files) {
+                                                const file = files[filename];
+                                                if (!file.dir) {
+                                                    if (filename.endsWith('.png') || filename.endsWith('.wav') || filename.endsWith('.woff2')) {
+                                                        const binaryContents = await file.async('blob');
+                                                        const reader = new FileReader();
+                                                        reader.onload = async function (e) {
+                                                            const base64Data = e.target.result;
+                                                            await fs.write(`/${filename}`, base64Data);
+                                                        };
+                                                        reader.readAsDataURL(binaryContents);
+                                                    } else {
+                                                        const contents = await file.async('string');
+                                                        await fs.write("/" + filename, contents);
+                                                    }
+                                                }
+                                            }
+                                            wd.reboot();
+                                        }, menu);
+                                        tk.cb('b1', 'Cancel', () => ui.dest(dark), menu);
+                                    }, btnmenu2);
+                                }
+                                tk.cb('b1', 'Cancel', () => ui.dest(menu2), menu2).style.marginTop = "4px";
                             }, btnmenu);
                             tk.cb('b3', 'Download', () => {
                                 wd.download(filecontent, `WebDesk File ${gen(4)}`);
@@ -366,45 +506,11 @@ app['files'] = {
                             ui.dest(skibidi);
                         } catch (error) {
                             console.log('<!> ' + error);
-                            const fileItem = tk.cb('flist width warn', "File (One or more failed to load)" + item.name, async function () {
+                            const fileItem = tk.cb('flist width left warn', "File (One or more failed to load)" + item.name, async function () {
                                 wm.snack('Trying to load in TextEdit...');
                                 const cont = await fs.read(item.path);
                                 app.textedit.init(cont, item.path);
                             });
-                        }
-                    }, items);
-
-                    if (item.name === ".folder") {
-                        fileItem.style.display = "none";
-                    }
-
-                    fileItem.addEventListener('dragstart', e => {
-                        e.dataTransfer.setData('text/plain', item.path);
-                    });
-
-                    fileItem.addEventListener('dragend', e => {
-                        setTimeout(function () {
-                            console.log(el.dropped)
-                            if (el.dropped === true) {
-                                ui.slidehide(fileItem, 100);
-                                ui.dest(fileItem);
-                            }
-                        }, 100);
-                    });
-                    fileItem.draggable = true;
-                    let isLongPress = false;
-                    let timer;
-
-                    async function openmenu(event) {
-                        const menu2 = tk.c('div', document.body, 'rightclick');
-                        const date = await fs.date(item.path);
-                        tk.p(`<span class="bold">Created</span> ${wd.timec(date.created)}`, undefined, menu2);
-                        tk.p(`<span class="bold">Edited</span> ${wd.timec(date.edit)}`, undefined, menu2);
-                        tk.p(`<span class="bold">Read</span> ${wd.timec(date.read)}`, undefined, menu2);
-                        if (!event) {
-                            ui.rightclick(menu2, undefined, fileItem);
-                        } else {
-                            ui.rightclick(menu2, event, fileItem);
                         }
                     }
 
@@ -421,7 +527,7 @@ app['files'] = {
                         timer = setTimeout(() => {
                             if (!isScrolling) {
                                 isLongPress = true;
-                                openmenu();
+                                openmenuv2();
                             }
                         }, 400);
                     });
@@ -439,8 +545,25 @@ app['files'] = {
                     fileItem.addEventListener('touchend', () => {
                         clearTimeout(timer);
                         if (!isLongPress && !isScrolling) {
-                            fileItem.click();
+                            const event = new MouseEvent('dblclick', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            fileItem.dispatchEvent(event);
                         }
+                    });
+
+                    // add double click event listener to element
+                    fileItem.addEventListener('dblclick', async function () {
+                        if (app.files.prohib(item.path) === true) {
+                            wm.snack('Enable Developer Mode to modify this file.', 3000);
+                            return;
+                        }
+
+                        const filecontent = await fs.read(item.path);
+                        app.files.openfile(filecontent, item);
+                        ui.dest(menu);
                     });
 
                     fileItem.addEventListener('touchcancel', () => clearTimeout(timer));
@@ -448,7 +571,7 @@ app['files'] = {
                     if (sys.mob === false) {
                         fileItem.addEventListener('contextmenu', e => {
                             e.preventDefault();
-                            openmenu(e);
+                            openmenuv2(e);
                         });
                     }
                 }
@@ -499,12 +622,12 @@ app['files'] = {
                 const thing = await fs.ls(path);
                 thing.items.forEach(function (thing) {
                     if (thing.type === "folder") {
-                        const target = tk.cb('flist width', "Folder: " + thing.name, () => navto(thing.path), items);
+                        const target = tk.cb('flist width left', "📁 " + thing.name, () => navto(thing.path), items);
                     } else {
                         if (thing.name == "") {
                             return;
                         }
-                        const target = tk.cb('flist width', "File: " + thing.name, async function () {
+                        const target = tk.cb('flist width left', "📄 " + thing.name, async function () {
                             if (type !== "new") {
                                 const menu = tk.c('div', document.body, 'cm');
                                 tk.p(thing.path, 'bold', menu);
@@ -513,7 +636,7 @@ app['files'] = {
                                 }, menu);
                                 tk.cb('b1', 'Choose', function () {
                                     ui.dest(menu); ui.dest(win.win);
-                                    if (thing.path.startsWith('/system/') || thing.path.startsWith('/user/info/') || thing.path.startsWith('/apps/')) {
+                                    if (app.files.prohib(thing.path) === true) {
                                         if (sys.dev === false) {
                                             wm.snack(`Enable Developer Mode to make or edit files here.`);
                                             return;
@@ -545,7 +668,7 @@ app['files'] = {
                     if (inp.value === "") {
                         wm.snack('Enter a filename.');
                     } else {
-                        if (selectedPath.startsWith('/system') || selectedPath.startsWith('/user/info') || selectedPath.startsWith('/apps/')) {
+                        if (app.files.prohib(selectedPath) === true) {
                             if (sys.dev === false) {
                                 wm.snack(`Enable Developer Mode to make or edit files here.`);
                                 return;
@@ -559,5 +682,16 @@ app['files'] = {
 
             navto('/user/files/');
         });
+    },
+    openfile: function (filecontent, item) {
+        if (filecontent.startsWith('data:app') || filecontent.startsWith('data:image')) {
+            app.imgview.init(filecontent);
+        } else if (filecontent.startsWith('data:') && (item.path.endsWith('.mp3') || item.path.endsWith('.wav'))) {
+            app.music.init(item.path, item.name);
+        } else if (filecontent.startsWith('data:')) {
+            app.imgview.init(filecontent, item.path, item.name);
+        } else {
+            app.textedit.init(filecontent, item.path);
+        }
     }
 };

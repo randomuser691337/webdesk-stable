@@ -8,12 +8,11 @@ var ui = {
         ui.cv('accent', accent);
     },
     crtheme: async function (hex, opt) {
-        const a = ui.hextool(hex, 45);
-        ui.theme(ui.hextool(hex, 25), a, ui.hextool(hex, 45), ui.hextool(hex, 55), ui.hextorgb(ui.hextool(hex, 55)));
         if (!opt === true) {
-            await fs.write('/user/info/color', hex);
+            ui.cv('accent', ui.hextorgb(hex));
+            await set.set('color', hex);
             if (sys.autodarkacc === true) {
-                const silly = ui.hexdark(a);
+                const silly = ui.hexdark(ui.hextorgb(hex));
                 if (silly === true) {
                     wd.dark();
                 } else {
@@ -24,16 +23,71 @@ var ui = {
             console.log(`<i> Not setting theme, opt is set to true! (crtheme)`);
         }
     },
+    getcl: function (imageSrc, callback) {
+        // If it ain't broke, don't fix it
+        var img = new Image();
+        img.crossOrigin = "Anonymous"; // to avoid CORS issue
+        img.onload = function () {
+            var canvas = document.createElement('canvas');
+            canvas.width = this.width;
+            canvas.height = this.height;
+
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(this, 0, 0);
+
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var data = imageData.data;
+            var colorCount = {};
+            var maxCount = 0;
+            var mostUsedColor = [0, 0, 0];
+
+            for (var i = 0; i < data.length; i += 4) {
+                var r = data[i];
+                var g = data[i + 1];
+                var b = data[i + 2];
+                var rgb = r + ',' + g + ',' + b;
+                if ((r > 100 && g < 100 && b < 100) ||
+                    (r < 100 && g > 100 && b < 100) ||
+                    (r < 100 && g < 100 && b > 100) ||
+                    (r > 100 && g > 100 && b < 100) ||
+                    (r > 100 && g < 100 && b > 100) ||
+                    (r < 100 && g > 100 && b > 100)) {
+                    if (!colorCount[rgb]) {
+                        colorCount[rgb] = 0;
+                    }
+                    colorCount[rgb]++;
+                    if (colorCount[rgb] > maxCount) {
+                        maxCount = colorCount[rgb];
+                        mostUsedColor = [r, g, b];
+                    }
+                }
+            }
+
+            // Make the color slightly darker if it's bright
+            var [r, g, b] = mostUsedColor;
+            var brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+            if (brightness > 200) { // Adjust threshold as needed
+                r = Math.max(0, r - r * 0.1);
+                g = Math.max(0, g - g * 0.1);
+                b = Math.max(0, b - b * 0.1);
+                mostUsedColor = [r, g, b];
+            }
+
+            callback(mostUsedColor);
+        };
+
+        img.src = imageSrc;
+    },
     sw: function (d1, d2) {
         const dr1 = document.getElementById(d1);
         const dr2 = document.getElementById(d2);
-        $(dr1).fadeOut(120, function () { $(dr2).fadeIn(120); });
+        $(dr1).fadeOut(sys.animspeed, function () { $(dr2).fadeIn(sys.animspeed); });
     },
     sw2: function (d1, d2, fadetime) {
         if (fadetime) {
             $(d1).fadeOut(fadetime, function () { $(d2).fadeIn(fadetime); });
         } else {
-            $(d1).fadeOut(120, function () { $(d2).fadeIn(120); });
+            $(d1).fadeOut(sys.animspeed, function () { $(d2).fadeIn(sys.animspeed); });
         }
     },
     hide: function (dr1, anim) {
@@ -43,7 +97,7 @@ var ui = {
             } else if (anim === 0) {
                 $(dr1).hide();
             } else {
-                $(dr1).fadeOut(210);
+                $(dr1).fadeOut(sys.animspeed2);
             }
         }
     },
@@ -52,12 +106,17 @@ var ui = {
             if (anim) {
                 $(dr1).slideUp(anim);
             } else {
-                $(dr1).slideUp(210);
+                $(dr1).slideUp(sys.animspeed2);
             }
         }
     },
-    play: async function (filename) {
-        const ok = await fs.read(filename);
+    play: async function (filename, type) {
+        let ok;
+        if (type) {
+            ok = type;
+        } else {
+            ok = await fs.read(filename);
+        }
         let audio;
         if (ok) {
             let correct;
@@ -175,14 +234,11 @@ var ui = {
     },
     hexdark: function (hex) {
         hex = hex.replace(/^#/, '');
-
-        let bigint = parseInt(hex, 16);
-        let r = (bigint >> 16) & 255;
-        let g = (bigint >> 8) & 255;
-        let b = bigint & 255;
-
-        let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        return luminance < 140;
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        return luminance < 128;
     },
     hextorgb: function (hex) {
         hex = hex.replace(/^#/, '');
@@ -191,6 +247,10 @@ var ui = {
         let g = (bigint >> 8) & 255;
         let b = bigint & 255;
         return `${r}, ${g}, ${b}`;
+    },
+    rgbtohex: function (rgb) {
+        const [r, g, b] = rgb.split(',').map(Number);
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
     download: function (filename, data) {
         const blob = new Blob([data], { type: 'text/plain' });
@@ -241,7 +301,7 @@ var ui = {
                 ]);
 
                 const antiTerms = new Set([
-                    'like', 'sad', 'shown', 'light', 'sit', 'sitting', 'site', 'ship', 'stop', 'kind', 'smart', 'kid', 'heart', 'hope', 'set', 'cat', 'photo', 'will', 'replace', 'say', 'shy', 'moon', 'think', 'Mike', 'clink', 'look', 'redo', 'hanger', 'change', 'changing', 'changes', 'due'
+                    'like', 'sad', 'shown', 'light', 'sit', 'sitting', 'site', 'ship', 'stop', 'kind', 'smart', 'kid', 'heart', 'hope', 'set', 'cat', 'photo', 'will', 'replace', 'say', 'shy', 'moon', 'think', 'Mike', 'clink', 'look', 'redo', 'hanger', 'change', 'changing', 'changes', 'due', 'epic'
                 ]);
 
                 const isSimilar = (word, term) => {
@@ -404,6 +464,9 @@ var tk = {
         const bar = tk.c('div', el, 'line-wobble');
         return bar;
     },
+    emojicon: function (element, emote, color, text) {
+        element.innerHTML = `<span class="emojicon" style="background-color: ${color}">${emote}</span> ${text}`
+    },
     c: function (type, ele, classn) {
         const ok = document.createElement(type);
         if (ele) {
@@ -496,7 +559,6 @@ var tk = {
     cb: function (classn, name, func, ele) {
         const button = document.createElement('button');
         button.className = classn;
-        button.innerText = ui.filter(name, button);
         if (func) {
             button.addEventListener('click', func);
         }
@@ -504,25 +566,37 @@ var tk = {
             ele.appendChild(button);
         }
 
-        if ((classn.includes('b1') || classn.includes('b3')) && sys.lowgfx === false) {
+        if ((classn.includes('b1'))) {
+            const span = tk.c('div', button, 'b1material');
+            span.innerText = ui.filter(name, button);
+            if (classn.includes('nodont') || sys.lowgfx === true) {
+                span.style.backgroundColor = "rgb(0, 0, 0, 0)";
+            }
+        } else {
+            button.innerText = ui.filter(name, button);
+        }
+
+        /* if ((classn.includes('b1') || classn.includes('b3')) && (sys.lowgfx === false && !classn.includes('nodont'))) {
             button.onmouseleave = (e) => {
                 e.target.style.background = "rgba(var(--accent), 0.4)";
             };
 
             button.addEventListener("mousemove", (e) => {
-                const rect = e.target.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                e.target.style.background = `radial-gradient(circle at ${x}px ${y}px , rgba(var(--accent), 0.62),rgba(var(--accent), 0.53))`;
+                if (e.target === button) {
+                    const rect = e.target.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    e.target.style.background = `radial-gradient(circle at ${x}px ${y}px , rgba(var(--accent), 0.63),rgba(var(--accent), 0.53))`;
+                }
             });
-        }
+        } */
 
         return button;
     },
     a: function (ele1, ele2) {
         ele1.appendChild(ele2);
     },
-    mbw: function (title, wid, hei, full, min, quit, icon) {
+    mbw: function (title, wid, hei, full, min, quit, icon, resize) {
         var windowDiv = document.createElement('div');
         windowDiv.classList.add('window');
         windowDiv.setAttribute('wdname', title);
@@ -559,11 +633,11 @@ var tk = {
         closeButtonNest.appendChild(closeButton);
         let shortened;
         if (sys.mob === true) {
-            shortened = ui.truncater(title, 7);
+            shortened = ui.truncater(title, 12);
         } else {
-            shortened = ui.truncater(title, 10);
+            shortened = ui.truncater(title, 60);
         }
-        const tbn = tk.cb('', '', function () {
+        const tbn = tk.cb('tbbutton', '', function () {
             wm.show(windowDiv, tbn);
         }, el.tr);
         if (icon) {
@@ -576,33 +650,24 @@ var tk = {
         tooltip.textContent = shortened;
 
         function updateTooltipPosition() {
-            const { x, width, top, height } = tbn.getBoundingClientRect();
+            const { x, width } = tbn.getBoundingClientRect();
             tooltip.style.left = `${x + width / 2 - tooltip.offsetWidth / 2}px`;
             setTimeout(updateTooltipPosition, 200);
         }
-        
-        
+
         window.addEventListener("resize", updateTooltipPosition);
-        
+
         if (el.taskbar) {
             new ResizeObserver(updateTooltipPosition).observe(el.taskbar);
         }
 
         updateTooltipPosition();
-        
-
-        const showTooltip = () => {
-            tooltip.classList.add('visible');
-        };
-
-        const hideTooltip = () => {
-            tooltip.classList.remove('visible');
-        };
-
+        const showTooltip = () => { tooltip.classList.add('visible'); };
+        const hideTooltip = () => { tooltip.classList.remove('visible'); };
         tbn.addEventListener('mouseenter', showTooltip);
         tbn.addEventListener('mouseleave', hideTooltip);
 
-        const removeTooltipListener = () => { 
+        const removeTooltipListener = () => {
             tbn.removeEventListener('mouseenter', showTooltip);
             tbn.removeEventListener('mouseleave', hideTooltip);
         };
@@ -612,11 +677,11 @@ var tk = {
             closeButtonNest.addEventListener('click', async function () {
                 const mousedownevent = new MouseEvent('click');
                 windowDiv.dispatchEvent(mousedownevent);
-                ui.dest(windowDiv, 140);
-                ui.dest(tbn, 140);
+                ui.dest(windowDiv, 0);
+                ui.dest(tbn, 0);
                 removeTooltipListener();
                 setTimeout(async function () {
-                    const yeah = await ughfine(windowDiv);
+                    const yeah = ughfine(windowDiv);
                     if (yeah) {
                         yeah.dispatchEvent(mousedownevent);
                     } else {
@@ -684,6 +749,64 @@ var tk = {
         });
         if (sys.mobui !== true) {
             setTimeout(function () { ui.center(windowDiv); }, 10);
+        }
+        if (resize !== true) {
+            const resizeBarStyles = {
+                position: 'absolute',
+                background: 'transparent',
+                zIndex: 9999,
+                cursor: 'ew-resize'
+            };
+
+            const resizeBars = [
+                { side: 'top', cursor: 'ns-resize', style: { top: '-1px', left: 0, right: 0, height: '7px' } },
+                { side: 'bottom', cursor: 'ns-resize', style: { bottom: '-1px', left: 0, right: 0, height: '7px' } },
+                { side: 'left', cursor: 'ew-resize', style: { top: 0, bottom: 0, left: '-1px', width: '7px' } },
+                { side: 'right', cursor: 'ew-resize', style: { top: 0, bottom: 0, right: '-1px', width: '7px' } }
+            ];
+
+            resizeBars.forEach(bar => {
+                const resizeBar = document.createElement('div');
+                Object.assign(resizeBar.style, resizeBarStyles, bar.style);
+                resizeBar.style.cursor = bar.cursor;
+                windowDiv.appendChild(resizeBar);
+
+                resizeBar.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startWidth = parseInt(document.defaultView.getComputedStyle(windowDiv).width, 10);
+                    const startHeight = parseInt(document.defaultView.getComputedStyle(windowDiv).height, 10);
+
+                    function doDrag(e) {
+                        if (bar.side === 'right') {
+                            windowDiv.style.width = (startWidth + e.clientX - startX) + 'px';
+                        } else if (bar.side === 'left') {
+                            const newWidth = startWidth - (e.clientX - startX);
+                            if (newWidth > 0) {
+                                windowDiv.style.width = newWidth + 'px';
+                                windowDiv.style.left = e.clientX + 'px';
+                            }
+                        } else if (bar.side === 'bottom') {
+                            windowDiv.style.height = (startHeight + e.clientY - startY) + 'px';
+                        } else if (bar.side === 'top') {
+                            const newHeight = startHeight - (e.clientY - startY);
+                            if (newHeight > 0) {
+                                windowDiv.style.height = newHeight + 'px';
+                                windowDiv.style.top = e.clientY + 'px';
+                            }
+                        }
+                    }
+
+                    function stopDrag() {
+                        document.documentElement.removeEventListener('mousemove', doDrag, false);
+                        document.documentElement.removeEventListener('mouseup', stopDrag, false);
+                    }
+
+                    document.documentElement.addEventListener('mousemove', doDrag, false);
+                    document.documentElement.addEventListener('mouseup', stopDrag, false);
+                }, false);
+            });
         }
         return { win: windowDiv, main: contentDiv, tbn, title: titlebarDiv, closebtn: closeButtonNest, winbtns, name: titleDiv, minbtn: minimizeButtonNest };
     }
