@@ -209,22 +209,6 @@
 
 </html>
 <script>
-    if (navigator.serviceWorker) {
-        try {
-            navigator.serviceWorker.register('/offline.js')
-                .then((registration) => {
-                    console.log('<i> Registered offline with scope: ', registration.scope);
-                })
-                .catch((error) => {
-                    console.log('<!> Offline worker fucked off: ', error.message);
-                });
-        } catch (error) {
-            console.log('<!> Offline worker fucked off: ', error.message);
-        }
-    } else {
-        console.log('<!> Old ass browser, no offline for you');
-    }
-    
     function wegood() {
         sys.webdeskbooted = true;
     }
